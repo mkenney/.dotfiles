@@ -1,0 +1,39 @@
+#
+# Gerrit-specific aliases and functions
+#
+
+# list current projects in gerrit
+alias gerrit-ls="ssh -p 29418 gerrit.dev.returnpath.net gerrit ls-projects"
+alias status="git status"
+alias pull="git pull"
+alias gcommit="git commit"
+
+# switch to a specific branch
+function checkout {
+        BRANCH=$1
+	if [ "${BRANCH}" = '' ]
+	then
+		echo "Checkout what?"
+	else
+		git checkout "${BRANCH}"
+	fi
+}
+
+# create a new branch
+function branch	{
+        BRANCH=$1
+	if [ "${BRANCH}" = '' ] || [ "${BRANCH}" = 'list' ]
+	then
+		git branch
+	else
+		git branch "${BRANCH}"
+	fi
+}
+
+# clone	a project from gerrit
+function clone {
+        PROJECT=$1
+        git clone ssh://mkenney@gerrit.dev.returnpath.net:29418/"${PROJECT}"
+        scp -p -P 29418 gerrit.dev.returnpath.net:hooks/commit-msg "${PROJECT}"/.git/hooks/
+}
+

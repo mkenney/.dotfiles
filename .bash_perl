@@ -1,0 +1,1 @@
+alias perlshell="sudo perl -MCPAN -e \"shell\""
