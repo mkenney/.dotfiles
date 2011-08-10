@@ -1,0 +1,15 @@
+.cpan/
+.cvspass
+.elinks/
+.emacs
+.gitconfig
+.htoprc
+.lesshst
+.php_history
+.ssh/
+.viminfo
+cvs-sites
+oradiag_mkenney/
+projects/
+tmp/
+www
