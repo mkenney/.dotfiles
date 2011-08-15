@@ -34,6 +34,20 @@ if [ -f ~/.bash_perl ]; then
 	. ~/.bash_perl
 fi
 
+#
+# Load my aliases
+#
+if [ -f ~/.bash_aliases ]; then
+	. ~/.bash_aliases
+fi
+
+#
+# Load my prompt
+#
+if [ -f ~/.bash_prompt ]; then
+	. ~/.bash_prompt
+fi
+
 # User specific environment and startup programs
 PATH=$PATH:$HOME/bin
 export PATH

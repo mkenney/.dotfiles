@@ -1,0 +1,36 @@
+#
+# Set the bash prompt
+#
+
+# Setup colors
+CODE_RED=$'\[\e[1;31m\]'
+CODE_GREEN=$'\[\e[1;32m\]'
+CODE_YELL=$'\[\e[1;33m\]'
+CODE_BLUE=$'\[\e[1;34m\]'
+CODE_BOLD_NORM=$'\[\e[1;37m\]'
+CODE_NORM=$'\[\e[0;m\]'
+
+# Checks for root
+if [ "$EUID" = "0" ]; then
+	PS_USER="${CODE_RED}\u${CODE_BOLD_NORM}@${CODE_YELL}\h:${CODE_NORM}"
+	PS_PROMPT="${CODE_RED}#${CODE_NORM}"
+else
+	PS_USER="${CODE_GREEN}\u${CODE_BOLD_NORM}@${CODE_YELL}\h:${CODE_NORM}"
+	PS_PROMPT="${CODE_GREEN}\$${CODE_NORM}"
+fi
+
+export PS_USER PS_PROMPT
+
+# Prompt function
+function prompt_command {
+	PS_PATH="${CODE_BLUE}$PWD${CODE_NORM}"
+	PS1="${PS_USER} ${PS_PATH} ${PS_PROMPT} "
+	export PS1
+}
+
+# Store the function in memory
+export -f prompt_command
+
+# Store the prompt function for use by the shell
+PROMPT_COMMAND='prompt_command'
+export PROMPT_COMMAND
