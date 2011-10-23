@@ -1,16 +1,4 @@
-
 # .bash_profile
-
-#
-# Create an ISO from a vido_ts folder
-# The video_ts folder must be INSIDE of the specified directory
-#
-function makedvd {
-	DIR=$1
-	NAME=$(basename "${DIR}")
-	echo "hdiutil makehybrid -udf -udf-volume-name \"${NAME}\" -o \"${NAME}.iso\" \"${DIR}\""
-	hdiutil makehybrid -udf -udf-volume-name "${NAME}" -o "${NAME}.iso" "${DIR}"
-}
 
 # Get the aliases and functions
 if [ -f ~/.bashrc ]; then
@@ -50,6 +38,13 @@ fi
 #
 if [ -f ~/.bash_aliases ]; then
 	. ~/.bash_aliases
+fi
+
+#
+# Load functions
+#
+if [ -f ~/.bash_functions ]; then
+	. ~/.bash_functions
 fi
 
 #
