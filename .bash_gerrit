@@ -7,6 +7,7 @@ alias gerrit-ls="ssh -p 29418 gerrit.dev.returnpath.net gerrit ls-projects"
 alias status="git status"
 alias pull="git pull"
 alias gcommit="git commit"
+alias use="checkout"
 
 # switch to a specific branch
 function checkout {
