@@ -7,6 +7,9 @@ if [[ $platform == 'Linux' ]]; then
 
 elif [[ $platform == 'Darwin' ]]; then
 	alias ls='ls -GAaF'
+
+elif [[ $platform == 'SunOS' ]]; then
+	alias ls='ls -laF'
 fi
 
 #
