@@ -57,7 +57,7 @@ if [ -f ~/.bash_prompt ]; then
 fi
 
 # User specific environment and startup programs
-PATH=$PATH:$HOME/bin
+PATH=$PATH:$HOME/bin:/usr/local/php/bin
 export PATH
 
 export VISUAL=/usr/bin/vim
