@@ -1,0 +1,16 @@
+export HADOOP_HOME="/usr/local/hadoop"
+export PIG_HOME="/urs/local/pig"
+export JAVA_HOME="/usr/java/latest"
+
+#
+# User specific environment and startup programs
+#
+PATH=$PATH:$HOME/bin
+PATH=$PATH:/usr/local/hadoop/bin
+PATH=$PATH:/usr/local/pig/bin
+PATH=$PATH:$HOME/hdshell/bin
+export PATH
+
+export VISUAL=/usr/bin/vim
+export EDITOR=/usr/bin/vim
+

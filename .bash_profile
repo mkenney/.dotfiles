@@ -53,18 +53,19 @@ if [ -f ~/.bash_aliases ]; then
 fi
 
 #
+# Load my env
+#
+if [ -f ~/.bash_env ]; then
+	. ~/.bash_env
+fi
+
+#
 # Load my prompt
 #
 if [ -f ~/.bash_prompt ]; then
 	. ~/.bash_prompt
 fi
 
-# User specific environment and startup programs
-PATH=$PATH:$HOME/bin
-export PATH
-
-export VISUAL=/usr/bin/vim
-export EDITOR=/usr/bin/vim
 
 echo "
 

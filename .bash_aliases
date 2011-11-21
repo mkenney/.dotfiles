@@ -1,10 +1,23 @@
 #
-# Bash aliases
+# Platform specific aliases
+#
+platform=`uname`
+if [[ $platform == 'Linux' ]]; then
+	alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
+
+elif [[ $platform == 'Darwin' ]]; then
+	alias ls='ls -GAaF'
+
+elif [[ $platform == 'SunOS' ]]; then
+	alias ls='ls -laF'
+fi
+
+#
+# Other aliases
 #
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
-alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
 alias ll='ls -l'
 alias l='ls -1'
 alias e='exit'
