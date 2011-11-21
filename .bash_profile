@@ -43,6 +43,13 @@ if [ -f ~/.bash_aliases ]; then
 fi
 
 #
+# SSH Tunnel aliases
+#
+if [ -f ~/.bash_tunnels ]; then
+	. ~/.bash_tunnels
+fi
+
+#
 # Load functions
 #
 if [ -f ~/.bash_functions ]; then
