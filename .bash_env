@@ -1,4 +1,6 @@
 export HADOOP_HOME="/usr/local/hadoop"
+export HBASE_HOME="/usr/local/hbase"
+export GROOVY_HOME="/usr/local/groovy"
 export PIG_HOME="/urs/local/pig"
 export JAVA_HOME="/usr/java/latest"
 
@@ -9,8 +11,21 @@ PATH=$PATH:$HOME/bin
 PATH=$PATH:/usr/local/hadoop/bin
 PATH=$PATH:/usr/local/pig/bin
 PATH=$PATH:$HOME/hdshell/bin
+PATH=$PATH:/usr/local/php/bin
+PATH=$PATH:/usr/local/php-5.2.17_apache-2.2.15/bin
+PATH=$PATH:/usr/local/apache-maven/bin
 export PATH
 
 export VISUAL=/usr/bin/vim
 export EDITOR=/usr/bin/vim
+
+#maven
+export M2_HOME=/usr/local/apache-maven
+export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
+
+
+
+
+
+
 
