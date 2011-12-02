@@ -36,6 +36,13 @@ if [ -f ~/.bash_perl ]; then
 fi
 
 #
+# Load my java stuffs
+#
+if [ -f ~/.bash_java ]; then
+	. ~/.bash_java
+fi
+
+#
 # Load my aliases
 #
 if [ -f ~/.bash_aliases ]; then
