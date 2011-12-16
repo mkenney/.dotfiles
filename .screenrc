@@ -9,5 +9,5 @@ screen -t shell_2	2
 screen -t shell_3	3
 
 # Scrollback
-defscrollback 10000
+defscrollback 100000
 
