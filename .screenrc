@@ -11,3 +11,15 @@ screen -t shell_3	3
 # Scrollback
 defscrollback 100000
 
+# suggested binding for emacs users
+escape ^pp
+
+
+
+
+
+
+
+
+
+
