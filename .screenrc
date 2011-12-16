@@ -3,7 +3,11 @@ hardstatus alwayslastline
 hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{=kw}%?%-Lw%?%{r}(%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B}%Y-%m-%d %{W}%c %{g}]'
 
 # Default screens
-screen -t shell1	1
-screen -t shell2	2
-screen -t shell3	3
+screen -t shell_0	0
+screen -t shell_1	1
+screen -t shell_2	2
+screen -t shell_3	3
+
+# Scrollback
+defscrollback 10000
 
