@@ -50,6 +50,13 @@ if [ -f ~/.bash_aliases ]; then
 fi
 
 #
+# Load my screen aliases
+#
+if [ -f ~/.bash_screen ]; then
+	. ~/.bash_screen
+fi
+
+#
 # SSH Tunnel aliases
 #
 if [ -f ~/.bash_tunnels ]; then
