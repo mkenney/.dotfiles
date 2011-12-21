@@ -34,3 +34,19 @@ export -f prompt_command
 # Store the prompt function for use by the shell
 PROMPT_COMMAND='prompt_command'
 export PROMPT_COMMAND
+
+if [ "$EUID" = "0" ]; then
+	echo "
+
+	!!! You are logged in as ${CODE_RED}ROOT${CODE_NORM} !!!
+
+"
+else
+	echo "
+
+badger badger badger
+
+"
+fi
+
+

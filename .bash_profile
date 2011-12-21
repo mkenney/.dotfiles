@@ -79,11 +79,3 @@ if [ -f ~/.bash_prompt ]; then
 	. ~/.bash_prompt
 fi
 
-echo "
-
-badger badger badger
-
-"
-
-
-
