@@ -1,4 +1,3 @@
-
 function ccommit # CVS commit.
 {
   if [ $# -gt 0 ] && [ ! -e "$1" ]; then REPLY=$* && files=.
