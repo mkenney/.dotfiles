@@ -1,3 +1,4 @@
+alias scr="screen"
 alias sls="screen -list"
 alias slr="screen -r"
 

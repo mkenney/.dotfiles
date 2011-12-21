@@ -36,7 +36,7 @@ alias suod='sudo'
 alias tail='tail -25'
 alias locate='locate -i'
 alias pstree='pstree -lpuU'
-alias sr='screen -U -A -T screen-256color -d -R'
+alias screen='screen -U -A -T screen-256color -d -R'
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .1; done | hexdump -C | grep --color=none "ca fe"'
 alias ed="emacs"
 alias em="emacs"

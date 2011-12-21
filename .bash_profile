@@ -86,7 +86,7 @@ fi
 
 echo "
 
-find / -name "*base*" -user your -print | xargs 'chown us'
+badger badger badger
 
 "
 
