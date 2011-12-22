@@ -1,0 +1,70 @@
+. ~/.bash_color
+
+echo "Normal           : ${COLOR_NORM}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Normal Underline : ${COLOR_NORM_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Normal Bold      : ${COLOR_NORM_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Normal Highlight : ${COLOR_NORM_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Black            : ${COLOR_BLACK}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Black  Underline : ${COLOR_BLACK_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Black  Bold      : ${COLOR_BLACK_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Black  Highlight : ${COLOR_BLACK_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Red              : ${COLOR_RED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Underline    : ${COLOR_RED_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Bold         : ${COLOR_RED_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Highlight    : ${COLOR_RED_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Green            : ${COLOR_GREEN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Underline  : ${COLOR_GREEN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Bold       : ${COLOR_GREEN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Highlight  : ${COLOR_GREEN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Yellow           : ${COLOR_YELLOW}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Yellow Underline : ${COLOR_YELLOW_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Yellow Bold      : ${COLOR_YELLOW_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Yellow Highlight : ${COLOR_YELLOW_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+#echo
+#echo "Brown           : ${COLOR_BROWN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+#echo "Brown Underline : ${COLOR_BROWN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+#echo "Brown Bold      : ${COLOR_BROWN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+#echo "Brown Highlight : ${COLOR_BROWN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Blue             : ${COLOR_BLUE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Blue Underline   : ${COLOR_BLUE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Blue Bold        : ${COLOR_BLUE_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Blue Highlight   : ${COLOR_BLUE_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Purple           : ${COLOR_PURPLE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Purple Underline : ${COLOR_PURPLE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Purple Bold      : ${COLOR_PURPLE_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Purple Highlight : ${COLOR_PURPLE_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Cyan             : ${COLOR_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Cyan Underline   : ${COLOR_CYAN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Cyan Bold        : ${COLOR_CYAN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Cyan Highlight   : ${COLOR_CYAN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "White            : ${COLOR_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "White Underline  : ${COLOR_WHITE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "White Bold       : ${COLOR_WHITE_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "White Highlight  : ${COLOR_WHITE_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Black Background : ${BACKGROUND_BLACK}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Background   : ${BACKGROUND_RED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Background : ${BACKGROUND_GREEN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Yellow Background: ${BACKGROUND_YELLOW}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Blue Background  : ${BACKGROUND_BLUE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Purple Background: ${BACKGROUND_PURPLE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Cyan Background  : ${BACKGROUND_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+
+
+COLOR_TEST=$'\e[2;91m'
+echo
+echo "Test             : ${COLOR_TEST}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Bold         : ${COLOR_RED_UNDERLIE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+
+
+
+
