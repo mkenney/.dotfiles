@@ -79,11 +79,3 @@ if [ -f ~/.bash_prompt ]; then
 	. ~/.bash_prompt
 fi
 
-echo "
-
-find / -name "*base*" -user your -print | xargs 'chown us'
-
-"
-
-
-
