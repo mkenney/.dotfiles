@@ -1,3 +1,4 @@
+# https://wiki.archlinux.org/index.php/Color_Bash_Prompt
 . ~/.bash_color
 
 echo "Normal           : ${COLOR_NORM}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
