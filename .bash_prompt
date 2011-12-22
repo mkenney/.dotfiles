@@ -9,24 +9,19 @@
 # Root prompt
 if [ "$EUID" = "0" ]; then
 	PS1="\n${COLOR_RED_BOLD}\u${COLOR_NORM}${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h:${COLOR_NORM}${COLOR_NORM_BOLD}\w\n${COLOR_RED_BOLD}#${COLOR_NORM} "
-# Normal prompt
-else
-	PS1="\n${COLOR_GREEN_BOLD}\u${COLOR_NORM}${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h:${COLOR_NORM}${COLOR_NORM_BOLD}\w\n${COLOR_GREEN_BOLD}\$${COLOR_NORM} "
-fi
-export PS1;
-
-if [ "$EUID" = "0" ]; then
 	echo
 	echo
 	echo "	${COLOR_YELLOW}!!! You are logged in as ${COLOR_RED_BOLD}ROOT${COLOR_YELLOW} !!!${COLOR_NORM}"
 	echo
 	echo
+# Normal prompt
 else
+	PS1="\n${COLOR_GREEN_BOLD}\u${COLOR_NORM}${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h:${COLOR_NORM}${COLOR_NORM_BOLD}\w\n${COLOR_GREEN_BOLD}\$${COLOR_NORM} "
 	echo
 	echo
 	echo "badger badger badger"
 	echo
 	echo
 fi
-
+export PS1;
 
