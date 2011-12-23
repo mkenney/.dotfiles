@@ -41,7 +41,8 @@ alias suod='sudo'
 
 alias locate='locate -i'
 alias pstree='pstree -lpuU'
-alias screen='screen -U -A -T screen-256color -d -R'
+#alias screen='screen -U -A -T screen-256color -d -R'
+alias screen='screen -U -A -d -R'
 
 alias ed="emacs"
 alias em="emacs"
