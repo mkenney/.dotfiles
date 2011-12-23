@@ -43,7 +43,8 @@ alias rsync='rsync --progress'
 
 alias locate='locate -i'
 alias pstree='pstree -lpuU'
-alias screen='screen -U -A -T screen-256color -d -R'
+#alias screen='screen -U -A -T screen-256color -d -R'
+alias screen='screen -U -A -d -R'
 
 
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
