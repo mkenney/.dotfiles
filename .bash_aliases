@@ -42,7 +42,7 @@ alias suod='sudo'
 alias rsync='rsync --progress'
 
 alias locate='locate -i'
-alias pstree='pstree -lpuU'
+alias pstree='pstree -ahlpsuU'
 #alias screen='screen -U -A -T screen-256color -d -R'
 alias screen='screen -U -A -d -R'
 
