@@ -11,7 +11,7 @@ screen -t bash 3
 defscrollback 10000
 
 # suggested binding for emacs users
-escape ^``
+escape ^\\\
 
 # Visual bell
 vbell on
@@ -19,10 +19,4 @@ vbell_msg "   -- !!Ding Ding!! --   "	# default: "Wuff,Wuff!!"
 
 # Autodetach session on hangup instead of terminating screen completely
 autodetach on
-
-
-
-
-
-
 
