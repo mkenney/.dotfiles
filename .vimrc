@@ -49,9 +49,9 @@ vnoremap <C-P> :call PhpDocRange()<CR>
 set complete+=kspell
  
 " disable tabs
-"set expandtab
-"set shiftwidth=4
-"set softtabstop=4
+set expandtab
+set shiftwidth=4
+set softtabstop=4
  
 " highlt matches
 set hlsearch
@@ -164,6 +164,7 @@ set nowrap
 autocmd BufWritePre *.php :%s/\s\+$//e
 autocmd BufWritePre *.pl :%s/\s\+$//e
 autocmd BufWritePre *.pm :%s/\s\+$//e
+autocmd BufWritePre *.java :%s/\s\+$//e
 
 " Status bar
 set statusline=%F%m%r%h%w\ \ Line\ %l,\ Col\ %v\ \(%p%%\)
