@@ -9,6 +9,12 @@ alias pull="git pull"
 alias gcommit="git commit"
 alias use="checkout"
 
+# Auto-clean common coding style errors
+export GIT_PRECH_CLEANALL=true
+
+# Don't let phpcs errors block commits
+export GIT_PRECH_ALWAYSCOMMIT=true
+
 # switch to a specific branch
 function checkout {
         BRANCH=$1

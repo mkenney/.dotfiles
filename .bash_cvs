@@ -1,3 +1,5 @@
+export CVSROOT=:pserver:mkenney:!Danann021@cvs.dev.returnpath.net:2401/home/cvs/repository
+
 function ccommit # CVS commit.
 {
   if [ $# -gt 0 ] && [ ! -e "$1" ]; then REPLY=$* && files=.
