@@ -4,11 +4,17 @@ export GROOVY_HOME="/usr/local/groovy"
 export PIG_HOME="/urs/local/pig"
 export JAVA_HOME="/usr/java/latest"
 
+export ORACLE_HOME='/usr/local/oracle'
+export TNS_ADMIN='/usr/local/oracle'
+export LD_LIBRARY_PATH=$BERKELEYDB/lib:$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
+
 #
 # User specific environment and startup programs
 #
 PATH=$PATH:$HOME/bin
 PATH=$PATH:/usr/local/hadoop/bin
+PATH=$PATH:/usr/local/hbase/bin
+PATH=$PATH:/usr/local/hive/bin
 PATH=$PATH:/usr/local/pig/bin
 PATH=$PATH:$HOME/hdshell/bin
 PATH=$PATH:/usr/local/php/bin
