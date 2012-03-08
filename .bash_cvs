@@ -1,4 +1,3 @@
-export CVSROOT=:pserver:mkenney:!Danann021@cvs.dev.returnpath.net:2401/home/cvs/repository
 
 function ccommit # CVS commit.
 {
