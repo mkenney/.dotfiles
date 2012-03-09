@@ -35,6 +35,7 @@ alias vi='vim'
 alias ed="emacs"
 alias em="emacs"
 
+alias less='less -R'
 alias more='less'
 alias grep='grep -n --color=auto'
 alias top='htop -d 5'
