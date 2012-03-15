@@ -48,10 +48,14 @@ vnoremap <C-P> :call PhpDocRange()<CR>
 " (I love this feature :-)
 set complete+=kspell
  
+" <TAB>-related options
 " disable tabs
 set expandtab
 set shiftwidth=4
 set softtabstop=4
+set tabstop=4
+set autoindent
+
  
 " highlt matches
 set hlsearch
@@ -152,11 +156,6 @@ endfunction
 set errorformat+=\"%f\"\\,%l\\,%c\\,%t%*[a-zA-Z]\\,\"%m\"
 command! Phpcs execute RunPhpcs()
 
-" <TAB>-related options
-set shiftwidth=4
-set tabstop=4
-set autoindent
-
 " Don't visually wrap lines
 set nowrap
 
@@ -176,6 +175,7 @@ set encoding=utf8
 
 "set shell=/bin/bash
 
+" line numbers
 set nu
 
 
