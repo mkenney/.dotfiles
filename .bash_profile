@@ -73,6 +73,13 @@ if [ -f ~/.bash_env ]; then
 fi
 
 #
+# Load bash settings
+#
+if [ -f ~/.bash_env ]; then
+	. ~/.bash_env
+fi
+
+#
 # Load my prompt
 #
 if [ -f ~/.bash_prompt ]; then
