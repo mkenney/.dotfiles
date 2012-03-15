@@ -7,6 +7,7 @@ alias gerrit-ls="ssh -p 29418 gerrit.dev.returnpath.net gerrit ls-projects"
 alias status="git status"
 alias pull="git pull"
 alias gcommit="git commit"
+alias gdiff="git diff"
 alias use="checkout"
 
 # Auto-clean common coding style errors
@@ -17,7 +18,7 @@ export GIT_PRECH_ALWAYSCOMMIT=true
 
 # switch to a specific branch
 function checkout {
-        BRANCH=$1
+    BRANCH=$1
 	if [ "${BRANCH}" = '' ]
 	then
 		echo "Checkout what?"
@@ -28,7 +29,7 @@ function checkout {
 
 # create a new branch
 function branch	{
-        BRANCH=$1
+    BRANCH=$1
 	if [ "${BRANCH}" = '' ] || [ "${BRANCH}" = 'list' ]
 	then
 		git branch
@@ -40,8 +41,8 @@ function branch	{
 
 # clone	a project from gerrit
 function clone {
-        PROJECT=$1
-        git clone ssh://mkenney@gerrit.dev.returnpath.net:29418/"${PROJECT}"
-        scp -p -P 29418 gerrit.dev.returnpath.net:hooks/commit-msg "${PROJECT}"/.git/hooks/
+    PROJECT=$1
+    git clone ssh://mkenney@gerrit.dev.returnpath.net:29418/"${PROJECT}"
+    scp -p -P 29418 gerrit.dev.returnpath.net:hooks/commit-msg "${PROJECT}"/.git/hooks/
 }
 
