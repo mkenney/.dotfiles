@@ -3,9 +3,9 @@
 # https://wiki.archlinux.org/index.php/Color_Bash_Prompt
 #
 COLOR_NORM=$'\e[0m'
-COLOR_NORM_BOLD=$'\e[1m'
-COLOR_NORM_UNDERLINE=$'\e[2m'
-COLOR_NORM_HIGHLIGHT=$'\e[3m'
+COLOR_NORM_BOLD=$'\e[0m\e[1m'
+COLOR_NORM_UNDERLINE=$'\e[0m\e[2m'
+COLOR_NORM_HIGHLIGHT=$'\e[0m\e[3m'
 
 COLOR_BLACK=$'\e[0;90m'
 COLOR_BLACK_BOLD=$'\e[1;90m'
@@ -60,8 +60,4 @@ BACKGROUND_BLUE=$'\e[104m'
 BACKGROUND_PURPLE=$'\e[105m'
 BACKGROUND_CYAN=$'\e[106m'
 BACKGROUND_WHITE=$'\e[107m'
-
-
-
-
 
