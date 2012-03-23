@@ -73,10 +73,10 @@ if [ -f ~/.bash_env ]; then
 fi
 
 #
-# Load bash settings
+# Load bash completion settings
 #
-if [ -f ~/.bash_env ]; then
-	. ~/.bash_env
+if [ -f ~/.bash_completion ]; then
+	. ~/.bash_completion
 fi
 
 #
