@@ -4,3 +4,6 @@ set completion-ignore-case On
 # Tab completion for sudo
 complete -cf sudo
 
+# Tab completion for which
+complete -cf which
+
