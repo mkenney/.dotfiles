@@ -10,7 +10,7 @@ screen -t bash 3
 # Scrollback
 defscrollback 10000
 
-# suggested binding for emacs users
+# C-a is mine again
 escape ^\\\
 
 # Visual bell
