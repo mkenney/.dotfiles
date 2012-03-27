@@ -60,12 +60,3 @@ echo "Purple Background: ${BACKGROUND_PURPLE}The quick brown fox jumped over the
 echo "Cyan Background  : ${BACKGROUND_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 
-
-COLOR_TEST=$'\e[2;91m'
-echo
-echo "Test             : ${COLOR_TEST}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-echo "Red Bold         : ${COLOR_RED_UNDERLIE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-
-
-
-
