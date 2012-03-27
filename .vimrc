@@ -63,7 +63,7 @@ set hlsearch
 " Taken from http://peterodding.com/code/vim/profile/vimrc
 " Make Vim open and close folded text as needed because I can't be bothered to
 " do so myself and wouldn't use text folding at all if it wasn't automatic.
-set foldmethod=marker foldopen=all,insert foldclose=all
+" set foldmethod=marker foldopen=all,insert foldclose=all
  
 " Enable enhanced command line completion.
 set wildmenu wildmode=list:full
@@ -90,7 +90,7 @@ set ofu=syntaxcomplete#Complete
 let php_sql_query=1
 let php_htmlInStrings=1
 "let g:php_folding=2
-set foldmethod=syntax
+"set foldmethod=syntax
 "if line =~ '^\s*\(class\|function\)\s'
     
 
