@@ -20,6 +20,7 @@ PATH=$PATH:$HOME/hdshell/bin
 PATH=$PATH:/usr/local/php/bin
 PATH=$PATH:/usr/local/php-5.2.17_apache-2.2.15/bin
 PATH=$PATH:/usr/local/apache-maven/bin
+PATH=$PATH:/usr/local/ant/bin
 export PATH
 
 export VISUAL=/usr/bin/vim
