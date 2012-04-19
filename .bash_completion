@@ -1,3 +1,6 @@
+# auto-complete hostnames in /etc/hosts
+export HOSTFILE=/etc/hosts
+
 # auto-completion is not case sensitive anymore
 set completion-ignore-case On
 
