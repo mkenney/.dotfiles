@@ -10,3 +10,6 @@ complete -cf sudo
 # Tab completion for which
 complete -cf which
 
+# Tab completion for man
+complete -cf man
+
