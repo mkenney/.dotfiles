@@ -1,6 +1,10 @@
 [user]
 	email = mkenney@webbedlam.com
 	name = Michael Kenney
+[diff]
+    external = .vimdiff_wrapper
+[pager]
+    diff =
 [color]
 	diff = auto
 	status = auto

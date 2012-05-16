@@ -16,6 +16,8 @@ export GIT_PRECH_CLEANALL=true
 # Don't let phpcs errors block commits
 export GIT_PRECH_ALWAYSCOMMIT=true
 
+alias vimdiff_wrapper='vimdiff "$2" "$5"'
+
 # switch to a specific branch
 function checkout {
     BRANCH=$1
