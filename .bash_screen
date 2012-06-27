@@ -1,11 +1,5 @@
-alias scr="screen"
 alias sls="screen -list"
 alias slr="screen -r"
-
-
-
-
-
-
-
+alias screen='screen -U -A -d -R'
+alias scr="screen"
 
