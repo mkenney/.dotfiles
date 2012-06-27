@@ -6,6 +6,7 @@
 # Load color definitions
 . ~/.bash_color
 
+a=$'\e[0m'
 # Root prompt
 if [ "$EUID" = "0" ]; then
 #	echo
@@ -16,7 +17,7 @@ if [ "$EUID" = "0" ]; then
 	PS1='\n${COLOR_RED_BOLD}\u${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h: ${COLOR_NORM_BOLD}$PWD\n${COLOR_RED_BOLD}⚡${COLOR_NORM} '
 # Normal prompt
 else
-	PS1='\n${COLOR_GREEN_BOLD}\u${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h: ${COLOR_NORM_BOLD}$PWD\n${COLOR_GREEN_BOLD}⚡${COLOR_NORM} '
+	PS1='\n${COLOR_GREEN_BOLD}\u${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h: ${COLOR_NORM_BOLD}$PWD\n${COLOR_GREEN_BOLD}⚡$a '
 fi
 export PS1;
 
