@@ -3,6 +3,11 @@ inoremap <C-P> <ESC>:call PhpDocSingle()<CR>i
 nnoremap <C-P> :call PhpDocSingle()<CR> 
 vnoremap <C-P> :call PhpDocRange()<CR>
 
+" case-insensitive search
+set ignorecase
+" case-sensitive once I type an uppercase char...
+set smartcase
+
 " line wrapping
 set wrap
 set linebreak
