@@ -80,6 +80,13 @@ if [ -f ~/.bash_completion ]; then
 fi
 
 #
+# Load Fuse4x mount aliases
+#
+if [ -f ~/.bash_mount ]; then
+	. ~/.bash_mount
+fi
+
+#
 # Load my prompt
 #
 if [ -f ~/.bash_prompt ]; then

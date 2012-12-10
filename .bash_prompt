@@ -11,14 +11,14 @@ a=$'\e[0m'
 if [ "$EUID" = "0" ]; then
 #	echo
 #	echo
-#	echo "	${COLOR_YELLOW} You are logged in as ${COLOR_RED_BOLD}ROOT${COLOR_NORM}"
+#	echo "	\[${COLOR_YELLOW}\] You are logged in as \[${COLOR_RED_BOLD}\]ROOT\[${COLOR_NORM}\]"
 #	echo
 #	echo
-	PS1='\n${COLOR_RED_BOLD}\u${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h: ${COLOR_NORM_BOLD}$PWD\n${COLOR_RED_BOLD}⚡${COLOR_NORM} '
+	PS1='\n\[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
 # Normal prompt
 else
-	PS1='\n${COLOR_GREEN_BOLD}\u${COLOR_NORM_BOLD}@${COLOR_YELLOW_BOLD}\h: ${COLOR_NORM_BOLD}$PWD\n${COLOR_GREEN_BOLD}⚡$a '
+	PS1='\n\[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
 fi
 export PS1;
 
-export PS2='${COLOR_NORM_BOLD}\>${COLOR_NORM} '
+export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '
