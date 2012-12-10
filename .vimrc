@@ -44,10 +44,10 @@ nnoremap <C-P> :call PhpDocSingle()<CR>
 vnoremap <C-P> :call PhpDocRange()<CR>
  
 " run file with PHP CLI (CTRL-M)
-:autocmd FileType php noremap <C-M> :w!<CR>:!/usr/bin/php %<CR>
+:autocmd FileType php noremap <C-M> :w!<CR>:!/usr/local/php/bin/php %<CR>
  
 " PHP parser check (CTRL-L)
-:autocmd FileType php noremap <C-L> :!/usr/bin/php -l %<CR>
+:autocmd FileType php noremap <C-L> :!/usr/local/php/bin/php -l %<CR>
  
 " Do use the currently active spell checking for completion though!
 " (I love this feature :-)

@@ -34,7 +34,7 @@ export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 # command history length
 export HISTSIZE=2000
 
-
+[[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
 
 
 
