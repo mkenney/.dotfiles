@@ -3,6 +3,7 @@ export HBASE_HOME="/usr/local/hbase"
 export GROOVY_HOME="/usr/local/groovy"
 export PIG_HOME="/urs/local/pig"
 export JAVA_HOME="/usr/java/latest"
+export LANG="en_US.UTF-8"
 
 export ORACLE_HOME='/usr/local/oracle'
 export TNS_ADMIN='/usr/local/oracle'
