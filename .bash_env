@@ -5,9 +5,13 @@ export PIG_HOME="/urs/local/pig"
 export JAVA_HOME="/usr/java/latest"
 export LANG="en_US.UTF-8"
 
-export ORACLE_HOME='/usr/local/oracle'
-export TNS_ADMIN='/usr/local/oracle'
-export LD_LIBRARY_PATH=$BERKELEYDB/lib:$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
+export ORACLE_HOME=/oracle/product/latest
+export TNS_ADMIN=$ORACLE_HOME/network/admin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib
+
+#export TNS_ADMIN='/usr/local/oracle'
+#export LD_LIBRARY_PATH=$BERKELEYDB/lib:$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
 
 #
 # User specific environment and startup programs
