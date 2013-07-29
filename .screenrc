@@ -8,7 +8,7 @@ screen -t bash 2
 screen -t bash 3
 
 # Scrollback
-defscrollback 10000
+defscrollback 20000
 
 # C-a is mine again
 escape ^\\\
