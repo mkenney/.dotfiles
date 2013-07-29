@@ -10,6 +10,7 @@ export TNS_ADMIN=$ORACLE_HOME/network/admin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib
 
 export PERLLIB=$HOME/projects/rp_perl_libs/lib
+export PERL5LIB=$HOME/projects/rp_perl_libs/lib
 
 #export TNS_ADMIN='/usr/local/oracle'
 #export LD_LIBRARY_PATH=$BERKELEYDB/lib:$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
