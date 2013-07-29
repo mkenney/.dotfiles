@@ -17,6 +17,20 @@ if [ -f ~/.bash_gerrit ]; then
 fi
 
 #
+# Load git completion
+#
+if [ -f ~/.bash_git-completion ]; then
+	. ~/.bash_git-completion
+fi
+
+#
+# Load git prompt
+#
+if [ -f ~/.bash_git-prompt.sh ]; then
+	. ~/.bash_git-prompt.sh
+fi
+
+#
 # Load my cvs stuffs
 #
 if [ -f ~/.bash_cvs ]; then

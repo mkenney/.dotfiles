@@ -18,6 +18,7 @@ set nocp
 syntax on
 filetype plugin indent on
 
+
 " Don't remember source of this, i think it was already in my .vimrc
 " Tell vim to remember certain things when we exit
 "  '10 : marks will be remembered for up to 10 previously edited files
@@ -55,11 +56,11 @@ set complete+=kspell
  
 " <TAB>-related options
 " disable tabs
-set expandtab
-set shiftwidth=4
-set softtabstop=4
+"set expandtab
+"set shiftwidth=4
+"set softtabstop=4
 set tabstop=4
-set autoindent
+"set autoindent
 
  
 " highlt matches
@@ -183,9 +184,13 @@ set encoding=utf8
 " line numbers
 set nu
 
+"set t_Co=256
+
+if $TERM == ('xterm')
+  set t_Co=256
+endif
 
 " Syntax highlighting
-hi Comment  	term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
 hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
 hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
 hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
@@ -197,20 +202,4 @@ hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline gui
 hi Ignore		term=NONE cterm=NONE ctermfg=black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+set nofoldenable    " disable folding
