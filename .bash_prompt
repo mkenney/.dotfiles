@@ -9,10 +9,10 @@
 a=$'\e[0m'
 # Root prompt
 if [ "$EUID" = "0" ]; then
-	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h2: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
+	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
 # Normal prompt
 else
-	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h2: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
+	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
 fi
 export PS1;
 
