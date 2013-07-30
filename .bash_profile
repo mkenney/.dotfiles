@@ -19,9 +19,9 @@ fi
 #
 # Load git completion
 #
-if [ -f ~/.bash_git-completion ]; then
-	. ~/.bash_git-completion
-fi
+#if [ -f ~/.bash_git-completion ]; then
+#	. ~/.bash_git-completion
+#fi
 
 #
 # Load git prompt
