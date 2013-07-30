@@ -21,7 +21,7 @@ function prompt_command() {
 	fi
 
 	if [ "" != "$git_line" ]; then # In a git repo
-		ps1_lines+='\n\[${COLOR_YELLOW_BOLD}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\]'
+		ps1_lines+='\n\[${COLOR_YELLOW_BOLD}\]$(__git_ps1 "[git: %s]")\[${COLOR_NORM_BOLD}\]'
 	fi
 
 	if [ "$EUID" = "0" ]; then # Root
