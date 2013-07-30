@@ -6,14 +6,34 @@
 # Load color definitions
 . ~/.bash_color
 
-a=$'\e[0m'
-# Root prompt
-if [ "$EUID" = "0" ]; then
-	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
-# Normal prompt
-else
-	PS1='\n\[${COLOR_YELLOW_HIGHLIGHT}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\] \[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
-fi
-export PS1;
+function prompt_command() {
+	GIT_PS1_SHOWDIRTYSTATE=1
+	GIT_PS1_SHOWSTASHSTATE=1
+	GIT_PS1_SHOWUNTRACKEDFILES=1
+	GIT_PS1_SHOWUPSTREAM="auto"
+	git_line=$(__git_ps1 '%s')
+
+	local -a ps1_lines
+	if [ "$EUID" = "0" ]; then # Root
+		ps1_lines+='\n\[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]'
+	else
+		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]'
+	fi
+
+	if [ "" != "$git_line" ]; then # In a git repo
+		ps1_lines+='\n\[${COLOR_YELLOW_BOLD}\]$(__git_ps1 "branch: %s")\[${COLOR_NORM_BOLD}\]'
+	fi
+
+	if [ "$EUID" = "0" ]; then # Root
+		ps1_lines+='\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
+	else
+		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
+	fi
+	
+	PS1="${ps1_lines[*]}"
+}
+
+export PROMPT_COMMAND=prompt_command
 
 export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '
+
