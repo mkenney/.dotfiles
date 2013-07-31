@@ -7,10 +7,10 @@
 . ~/.bash_color
 
 function prompt_command() {
-	GIT_PS1_SHOWDIRTYSTATE=
-	GIT_PS1_SHOWSTASHSTATE=
+	GIT_PS1_SHOWDIRTYSTATE=1
+	GIT_PS1_SHOWSTASHSTATE=1
 	GIT_PS1_SHOWUNTRACKEDFILES=
-	GIT_PS1_SHOWUPSTREAM=
+	GIT_PS1_SHOWUPSTREAM=1
 	git_line=$(__git_ps1 '%s')
 
 	local -a ps1_lines
