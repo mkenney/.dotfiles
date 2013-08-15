@@ -199,7 +199,21 @@ hi Statement	term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ff
 hi PreProc		term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
 hi Type			term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold guifg=#60ff60 guibg=NONE
 hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
-hi Ignore		term=NONE cterm=NONE ctermfg=black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
+hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE  
 
+if &diff
+   colorscheme darkblue
+endif
+
 set nofoldenable    " disable folding
+
+
+cmap w!! w !sudo tee %
+
+
+
+
+
+
+
