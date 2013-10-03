@@ -10,6 +10,7 @@ elif [[ $platform == 'Darwin' ]]; then
 
 elif [[ $platform == 'SunOS' ]]; then
 	alias ls='ls -laF'
+	export TERM=vt100
 fi
 
 #
