@@ -44,7 +44,7 @@ function branch	{
 # clone	a project from gerrit
 function clone {
     PROJECT=$1
-    git clone ssh://mkenney@gerrit:29418/"${PROJECT}"
+    git clone ssh://gerrit/"${PROJECT}"
     scp -p -P 29418 gerrit:hooks/commit-msg "${PROJECT}"/.git/hooks/
 }
 
