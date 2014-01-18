@@ -4,7 +4,7 @@
 #
 
 # Load color definitions
-. ~/.bash_color
+. ~/.bash/.bash_color
 
 function prompt_command() {
 	GIT_PS1_SHOWDIRTYSTATE=1

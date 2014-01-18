@@ -1,5 +1,5 @@
 # https://wiki.archlinux.org/index.php/Color_Bash_Prompt
-. ~/.bash_color
+. ~/.bash/.bash_color
 
 echo "Normal           : ${COLOR_NORM}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Normal Underline : ${COLOR_NORM_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
