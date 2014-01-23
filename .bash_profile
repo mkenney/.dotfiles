@@ -1,109 +1,109 @@
 #
-# .bash_profile
+# .bash/.bash_profile
 #
 
 #
 # Load my VIM stuffs
 #
-if [ -f ~/.bash_vim ]; then
-	. ~/.bash_vim
+if [ -f ~/.bash/.bash_vim ]; then
+	. ~/.bash/.bash_vim
 fi
 
 #
 # Load my gerrit stuffs
 #
-if [ -f ~/.bash_gerrit ]; then
-	. ~/.bash_gerrit
+if [ -f ~/.bash/.bash_gerrit ]; then
+	. ~/.bash/.bash_gerrit
 fi
 
 #
 # Load git completion
 #
-#if [ -f ~/.bash_git-completion ]; then
-#	. ~/.bash_git-completion
+#if [ -f ~/.bash/.bash_git-completion ]; then
+#	. ~/.bash/.bash_git-completion
 #fi
 
 #
 # Load git prompt
 #
-if [ -f ~/.bash_git-prompt.sh ]; then
-	. ~/.bash_git-prompt.sh
+if [ -f ~/.bash/.bash_git-prompt.sh ]; then
+	. ~/.bash/.bash_git-prompt.sh
 fi
 
 #
 # Load my cvs stuffs
 #
-if [ -f ~/.bash_cvs ]; then
-	. ~/.bash_cvs
+if [ -f ~/.bash/.bash_cvs ]; then
+	. ~/.bash/.bash_cvs
 fi
 
 #
 # Load my perl stuffs
 #
-if [ -f ~/.bash_perl ]; then
-	. ~/.bash_perl
+if [ -f ~/.bash/.bash_perl ]; then
+	. ~/.bash/.bash_perl
 fi
 
 #
 # Load my java stuffs
 #
-if [ -f ~/.bash_java ]; then
-	. ~/.bash_java
+if [ -f ~/.bash/.bash_java ]; then
+	. ~/.bash/.bash_java
 fi
 
 #
 # Load my aliases
 #
-if [ -f ~/.bash_aliases ]; then
-	. ~/.bash_aliases
+if [ -f ~/.bash/.bash_aliases ]; then
+	. ~/.bash/.bash_aliases
 fi
 
 #
 # Load my screen aliases
 #
-if [ -f ~/.bash_screen ]; then
-	. ~/.bash_screen
+if [ -f ~/.bash/.bash_screen ]; then
+	. ~/.bash/.bash_screen
 fi
 
 #
 # SSH Tunnel aliases
 #
-if [ -f ~/.bash_tunnels ]; then
-	. ~/.bash_tunnels
+if [ -f ~/.bash/.bash_tunnels ]; then
+	. ~/.bash/.bash_tunnels
 fi
 
 #
 # Load functions
 #
-if [ -f ~/.bash_functions ]; then
-	. ~/.bash_functions
+if [ -f ~/.bash/.bash_functions ]; then
+	. ~/.bash/.bash_functions
 fi
 
 #
 # Load my env
 #
-if [ -f ~/.bash_env ]; then
-	. ~/.bash_env
+if [ -f ~/.bash/.bash_env ]; then
+	. ~/.bash/.bash_env
 fi
 
 #
-# Load bash completion settings
+# Load.bash/.bash completion settings
 #
-if [ -f ~/.bash_completion ]; then
-	. ~/.bash_completion
+if [ -f ~/.bash/.bash_completion ]; then
+	. ~/.bash/.bash_completion
 fi
 
 #
 # Load Fuse4x mount aliases
 #
-if [ -f ~/.bash_mount ]; then
-	. ~/.bash_mount
+if [ -f ~/.bash/.bash_mount ]; then
+	. ~/.bash/.bash_mount
 fi
 
 #
 # Load my prompt
 #
-if [ -f ~/.bash_prompt ]; then
-	. ~/.bash_prompt
+if [ -f ~/.bash/.bash_prompt ]; then
+	. ~/.bash/.bash_prompt
 fi
 
