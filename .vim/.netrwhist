@@ -1,5 +1,6 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =3
+let g:netrw_dirhist_cnt =4
 let g:netrw_dirhist_1='/home/mkenney/.vim'
 let g:netrw_dirhist_2='/usr/local/projects/emt_web/models/RP/Db'
 let g:netrw_dirhist_3='/etc'
+let g:netrw_dirhist_4='/usr/local/projects/internal_rtools_web/documentroot/sales/.git/hooks'

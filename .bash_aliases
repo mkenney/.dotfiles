@@ -38,7 +38,7 @@ alias em="emacs"
 
 alias less='less -R'
 alias more='less'
-alias grep='grep -n --color=auto'
+alias grep='grep --color=auto'
 alias top='htop -d 5'
 alias suod='sudo'
 alias rsync='rsync --progress'
@@ -49,3 +49,13 @@ alias pstree='pstree -ahlpsuU'
 
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep -T --color=none "ca fe"'
 
+alias cert_common_web='locate assets/cert | grep "cert$" | grep "/usr/local/projects" | grep -v "internal_rtools_web\." | grep -v hackathon | grep -v "cert\.eq\." | grep -v tmp | grep -v prototype'
+
+function update_cert_common_web {
+	while read -r path; do
+		if [ -d "$path" ]; then
+			echo ${path}
+			cd ${path} && command git checkout master && command git pull
+		fi
+	done <<< "$(locate assets/cert | grep "cert$" | grep "/usr/local/projects" | grep -v "internal_rtools_web\." | grep -v hackathon | grep -v "cert\.eq\." | grep -v tmp | grep -v prototype)"
+}
