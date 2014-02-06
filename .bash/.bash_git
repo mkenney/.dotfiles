@@ -1,0 +1,96 @@
+#
+# Gerrit-specific aliases and functions
+#
+
+# Auto-clean common coding style errors
+#export GIT_PRECH_CLEANALL=true
+
+# Don't let phpcs errors block commits
+#export GIT_PRECH_ALWAYSCOMMIT=true
+
+#unalias vimdiff_wrapper='vimdiff "$2" "$5"'
+
+#
+# Colored & formatted list of branches
+#
+function git_branch_list {
+	cur_branch=$(command git rev-parse --abbrev-ref HEAD)
+	color_end=$'\e[0m'
+	while read -r line; do
+		if [ ! -z "$line" ]; then
+			parts=(${line// / })
+			if [ "${parts[3]}" = "${cur_branch}" ]; then
+				color_start=$'\e[1;92m'
+				curr_char='*'
+			else
+				color_start=$'\e[0;94m'
+				curr_char=' '
+			fi
+			echo "${color_start}${curr_char} ${parts[0]} ${parts[1]} ${color_start}${parts[3]}${color_end}"
+		fi
+	done <<< "$(git for-each-ref --sort=-committerdate refs/heads/ --format='%(committerdate:iso) %(refname:short)')"
+}
+export -f git_branch_list
+
+#
+# Space and newline delimited list of words that will autocomplete
+# I.E. `git rp-cl<tab>` would complete as `git rp-clone`
+#
+function git_autocomplete_commands {
+	echo "rp-clone rp-hooks rp-list"
+}
+export -f git_autocomplete_commands
+
+#
+# git command wrapper + alias
+#
+function git_better {
+
+	#
+	# Branching
+	#
+	if [ "$1" = "branch" ]; then
+		if [ "$2" = "" ]; then
+			git_branch_list
+		else
+			command git branch "${@:2}"
+
+			# checkout the new branch
+			if [ "$3" = "" ]; then
+				command git checkout "${2}"
+			fi
+		fi
+
+	#
+	# RP clone, automatically grab the Gerrit commit id hook
+	#
+	elif [ "$1" = "rp-clone" ]; then
+		command git clone ssh://gerrit/"$2"
+		scp -p -P 29418 gerrit:hooks/commit-msg "$2"/.git/hooks/
+		cd "$2"
+
+	#
+	# RP hooks, import any Gerrit hooks, run from project root
+	#
+	elif [ "$1" = "rp-hooks" ]; then
+		if [ -d ".git/hooks"]; then
+			scp -p -P 29418 gerrit:hooks/commit-msg .git/hooks/
+		else
+			echo "You need to run this command from the toplevel of the working tree."
+			echo
+		fi
+	#
+	# RP list, list all current projects in Gerrit
+	#
+	elif [ "$1" = "rp-list" ]; then
+		command ssh gerrit gerrit ls-projects
+
+	#
+	# Git default
+	#
+	else
+		command git "$@"
+	fi
+}
+alias git=git_better
+
