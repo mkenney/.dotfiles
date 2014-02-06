@@ -26,3 +26,4 @@ projects/
 tmp/
 www
 /.Trash/
+.vim/.netrwhist
