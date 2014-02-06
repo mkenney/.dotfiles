@@ -67,7 +67,6 @@ function git_better {
 	elif [ "$1" = "rp-clone" ]; then
 		command git clone ssh://gerrit/"$2"
 		scp -p -P 29418 gerrit:hooks/commit-msg "$2"/.git/hooks/
-		cd "$2"
 
 	#
 	# RP hooks, import any Gerrit hooks, run from project root
