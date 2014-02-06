@@ -12,16 +12,16 @@ fi
 #
 # Load my gerrit stuffs
 #
-if [ -f ~/.bash/.bash_gerrit ]; then
-	. ~/.bash/.bash_gerrit
+if [ -f ~/.bash/.bash_git ]; then
+	. ~/.bash/.bash_git
 fi
 
 #
 # Load git completion
 #
-#if [ -f ~/.bash/.bash_git-completion ]; then
-#	. ~/.bash/.bash_git-completion
-#fi
+if [ -f ~/.bash/.bash_git-completion ]; then
+	. ~/.bash/.bash_git-completion
+fi
 
 #
 # Load git prompt
