@@ -16,7 +16,7 @@ export PATH=$ORACLE_HOME/bin:$PATH:$HOME/bin
 #export TNS_ADMIN=$ORACLE_HOME/network/admin
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib
 
-export PERLLIB=$HOME/projects/rp_perl_libs/lib:$HOME/projects/cert_performance_backend/lib
+export PERLLIB=$HOME/projects/rp_perl_libs/lib:$HOME/projects/cert_performance_backend/lib:$HOME/projects/cert_applicants_backend/lib
 export PERL5LIB=$PERLLIB
 export CERT_PERFORMANCE_HOME=$HOME/projects/cert_performance_backend
 #export TNS_ADMIN='/usr/local/oracle'
