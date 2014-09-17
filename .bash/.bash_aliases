@@ -47,7 +47,7 @@ alias locate='locate -i'
 alias pstree='pstree -ahlpsuU'
 
 
-alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep -T --color=none "ca fe"'
+alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
 
 alias cert_common_web='locate assets/cert | grep "cert$" | grep "/usr/local/projects" | grep -v "internal_rtools_web\." | grep -v hackathon | grep -v "cert\.eq\." | grep -v tmp | grep -v prototype'
 
