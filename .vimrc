@@ -62,7 +62,9 @@ set complete+=kspell
 set tabstop=4
 "set autoindent
 
- 
+" Incremental search
+set incsearch
+
 " highlt matches
 set hlsearch
  
@@ -201,7 +203,7 @@ hi Type			term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold gui
 hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
 hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE  
-
+hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
 if &diff
    colorscheme darkblue
 endif

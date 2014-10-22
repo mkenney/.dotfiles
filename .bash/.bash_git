@@ -72,7 +72,7 @@ function git_better {
 	# RP hooks, import any Gerrit hooks, run from project root
 	#
 	elif [ "$1" = "rp-hooks" ]; then
-		if [ -d ".git/hooks"]; then
+		if [ -d ".git/hooks" ]; then
 			scp -p -P 29418 gerrit:hooks/commit-msg .git/hooks/
 		else
 			echo "You need to run this command from the toplevel of the working tree."
