@@ -25,7 +25,13 @@ function prompt_command() {
 	fi
 
 	if [ "$EUID" = "0" ]; then # Root
-		ps1_lines+='\n\[${COLOR_RED_BOLD}\]⚡\[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]😡\[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👺\[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👹\[${COLOR_NORM}\] '
+		ps1_lines+='\n\[${COLOR_RED_BOLD}\]👀 \[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👒 \[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]🙈 \[${COLOR_NORM}\] '
+		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]😨 \[${COLOR_NORM}\] '
 	else
 		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
 	fi
