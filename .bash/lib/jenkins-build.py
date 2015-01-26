@@ -24,8 +24,8 @@ from os.path import expanduser
 home = os.path.expanduser("~")
 
 user = subprocess.check_output(['git', 'config', 'user.name']).strip()
-jenkins_user = subprocess.check_output(['whoami'])
-jenkins_api  = open(home + '/.bash/lib/jenkins.key', 'r').read()
+jenkins_user = subprocess.check_output(['whoami']).strip()
+jenkins_api  = open(home + '/.bash/lib/jenkins.key', 'r').read().strip()
 
 gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+owner:'
 gerrit_url += urllib.quote('"%s"' % (user))
