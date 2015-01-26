@@ -37,7 +37,7 @@ export -f git_branch_list
 # I.E. `git rp-cl<tab>` would complete as `git rp-clone`
 #
 function git_autocomplete_commands {
-	echo "rp-clone rp-hooks rp-list"
+	echo "rp-clone rp-hooks rp-list rp-testbuild"
 }
 export -f git_autocomplete_commands
 
@@ -83,6 +83,12 @@ function git_better {
 	#
 	elif [ "$1" = "rp-list" ]; then
 		command ssh gerrit gerrit ls-projects
+
+	#
+	# RP list, list all current projects in Gerrit
+	#
+	elif [ "$1" = "rp-testbuild" ]; then
+		command ~/.bash/lib/jenkins-build.py
 
 	#
 	# Git default
