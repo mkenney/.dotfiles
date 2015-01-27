@@ -24,8 +24,10 @@ pp = pprint.PrettyPrinter()
 
 if sys.argv[1] == 'prod':
 	mode = 'prod'
+	mode_text = 'Production'
 else:
 	mode = 'test'
+	mode_text = 'Test'
 
 # jenkins.dev user info
 jenkins_user = subprocess.check_output(['whoami']).strip()
@@ -46,9 +48,10 @@ my_changes = json.loads(''.join(urllib2.urlopen(my_gerrit_url).readlines()[1:]))
 all_gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+project:'+ sys.argv[2]+'&o=CURRENT_REVISION'
 all_changes = json.loads(''.join(urllib2.urlopen(all_gerrit_url).readlines()[1:]))
 
-build_header = ('\n\n %s %s build' % (sys.argv[2], mode))
+build_header = '\n\n'+sys.argv[2]
 print (build_header)
 print (len(build_header) -1 ) * '='
+print 'Preparing to build for the '+mode_text+' environment...'
 
 # Building for test
 if mode == 'test':
@@ -57,36 +60,37 @@ if mode == 'test':
 	commits = {}
 
 	# Build master screen
-	code_reviews = ('\nBulid master:')
+	code_reviews = ('\nCurrent master:')
 	print(code_reviews)
-	print (len(code_reviews) -1 ) * '-' + '\n'
-	print('[%d] refs/heads/master' % (count))
+	print (len(code_reviews) -1 ) * '-'
+	print('    [%d] refs/heads/master' % (count))
 	commits[count] = {}
 	commits[count]['id'] = 'master'
 	commits[count]['refspec'] = 'refs/heads/master'
 	count += 1
 
 	# My code reviews screen
-	code_reviews = ('\n\nCode reviews currently open for '+git_user_name+':')
+	code_reviews = ('\n\nMy open reviews:')
 	print(code_reviews)
-	print (len(code_reviews) -1 ) * '-' + '\n'
+	print (len(code_reviews) -1 ) * '-'
 	for change in my_changes:
-		print('[%d] %s' % (count, change['subject']))
+		print('    [%d] %s' % (count, change['subject']))
 		commits[count] = {}
 		commits[count]['id'] = change['_number']
 		commits[count]['refspec'] = ('refs/changes/%s/%s/%s' % (str(change['_number'])[-2:], change['_number'], change['revisions'][change['current_revision']]['_number']))
 		count += 1
 
 	# All code reviews screen
-	code_reviews = ('\n\nCode reviews currently open for all committers:')
+	code_reviews = ('\n\nOpen reviews for other committers:')
 	print(code_reviews)
-	print (len(code_reviews) -1 ) * '-' + '\n'
+	print (len(code_reviews) -1 ) * '-'
 	for change in all_changes:
-		print('[%d] (%s) %s' % (count, change['owner']['name'], change['subject']))
-		commits[count] = {}
-		commits[count]['id'] = change['_number']
-		commits[count]['refspec'] = ('refs/changes/%s/%s/%s' % (str(change['_number'])[-2:], change['_number'], change['revisions'][change['current_revision']]['_number']))
-		count += 1
+		if change['owner']['name'] != git_user_name:
+			print('    [%d] (%s) %s' % (count, change['owner']['name'], change['subject']))
+			commits[count] = {}
+			commits[count]['id'] = change['_number']
+			commits[count]['refspec'] = ('refs/changes/%s/%s/%s' % (str(change['_number'])[-2:], change['_number'], change['revisions'][change['current_revision']]['_number']))
+			count += 1
 
 	# prompt
 	commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
