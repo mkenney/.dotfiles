@@ -38,7 +38,9 @@ print (len(code_reviews) -1 ) * '=' + '\n'
 
 count = 1
 commits = {}
+atleast1 = False
 for change in changes:
+	atleast1 = True
 	print('[%d] %s - %s' % (count, change['project'], change['subject']))
 	commits[count] = {}
 	commits[count]['id'] = change['_number']
@@ -46,11 +48,14 @@ for change in changes:
 	commits[count]['project'] = change['project']
 	count += 1
 
+if (atleast1 is False):
+	print("\nNo unmerged commits found, exiting")
+	quit()
 
 commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
 
 if (commit_id == 0 or commit_id == 'q'):
-	exit
+	quit()
 
 else:
 	commit_id = int(commit_id)
