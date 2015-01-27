@@ -88,15 +88,14 @@ function git_better {
 	# RP list, list all current projects in Gerrit
 	#
 	elif [ "$1" = "rp-build" ]; then
-		if [ "$2" = "test"]; then
+		if [ "$2" = "test" ]; then
 			command ~/.bash/lib/jenkins-build-test.py $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
 
-		elif [ "$2" = "prod"]; then
+		elif [ "$2" = "prod" ]; then
 			command ~/.bash/lib/jenkins-build-prod.py $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
 
 		else
-			echo "Unknown command $2"
-			exit 1
+			echo "Unknown build command '$2'"
 		fi
 
 	#

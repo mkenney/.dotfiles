@@ -44,7 +44,7 @@ alias suod='sudo'
 alias rsync='rsync --progress'
 
 alias locate='locate -i'
-alias pstree='pstree -ahlpsuU'
+alias pstree='pstree -ahlpuU'
 
 
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'

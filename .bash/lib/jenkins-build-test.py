@@ -3,7 +3,7 @@
 # README:
 # pip install python-jenkins
 #   https://python-jenkins.readthedocs.org/en/latest/example.html
-# configure user as your git author name
+# configure user as your git author name - assumes your .gitconfig is correct
 # configure jenkins user as your jenkins username
 # configure jenkins api as your jenkins api token, put it in jenkins.key
 #   http://jenkins0.dev.returnpath.net/user/<username>/configure
@@ -32,7 +32,7 @@ gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+owner:'+urllib
 
 changes = json.loads(''.join(urllib2.urlopen(gerrit_url).readlines()[1:]))
 
-code_reviews = ('\nCode Review Currently open for %s:' % (user_full_name))
+code_reviews = ('\n'+sys.argv[1]+' code reviews currently open for %s:' % (user_full_name))
 print(code_reviews)
 print (len(code_reviews) -1 ) * '=' + '\n'
 
@@ -47,7 +47,7 @@ for change in changes:
 	count += 1
 
 
-commit_id = raw_input("\n\nWhich commit would you like to push to test? ('q' to quit): ")
+commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
 
 if (commit_id == 0 or commit_id == 'q'):
 	exit
@@ -63,7 +63,6 @@ else:
 	refspec = ('refs/changes/%s/%s/%s' % (short_id, commit_id, rev))
 
 	build_params = {'Action': 'Build_and_Stage_Branch','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': refspec}
-
 
 	try:
 		j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
@@ -81,6 +80,7 @@ else:
 		sys.stdout.write('.')
 		sys.stdout.flush()
 		sleep(1)
+
 		try:
 			build_info = j.get_build_info(commit['project'], next_build_number)
 			building = build_info['building']
