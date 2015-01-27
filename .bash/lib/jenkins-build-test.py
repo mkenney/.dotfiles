@@ -20,77 +20,143 @@ import sys
 import os
 import subprocess
 
-user_full_name = subprocess.check_output(['git', 'config', 'user.name']).strip()
+pp = pprint.PrettyPrinter()
 
+if sys.argv[1] == 'prod':
+	mode = 'prod'
+else:
+	mode = 'test'
+
+# jenkins.dev user info
 jenkins_user = subprocess.check_output(['whoami']).strip()
 jenkins_key  = open(os.path.expanduser('~')+'/.bash/lib/jenkins.key', 'r').read().strip()
 
+# jenkins0.dev user info
 jenkins0_user = subprocess.check_output(['whoami']).strip()
 jenkins0_key  = open(os.path.expanduser('~')+'/.bash/lib/jenkins0.key', 'r').read().strip()
 
-gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+owner:'+urllib.quote('"%s"' % (user_full_name))+'+project:'+ sys.argv[1]+'&o=CURRENT_REVISION'
+#
+git_user_name = subprocess.check_output(['git', 'config', 'user.name']).strip()
 
-changes = json.loads(''.join(urllib2.urlopen(gerrit_url).readlines()[1:]))
+# My open changes for project
+my_gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+owner:'+urllib.quote('"%s"' % (git_user_name))+'+project:'+ sys.argv[2]+'&o=CURRENT_REVISION'
+my_changes = json.loads(''.join(urllib2.urlopen(my_gerrit_url).readlines()[1:]))
 
-code_reviews = ('\n'+sys.argv[1]+' code reviews currently open for %s:' % (user_full_name))
-print(code_reviews)
-print (len(code_reviews) -1 ) * '=' + '\n'
+# All open changes for project
+all_gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+project:'+ sys.argv[2]+'&o=CURRENT_REVISION'
+all_changes = json.loads(''.join(urllib2.urlopen(all_gerrit_url).readlines()[1:]))
 
-count = 1
-commits = {}
-atleast1 = False
-for change in changes:
-	atleast1 = True
-	print('[%d] %s - %s' % (count, change['project'], change['subject']))
+build_header = ('\n\n %s %s build' % (sys.argv[2], mode))
+print (build_header)
+print (len(build_header) -1 ) * '='
+
+# Building for test
+if mode == 'test':
+
+	count = 0
+	commits = {}
+
+	# Build master screen
+	code_reviews = ('\nBulid master:')
+	print(code_reviews)
+	print (len(code_reviews) -1 ) * '-' + '\n'
+	print('[%d] refs/heads/master' % (count))
 	commits[count] = {}
-	commits[count]['id'] = change['_number']
-	commits[count]['revs'] = change['revisions'][change['current_revision']]['_number']
-	commits[count]['project'] = change['project']
+	commits[count]['id'] = 'master'
+	commits[count]['refspec'] = 'refs/heads/master'
 	count += 1
 
-if atleast1 is False:
-	print("\nNo unmerged commits found, exiting")
-	quit()
+	# My code reviews screen
+	code_reviews = ('\n\nCode reviews currently open for '+git_user_name+':')
+	print(code_reviews)
+	print (len(code_reviews) -1 ) * '-' + '\n'
+	for change in my_changes:
+		print('[%d] %s' % (count, change['subject']))
+		commits[count] = {}
+		commits[count]['id'] = change['_number']
+		commits[count]['refspec'] = ('refs/changes/%s/%s/%s' % (str(change['_number'])[-2:], change['_number'], change['revisions'][change['current_revision']]['_number']))
+		count += 1
 
-commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
+	# All code reviews screen
+	code_reviews = ('\n\nCode reviews currently open for all committers:')
+	print(code_reviews)
+	print (len(code_reviews) -1 ) * '-' + '\n'
+	for change in all_changes:
+		print('[%d] (%s) %s' % (count, change['owner']['name'], change['subject']))
+		commits[count] = {}
+		commits[count]['id'] = change['_number']
+		commits[count]['refspec'] = ('refs/changes/%s/%s/%s' % (str(change['_number'])[-2:], change['_number'], change['revisions'][change['current_revision']]['_number']))
+		count += 1
 
-if commit_id == 0 or commit_id == 'q':
-	quit()
+	# prompt
+	commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
+
+	if commit_id == 'q':
+		quit()
+
+	# Execute Jenkins build
+	else:
+		commit = commits[int(commit_id)]
+
+		print('\nStarting Build for Commit %s Revision %s' % (commit['id'], commit['refspec']))
+
+		build_params = {'Action': 'Build_and_Stage_Branch','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': commit['refspec']}
+
+		# Figure out which server the project lives on
+		#
+		# @todo Try to use the Jenkins API to check if the project exists instead
+		# of just catching the exception...
+		try:
+			j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
+			job_info = j.get_job_info(sys.argv[2])
+
+		except jenkins.JenkinsException:
+			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
+			job_info = j.get_job_info(sys.argv[2])
+
+		# Trigger the build and wait for a success response
+		next_build_number = job_info['nextBuildNumber']
+		j.build_job(sys.argv[2], build_params)
+		building = False
+		while building != True:
+			sys.stdout.write('.')
+			sys.stdout.flush()
+			sleep(1)
+
+			try:
+				build_info = j.get_build_info(sys.argv[2], next_build_number)
+				building = build_info['building']
+
+			except:
+				pass
+
+		print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
 
 else:
-	commit_id = int(commit_id)
-	commit = commits[commit_id]
-	short_id = str(commit['id'])[-2:]
-	commit_id = commit['id']
-	rev = commit['revs']
-
-	print('\nStarting Build for Commit %s Revision %s' % (commit_id, rev))
-	refspec = ('refs/changes/%s/%s/%s' % (short_id, commit_id, rev))
-
-	build_params = {'Action': 'Build_and_Stage_Branch','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': refspec}
-
-	try:
-		j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
-		job_info = j.get_job_info(commit['project'])
-
-	except jenkins.JenkinsException:
-		j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
-		job_info = j.get_job_info(commit['project'])
-
-	next_build_number = job_info['nextBuildNumber']
-	j.build_job(commit['project'], build_params)
-
-	building = False
-	while building != True:
-		sys.stdout.write('.')
-		sys.stdout.flush()
-		sleep(1)
+		build_params = {'Action': 'Release','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': 'refs/heads/master'}
 
 		try:
-			build_info = j.get_build_info(commit['project'], next_build_number)
-			building = build_info['building']
+			j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
+			job_info = j.get_job_info(sys.argv[2])
 
-		except:
-			pass
+		except jenkins.JenkinsException:
+			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
+			job_info = j.get_job_info(sys.argv[2])
 
-	print('\nSuccess see your build here: \n%s\n\n' % (build_info['url']))
+		next_build_number = job_info['nextBuildNumber']
+		j.build_job(sys.argv[2], build_params)
+
+		building = False
+		while building != True:
+			sys.stdout.write('.')
+			sys.stdout.flush()
+			sleep(1)
+
+			try:
+				build_info = j.get_build_info(sys.argv[2], next_build_number)
+				building = build_info['building']
+
+			except:
+				pass
+
+		print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
