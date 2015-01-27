@@ -48,13 +48,13 @@ for change in changes:
 	commits[count]['project'] = change['project']
 	count += 1
 
-if (atleast1 is False):
+if atleast1 is False:
 	print("\nNo unmerged commits found, exiting")
 	quit()
 
 commit_id = raw_input("\n\nWhich commit would you like to build for test? ('q' to quit): ")
 
-if (commit_id == 0 or commit_id == 'q'):
+if commit_id == 0 or commit_id == 'q':
 	quit()
 
 else:
