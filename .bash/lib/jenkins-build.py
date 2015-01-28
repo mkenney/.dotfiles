@@ -14,13 +14,13 @@ import urllib2
 import json
 import httplib
 import jenkins
-from time import sleep;
+import time
 import pprint
 import sys
 import os
 import subprocess
 
-pp = pprint.PrettyPrinter()
+#pp = pprint.PrettyPrinter()
 
 if sys.argv[1] == 'prod':
 	mode = 'prod'
@@ -39,6 +39,10 @@ jenkins0_key  = open(os.path.expanduser('~')+'/.bash/lib/jenkins0.key', 'r').rea
 
 #
 git_user_name = subprocess.check_output(['git', 'config', 'user.name']).strip()
+
+# My open changes for project
+master_gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:merged+project:'+ sys.argv[2]+'&o=CURRENT_REVISION'
+master_changes = json.loads(''.join(urllib2.urlopen(master_gerrit_url).readlines()[1:]))
 
 # My open changes for project
 my_gerrit_url = 'http://gerrit.dev.returnpath.net/changes/?q=is:open+owner:'+urllib.quote('"%s"' % (git_user_name))+'+project:'+ sys.argv[2]+'&o=CURRENT_REVISION'
@@ -63,9 +67,9 @@ if mode == 'test':
 	code_reviews = ('\nCurrent master:')
 	print(code_reviews)
 	print (len(code_reviews) -1 ) * '-'
-	print('    [%d] refs/heads/master' % (count))
+	print('    [%d] %s' % (count, master_changes[0]['subject']))
 	commits[count] = {}
-	commits[count]['id'] = 'master'
+	commits[count]['id'] = master_changes[0]['_number']
 	commits[count]['refspec'] = 'refs/heads/master'
 	count += 1
 
@@ -125,7 +129,7 @@ if mode == 'test':
 		while building != True:
 			sys.stdout.write('.')
 			sys.stdout.flush()
-			sleep(1)
+			time.sleep(1)
 
 			try:
 				build_info = j.get_build_info(sys.argv[2], next_build_number)
@@ -154,7 +158,7 @@ else:
 		while building != True:
 			sys.stdout.write('.')
 			sys.stdout.flush()
-			sleep(1)
+			time.sleep(1)
 
 			try:
 				build_info = j.get_build_info(sys.argv[2], next_build_number)
