@@ -119,6 +119,7 @@ if mode == 'test':
 			job_info = j.get_job_info(sys.argv[2])
 
 		except jenkins.JenkinsException:
+			print('\n    - Project %s not found on jenkins0.dev, trying jenkins.dev...\n' % (sys.argv[2]))
 			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
 			job_info = j.get_job_info(sys.argv[2])
 
