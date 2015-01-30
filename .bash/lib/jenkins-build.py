@@ -20,7 +20,7 @@ import sys
 import os
 import subprocess
 
-#pp = pprint.PrettyPrinter()
+pp = pprint.PrettyPrinter()
 
 if sys.argv[1] == 'prod':
 	mode = 'prod'
@@ -118,8 +118,8 @@ if mode == 'test':
 			j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
 			job_info = j.get_job_info(sys.argv[2])
 
-		except jenkins.JenkinsException:
-			print('\n    - Project %s not found on jenkins0.dev, trying jenkins.dev...\n' % (sys.argv[2]))
+		except jenkins.JenkinsException as e:
+			print('\n    - ERROR %s on jenkins0.dev, trying jenkins.dev...\n' % (e))
 			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
 			job_info = j.get_job_info(sys.argv[2])
 
