@@ -57,7 +57,9 @@ print (build_header)
 print (len(build_header) -1 ) * '='
 print 'Preparing to build for the '+mode_text+' environment...'
 
-# Building for test
+#
+# Build for test
+#
 if mode == 'test':
 
 	count = 0
@@ -120,8 +122,13 @@ if mode == 'test':
 
 		except jenkins.JenkinsException as e:
 			print('\n    - ERROR %s on jenkins0.dev, trying jenkins.dev...\n' % (e))
-			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
-			job_info = j.get_job_info(sys.argv[2])
+
+			try:
+				j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
+				job_info = j.get_job_info(sys.argv[2])
+			except jenkins.JenkinsException as e:
+				print('\n    - ERROR %s on jenkins.dev, ending program...\n' % (e))
+				quit()
 
 		# Trigger the build and wait for a success response
 		next_build_number = job_info['nextBuildNumber']
@@ -141,31 +148,34 @@ if mode == 'test':
 
 		print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
 
+#
+# Build for prod
+#
 else:
-		build_params = {'Action': 'Release','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': 'refs/heads/master'}
+	build_params = {'Action': 'Release','GERRIT_BRANCH': 'master', 'GERRIT_REFSPEC': 'refs/heads/master'}
+
+	try:
+		j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
+		job_info = j.get_job_info(sys.argv[2])
+
+	except jenkins.JenkinsException:
+		j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
+		job_info = j.get_job_info(sys.argv[2])
+
+	next_build_number = job_info['nextBuildNumber']
+	j.build_job(sys.argv[2], build_params)
+
+	building = False
+	while building != True:
+		sys.stdout.write('.')
+		sys.stdout.flush()
+		time.sleep(1)
 
 		try:
-			j = jenkins.Jenkins('http://jenkins0.dev.returnpath.net', jenkins0_user, jenkins0_key)
-			job_info = j.get_job_info(sys.argv[2])
+			build_info = j.get_build_info(sys.argv[2], next_build_number)
+			building = build_info['building']
 
-		except jenkins.JenkinsException:
-			j = jenkins.Jenkins('http://jenkins.dev.returnpath.net', jenkins_user, jenkins_key)
-			job_info = j.get_job_info(sys.argv[2])
+		except:
+			pass
 
-		next_build_number = job_info['nextBuildNumber']
-		j.build_job(sys.argv[2], build_params)
-
-		building = False
-		while building != True:
-			sys.stdout.write('.')
-			sys.stdout.flush()
-			time.sleep(1)
-
-			try:
-				build_info = j.get_build_info(sys.argv[2], next_build_number)
-				building = build_info['building']
-
-			except:
-				pass
-
-		print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
+	print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
