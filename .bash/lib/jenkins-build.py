@@ -133,6 +133,7 @@ if mode == 'test':
 		# Trigger the build and wait for a success response
 		next_build_number = job_info['nextBuildNumber']
 		j.build_job(sys.argv[2], build_params)
+
 		building = False
 		while building != True:
 			sys.stdout.write('.')
@@ -146,7 +147,24 @@ if mode == 'test':
 			except:
 				pass
 
-		print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
+		print('\nSuccess! View your build progress here: %s\n' % (build_info['url']+'console'))
+
+		sys.stdout.write('Building')
+		sys.stdout.flush()
+		building = True
+		while building is True:
+			sys.stdout.write('.')
+			sys.stdout.flush()
+			time.sleep(1)
+
+			try:
+				build_info = j.get_build_info(sys.argv[2], next_build_number)
+				building = build_info['building']
+
+			except:
+				pass
+
+		print("complete, ready to push: http://rm.returnpath.net/rpinstall/index.php\n\n")
 
 #
 # Build for prod
@@ -178,4 +196,22 @@ else:
 		except:
 			pass
 
-	print('\nSuccess! see your build here: \n%s\n\n' % (build_info['url']))
+	print('\nSuccess! View your build progress here: %s\n' % (build_info['url']+'console'))
+
+	sys.stdout.write('Building')
+	sys.stdout.flush()
+	building = True
+	while building is True:
+		sys.stdout.write('.')
+		sys.stdout.flush()
+		time.sleep(1)
+
+		try:
+			build_info = j.get_build_info(sys.argv[2], next_build_number)
+			building = build_info['building']
+
+		except:
+			pass
+
+	print("complete, ready to push: http://rm.returnpath.net/rpinstall/index.php\n\n")
+
