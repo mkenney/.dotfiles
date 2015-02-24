@@ -37,73 +37,84 @@ export -f git_branch_list
 # I.E. `git rp-cl<tab>` would complete as `git rp-clone`
 #
 function git_autocomplete_commands {
-	echo "rp-clone rp-hooks rp-list rp-build"
+	echo "rp-clone rp-hooks rp-list"
 }
 export -f git_autocomplete_commands
+
+source ~/.bash/lib/git-gerrit-jenkins/.bash_git-gerrit-jenkins
 
 #
 # git command wrapper + alias
 #
 function git_better {
-
-	#
-	# Branching
-	#
-	if [ "$1" = "branch" ]; then
-		if [ "$2" = "" ]; then
-			git_branch_list
-		else
-			command git branch "${@:2}"
-
-			# checkout the new branch
-			if [ "$3" = "" ]; then
-				command git checkout "${2}"
-			fi
+	custom_commands=($(git_autocomplete_commands))
+	for a in ${custom_commands[@]}
+	do
+		if [ "${1}" = "${a}" ]; then
+			$a $2
+			return
 		fi
+	done
+#	exit 0
 
-	#
-	# RP clone, automatically grab the Gerrit commit id hook
-	#
-	elif [ "$1" = "rp-clone" ]; then
-		command git clone ssh://gerrit/"$2"
-		scp -p -P 29418 gerrit:hooks/commit-msg "$2"/.git/hooks/
-
-	#
-	# RP hooks, import any Gerrit hooks, run from project root
-	#
-	elif [ "$1" = "rp-hooks" ]; then
-		if [ -d ".git/hooks" ]; then
-			scp -p -P 29418 gerrit:hooks/commit-msg .git/hooks/
-		else
-			echo "You need to run this command from the toplevel of the working tree."
-			echo
-		fi
-	#
-	# RP list, list all current projects in Gerrit
-	#
-	elif [ "$1" = "rp-list" ]; then
-		command ssh gerrit gerrit ls-projects
-
-	#
-	# RP list, list all current projects in Gerrit
-	#
-	elif [ "$1" = "rp-build" ]; then
-		if [ "$2" = "test" ]; then
-			command ~/.bash/lib/jenkins-build.py test $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
-
-		elif [ "$2" = "prod" ]; then
-			command ~/.bash/lib/jenkins-build.py prod $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
-
-		else
-			echo "Unknown build command '$2'"
-		fi
-
-	#
-	# Git default
-	#
-	else
+#	#
+#	# Branching
+#	#
+#	if [ "$1" = "branch" ]; then
+#		if [ "$2" = "" ]; then
+#			git_branch_list
+#		else
+#			command git branch "${@:2}"
+#
+#			# checkout the new branch
+#			if [ "$3" = "" ]; then
+#				command git checkout "${2}"
+#			fi
+#		fi
+#
+#	#
+#	# RP clone, automatically grab the Gerrit commit id hook
+#	#
+#	elif [ "$1" = "rp-clone" ]; then
+#		command git clone ssh://gerrit/"$2"
+#		scp -p -P 29418 gerrit:hooks/commit-msg "$2"/.git/hooks/
+#
+#	#
+#	# RP hooks, import any Gerrit hooks, run from project root
+#	#
+#	elif [ "$1" = "rp-hooks" ]; then
+#		if [ -d ".git/hooks" ]; then
+#			scp -p -P 29418 gerrit:hooks/commit-msg .git/hooks/
+#		else
+#			echo "You need to run this command from the toplevel of the working tree."
+#			echo
+#		fi
+#	#
+#	# RP list, list all current projects in Gerrit
+#	#
+#	elif [ "$1" = "rp-list" ]; then
+#		command ssh gerrit gerrit ls-projects
+#
+#	#
+#	# RP list, list all current projects in Gerrit
+#	#
+#	elif [ "$1" = "rp-build" ]; then
+#		if [ "$2" = "test" ]; then
+#			command ~/.bash/lib/jenkins-build.py test $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
+#
+#		elif [ "$2" = "prod" ]; then
+#			command ~/.bash/lib/jenkins-build.py prod $(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
+#
+#		else
+#			echo "Unknown build command '$2'"
+#		fi
+#
+#	#
+#	# Git default
+#	#
+#	else
 		command git "$@"
-	fi
+#	fi
 }
 alias git=git_better
 
