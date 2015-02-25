@@ -123,7 +123,6 @@ def getJenkinsInfo(project):
 
 
 	for server in servers:
-		pp.pprint(server)
 		try:
 			j = jenkins.Jenkins(server['host'], server['user'], server['key'])
 			job_info = j.get_job_info(project)
