@@ -2,7 +2,7 @@
 export git_custom_commands="${git_custom_commands} build-jenkins"
 
 #
-#
+# Launch the gerrit/jenkins build script
 #
 function git-build-jenkins {
 	current_git_project=$(git remote -v | head -n1 | awk '{print $2}' | sed 's/.*\///' | sed 's/\.git//')
@@ -20,4 +20,3 @@ function git-build-jenkins {
 		;;
 	esac
 }
-export -f git-build-jenkins

@@ -12,4 +12,3 @@ function git-rp-hooks {
 		echo
 	fi
 }
-export -f git-rp-clone

@@ -47,5 +47,6 @@ function git_better {
 	command git "$@"
 
 }
+export -f git_better
 
 alias git=git_better

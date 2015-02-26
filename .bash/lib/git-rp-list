@@ -7,4 +7,3 @@ export git_custom_commands="${git_custom_commands} rp-list"
 function git-rp-list {
 	command ssh gerrit gerrit ls-projects
 }
-export -f git-rp-list

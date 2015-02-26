@@ -8,4 +8,3 @@ function git-rp-clone {
    command git clone ssh://gerrit/"$1"
    scp -p -P 29418 gerrit:hooks/commit-msg "$1"/.git/hooks/
 }
-export -f git-rp-clone

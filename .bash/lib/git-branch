@@ -40,4 +40,3 @@ function git-branch {
 		fi
 	fi
 }
-export -f git-branch
