@@ -20,3 +20,4 @@ function git-build-jenkins {
 		;;
 	esac
 }
+export -f git-build-jenkins
