@@ -168,10 +168,7 @@ command! Phpcs execute RunPhpcs()
 set nowrap
 
 " Trim trailing spaces
-autocmd BufWritePre *.php :%s/\s\+$//e
-autocmd BufWritePre *.pl :%s/\s\+$//e
-autocmd BufWritePre *.pm :%s/\s\+$//e
-autocmd BufWritePre *.java :%s/\s\+$//e
+autocmd BufWritePre *.* :%s/\s\+$//e
 
 " Status bar
 set statusline=%F%m%r%h%w\ \ Line\ %l,\ Col\ %v\ \(%p%%\)
