@@ -171,6 +171,7 @@ set nowrap
 autocmd BufWritePre *.php :%s/\s\+$//e
 autocmd BufWritePre *.pl :%s/\s\+$//e
 autocmd BufWritePre *.pm :%s/\s\+$//e
+autocmd BufWritePre *.js :%s/\s\+$//e
 autocmd BufWritePre *.java :%s/\s\+$//e
 
 " Status bar
