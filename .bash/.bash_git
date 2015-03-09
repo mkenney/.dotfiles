@@ -44,7 +44,7 @@ function git_better {
 		fi
 	done
 
-	command git "$@"
+	/usr/bin/env git "$@"
 
 }
 export -f git_better
