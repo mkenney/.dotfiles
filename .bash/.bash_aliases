@@ -46,6 +46,7 @@ alias rsync='rsync --progress'
 alias locate='locate -i'
 alias pstree='pstree -ahlpuU'
 
+alias yes="echo no"
 
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
 
