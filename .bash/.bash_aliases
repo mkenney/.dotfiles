@@ -6,7 +6,7 @@ if [[ $platform == 'Linux' ]]; then
 	alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
 
 elif [[ $platform == 'Darwin' ]]; then
-	alias ls='ls -GAaF'
+	alias ls='ls -GAaFf'
 
 elif [[ $platform == 'SunOS' ]]; then
 	alias ls='ls -laF'
