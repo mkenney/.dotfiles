@@ -1,0 +1,53 @@
+#
+# Docker-specific aliases and functions
+#
+
+#
+# List of custom commands, space delimited.  This var should be
+# updated by your .bash/lib/[docker-command] file
+#
+export _docker_commands="daemon attach build commit cp create diff events exec export history images import info inspect kill load login logout logs pause port ps pull push rename restart rm rmi run save search start stats stop tag top unpause version wait"
+export _docker_custom_commands=""
+
+#
+# Return the list of custom commands.  This is also used for tab-completion
+#
+function _docker_autocomplete {
+
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="${_docker_commands} ${_docker_custom_commands}"
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+complete -F _docker_autocomplete docker
+
+#
+# Load all of the custom commands in .bash/lib/.  These must be prefixed with 'docker-'
+#
+for docker_lib in $(find ${HOME}/.bash/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+	. $docker_lib
+done
+
+#
+# docker command wrapper + alias
+#
+function _docker_better {
+	custom_commands="$(docker_custom_commands)"
+	for a in ${custom_commands[@]}
+	do
+		if [ "${1}" = "${a}" ]; then
+			"docker-$a" "${@:2}"
+			return
+		fi
+	done
+
+	/usr/bin/env docker "$@"
+}
+export -f docker_better
+
+alias docker=_docker_better
+

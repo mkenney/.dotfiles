@@ -38,6 +38,13 @@ if [ -f ~/.bash/.bash_cvs ]; then
 fi
 
 #
+# Docker stuff
+#
+if [ -f ~/.bash/.bash_docker ]; then
+	. ~/.bash/.bash_docker
+fi
+
+#
 # Load my perl stuffs
 #
 if [ -f ~/.bash/.bash_perl ]; then
