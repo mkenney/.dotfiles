@@ -36,8 +36,9 @@ done
 # docker command wrapper + alias
 #
 function _docker_better {
-	custom_commands="$(docker_custom_commands)"
-	for a in ${custom_commands[@]}
+	custom_commands="${_docker_custom_commands}"
+
+    for a in ${custom_commands[@]}
 	do
 		if [ "${1}" = "${a}" ]; then
 			"docker-$a" "${@:2}"
@@ -45,9 +46,9 @@ function _docker_better {
 		fi
 	done
 
-	/usr/bin/env docker "$@"
+    /usr/bin/env docker "$@"
 }
-export -f docker_better
+export -f _docker_better
 
 alias docker=_docker_better
 
