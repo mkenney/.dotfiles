@@ -41,6 +41,7 @@ PATH=$PATH:/usr/local/ant/bin
 PATH=$PATH:/usr/local/apache/bin
 export PATH
 
+set -o vi
 export VISUAL=/usr/bin/vim
 export EDITOR=/usr/bin/vim
 
