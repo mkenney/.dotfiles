@@ -60,3 +60,6 @@ function update_cert_common_web {
 		fi
 	done <<< "$(locate assets/cert | grep "cert$" | grep "/usr/local/projects" | grep -v "internal_rtools_web\." | grep -v hackathon | grep -v "cert\.eq\." | grep -v tmp | grep -v prototype)"
 }
+
+alias a="cal"
+
