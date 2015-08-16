@@ -27,3 +27,9 @@ tmp/
 www
 /.Trash/
 .vim/.netrwhist
+.bash_logout
+.cache/
+.docker/
+.dockercfg
+.composer/
+
