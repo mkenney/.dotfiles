@@ -20,18 +20,18 @@ export _docker_custom_commands=""
 #
 function _docker_autocomplete {
 
-    local cur prev opts _docker_container_names
-    COMPREPLY=()
+	local cur prev opts _docker_container_names
+	COMPREPLY=()
 
-    # Add all current container names to the auto-complete command list
-    _docker_container_names=$(for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do echo ${a:1:${#a}-1}; done)
+	# Add all current container names to the auto-complete command list
+	_docker_container_names=$(for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do echo ${a:1:${#a}-1}; done)
 
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="${_docker_commands} ${_docker_custom_commands} ${_docker_container_names}"
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	prev="${COMP_WORDS[COMP_CWORD-1]}"
+	opts="${_docker_commands} ${_docker_custom_commands} ${_docker_container_names}"
 
-    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-    return 0
+	COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+	return 0
 }
 complete -o default -F _docker_autocomplete docker
 complete -o default -W "${_dc_commands}" docker-compose
@@ -50,7 +50,7 @@ done
 function _docker_better {
 	custom_commands="${_docker_custom_commands}"
 
-    for a in ${custom_commands[@]}
+	for a in ${custom_commands[@]}
 	do
 		if [ "${1}" = "${a}" ]; then
 			"docker-$a" "${@:2}"
@@ -58,7 +58,7 @@ function _docker_better {
 		fi
 	done
 
-    /usr/bin/env docker "$@"
+	/usr/bin/env docker "$@"
 }
 export -f _docker_better
 
