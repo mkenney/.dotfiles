@@ -7,45 +7,53 @@ export _docker_custom_commands="${_docker_custom_commands} clean"
 #
 function docker-clean {
 
-    EXITED=$(docker ps -a -q -f status=exited)
-    EXITED_LIST=$(docker ps -a -f status=exited)
-
+    EXITED=$(docker ps -a -q -f "status=exited")
     DANGLING=$(docker images -q -f "dangling=true")
-    DANGLING_LIST=$(docker images -f "dangling=true")
-
-    DRY_RUN="0"
     EXECUTE="N"
 
-    echo
-    echo -e "The following containers have exited and will be removed:"
-    echo
-    docker ps -a -f "status=exited"
-    echo
-    read -p "Do you want to remove the listed containers? [y/N]: " EXECUTE
+    if [ "" != "${EXITED}" ]; then
+        echo
+        echo -e "The following containers have exited and will be removed:"
+        echo
+        docker ps -a -f "status=exited"
+        echo
+        read -p "Do you want to remove the listed containers? [y/N]: " EXECUTE
 
-    echo
-    if [ "y" == "${EXECUTE}" ]; then
-        if [ -n "$EXITED" ]; then
-            docker rm $EXITED
+        echo
+        if [ "y" == "${EXECUTE}" ]; then
+            if [ -n "$EXITED" ]; then
+                echo -e "Removed:\n$(docker rm $EXITED)"
+            else
+                echo "No containers to remove"
+            fi
         else
-            echo "No containers to remove."
+            echo "Skipping containers"
         fi
     fi
 
-    echo
-    echo
-    echo -e "The following images are dangling and will be removed:"
-    echo
-    docker images -f "dangling=true"
-    echo
-    read -p "Do you want to remove the listed images? [y/N]: " EXECUTE
+    if [ "" != "${DANGLING}" ]; then
+        echo
+        echo
+        echo -e "The following images are dangling and will be removed:"
+        echo
+        docker images -f "dangling=true"
+        echo
+        read -p "Do you want to remove the listed images? [y/N]: " EXECUTE
 
-    echo
-    if [ "y" == "${EXECUTE}" ]; then
-        if [ -n "$DANGLING" ]; then
-            docker rmi $DANGLING
+        echo
+        if [ "y" == "${EXECUTE}" ]; then
+            if [ -n "$DANGLING" ]; then
+                echo -e "Removed:\n$(docker rmi $DANGLING)"
+            else
+                echo "No images to remove"
+            fi
         else
-            echo "No images to remove."
+            echo "Skipping images"
         fi
+    fi
+
+    if [ "" == "${EXITED}" ] && [ "" == "${DANGLING}" ]; then
+        echo
+        echo -e "Nothing to clean"
     fi
 }
