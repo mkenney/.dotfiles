@@ -17,16 +17,11 @@ function docker-clean {
     EXECUTE="N"
 
     echo
-    echo -e "\tThe following containers have exited and will be removed:"
+    echo -e "The following containers have exited and will be removed:"
     echo
     docker ps -a -f "status=exited"
     echo
-    echo
-    echo -e "\tThe following images are dangling and will be removed:"
-    echo
-    docker images -f "dangling=true"
-    echo
-    read -p "Do you want to remove the listed containers / images? [y/N]: " EXECUTE
+    read -p "Do you want to remove the listed containers? [y/N]: " EXECUTE
 
     echo
     if [ "y" == "${EXECUTE}" ]; then
@@ -35,6 +30,18 @@ function docker-clean {
         else
             echo "No containers to remove."
         fi
+    fi
+
+    echo
+    echo
+    echo -e "The following images are dangling and will be removed:"
+    echo
+    docker images -f "dangling=true"
+    echo
+    read -p "Do you want to remove the listed images? [y/N]: " EXECUTE
+
+    echo
+    if [ "y" == "${EXECUTE}" ]; then
         if [ -n "$DANGLING" ]; then
             docker rmi $DANGLING
         else
@@ -42,4 +49,3 @@ function docker-clean {
         fi
     fi
 }
-
