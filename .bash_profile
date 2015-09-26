@@ -1,81 +1,81 @@
 # ~/.bash_profile
 
 # VIM stuff
-if [ -f ~/.bash/.bash_vim ]; then
-	. ~/.bash/.bash_vim
+if [ -f ~/.bash/vim ]; then
+	. ~/.bash/vim
 fi
 
 # Git stuff
-if [ -f ~/.bash/.bash_git ]; then
-	. ~/.bash/.bash_git
+if [ -f ~/.bash/git ]; then
+	. ~/.bash/git
 fi
 
 # Git completion
-if [ -f ~/.bash/.bash_git-completion ]; then
-	. ~/.bash/.bash_git-completion
+if [ -f ~/.bash/git-completion ]; then
+	. ~/.bash/git-completion
 fi
 
 # Git prompt
-if [ -f ~/.bash/.bash_git-prompt.sh ]; then
-	. ~/.bash/.bash_git-prompt.sh
+if [ -f ~/.bash/git-prompt ]; then
+	. ~/.bash/git-prompt
 fi
 
 # CVS stuff
-if [ -f ~/.bash/.bash_cvs ]; then
-	. ~/.bash/.bash_cvs
+if [ -f ~/.bash/cvs ]; then
+	. ~/.bash/cvs
 fi
 
 # Docker stuff
-if [ -f ~/.bash/.bash_docker ]; then
-	. ~/.bash/.bash_docker
+if [ -f ~/.bash/docker ]; then
+	. ~/.bash/docker
 fi
 
 # Perl stuff
-if [ -f ~/.bash/.bash_perl ]; then
-	. ~/.bash/.bash_perl
+if [ -f ~/.bash/perl ]; then
+	. ~/.bash/perl
 fi
 
 # Java stuff
-if [ -f ~/.bash/.bash_java ]; then
-	. ~/.bash/.bash_java
+if [ -f ~/.bash/java ]; then
+	. ~/.bash/java
 fi
 
 # Aliases
-if [ -f ~/.bash/.bash_aliases ]; then
-	. ~/.bash/.bash_aliases
+if [ -f ~/.bash/aliases ]; then
+	. ~/.bash/aliases
 fi
 
 # Screen aliases
-if [ -f ~/.bash/.bash_screen ]; then
-	. ~/.bash/.bash_screen
+if [ -f ~/.bash/screen ]; then
+	. ~/.bash/screen
 fi
 
 # SSH tunnel aliases
-if [ -f ~/.bash_tunnels ]; then
-	. ~/.bash_tunnels
+if [ -f ~/tunnels ]; then
+	. ~/tunnels
 fi
 
 # Functions
-if [ -f ~/.bash/.bash_functions ]; then
-	. ~/.bash/.bash_functions
+if [ -f ~/.bash/functions ]; then
+	. ~/.bash/functions
 fi
 
 # ENV
-if [ -f ~/.bash/.bash_env ]; then
-	. ~/.bash/.bash_env
+if [ -f ~/.bash/env ]; then
+	. ~/.bash/env
 fi
 
 # Bash completion settings
-if [ -f ~/.bash/.bash_completion ]; then
-	. ~/.bash/.bash_completion
+if [ -f ~/.bash/completion ]; then
+	. ~/.bash/completion
 fi
 
 # Sshfs mount aliases
-if [ -f ~/.bash/.bash_mount ]; then
-	. ~/.bash/.bash_mount
+if [ -f ~/.bash/mount ]; then
+	. ~/.bash/mount
 fi
 
 # Prompt
-if [ -f ~/.bash/.bash_prompt ]; then
-	. ~/.bash/.bash_prompt
+if [ -f ~/.bash/prompt ]; then
+	. ~/.bash/prompt
 fi
