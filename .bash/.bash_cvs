@@ -48,4 +48,3 @@ function cupdate # CVS update, colorized.
   | sed s/"^R.*"/"[01;35m&[0m"/ \
   | sed s/"^C.*"/"[01;31m&[0m"/;
 }
-

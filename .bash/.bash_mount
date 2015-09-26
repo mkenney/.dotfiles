@@ -1,4 +1,4 @@
-# ReturnPath
+# Work
 alias mount_mbkdev="sshfs mkenney@mbkdev:/home/mkenney ~mkenney/mounts/mbkdev -oauto_cache,reconnect,defer_permissions,negative_vncache,follow_symlinks,transform_symlinks,volname=mbkdev"
 alias umount_mbkdev="umount ~mkenney/mounts/mbkdev"
 
@@ -8,4 +8,3 @@ alias umount_mbkdev2="umount ~mkenney/mounts/mbkdev2 && rm -rf ~mkenney/mounts/m
 # Home
 alias mount_devserv="sshfs -p 65022 mkenney@dev.9c0.com:/home/mkenney ~mkenney/mounts/devserv -oauto_cache,reconnect,defer_permissions,negative_vncache,follow_symlinks,transform_symlinks,volname=mbkdev"
 alias umount_devserv="umount ~mkenney/mounts/devserv"
-

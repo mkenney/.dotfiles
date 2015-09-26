@@ -35,11 +35,10 @@ function prompt_command() {
 	else
 		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
 	fi
-	
+
 	PS1="${ps1_lines[*]}"
 }
 
 export PROMPT_COMMAND=prompt_command
 
 export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '
-

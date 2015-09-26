@@ -53,6 +53,3 @@ export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 export HISTSIZE=2000
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
-
-
-
