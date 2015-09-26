@@ -1,29 +1,38 @@
-#
+#######################################
 # Docker-specific aliases and functions
-#
+#######################################
 
-#
-# List of custom commands, space delimited.  This var should be
-# updated by your .bash/lib/[docker-command] file
-#
+alias dc="docker-compose"
+
+# Docker built-in commands from docs.docker.com
 export _docker_commands="daemon attach build commit cp create diff events exec export history images import info inspect kill load login logout logs pause port ps pull push rename restart rm rmi run save search start stats stop tag top unpause version wait"
+
+# List of custom commands, space delimited.  This var should be
+# updated by your .bash/lib/[docker-command] files
 export _docker_custom_commands=""
 
 #
-# Return the list of custom commands.  This is also used for tab-completion
+# Return the list of standard and custom commands as well as current
+# container names for tab-completion
 #
 function _docker_autocomplete {
 
-    local cur prev opts
+    local cur prev opts _docker_container_names
     COMPREPLY=()
+
+    # Add all current container names to the auto-complete command list
+    _docker_container_names=$(for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do echo ${a:1:${#a}-1}; done)
+
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="${_docker_commands} ${_docker_custom_commands}"
+    opts="${_docker_commands} ${_docker_custom_commands} ${_docker_container_names}"
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
 complete -F _docker_autocomplete docker
+complete -F _docker_autocomplete docker-compose
+complete -F _docker_autocomplete dc
 
 #
 # Load all of the custom commands in .bash/lib/.  These must be prefixed with 'docker-'
@@ -51,4 +60,3 @@ function _docker_better {
 export -f _docker_better
 
 alias docker=_docker_better
-

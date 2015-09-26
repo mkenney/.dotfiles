@@ -63,10 +63,6 @@ function update_cert_common_web {
 
 alias a="cal"
 
-#
-# Docker
-#
-alias dc="docker-compose"
 
 
 
