@@ -1,0 +1,10 @@
+# add 'clean' to the current list of custom commands
+export _docker_custom_commands="${_docker_custom_commands} control"
+
+#
+# Clean docker containers and images
+# http://stackoverflow.com/questions/17236796/how-to-remove-old-docker-containers
+#
+function docker-control {
+    docker exec -ti ${1} bash
+}
