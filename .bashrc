@@ -1,4 +1,4 @@
 # For compatibility
-if [ -f ~/.bash_profile ]; then
-	. ~/.bash_profile
+if [ -f $PWD/.bash_profile ]; then
+	. $PWD/.bash_profile
 fi

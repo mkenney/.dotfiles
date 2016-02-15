@@ -1,53 +1,53 @@
 # ~/.bash_profile
 
 # VIM stuff
-if [ -f ~/.bash/vim ]; then
-	. ~/.bash/vim
+if [ -f $PWD/.bash/vim ]; then
+	. $PWD/.bash/vim
 fi
 
 # Git stuff
-if [ -f ~/.bash/git ]; then
-	. ~/.bash/git
+if [ -f $PWD/.bash/git ]; then
+	. $PWD/.bash/git
 fi
 
 # Git completion
-if [ -f ~/.bash/git-completion ]; then
-	. ~/.bash/git-completion
+if [ -f $PWD/.bash/git-completion ]; then
+	. $PWD/.bash/git-completion
 fi
 
 # Git prompt
-if [ -f ~/.bash/git-prompt ]; then
-	. ~/.bash/git-prompt
+if [ -f $PWD/.bash/git-prompt ]; then
+	. $PWD/.bash/git-prompt
 fi
 
 # CVS stuff
-if [ -f ~/.bash/cvs ]; then
-	. ~/.bash/cvs
+if [ -f $PWD/.bash/cvs ]; then
+	. $PWD/.bash/cvs
 fi
 
 # Docker stuff
-if [ -f ~/.bash/docker ]; then
-	. ~/.bash/docker
+if [ -f $PWD/.bash/docker ]; then
+	. $PWD/.bash/docker
 fi
 
 # Perl stuff
-if [ -f ~/.bash/perl ]; then
-	. ~/.bash/perl
+if [ -f $PWD/.bash/perl ]; then
+	. $PWD/.bash/perl
 fi
 
 # Java stuff
-if [ -f ~/.bash/java ]; then
-	. ~/.bash/java
+if [ -f $PWD/.bash/java ]; then
+	. $PWD/.bash/java
 fi
 
 # Aliases
-if [ -f ~/.bash/aliases ]; then
-	. ~/.bash/aliases
+if [ -f $PWD/.bash/aliases ]; then
+	. $PWD/.bash/aliases
 fi
 
 # Screen aliases
-if [ -f ~/.bash/screen ]; then
-	. ~/.bash/screen
+if [ -f $PWD/.bash/screen ]; then
+	. $PWD/.bash/screen
 fi
 
 # SSH tunnel aliases
@@ -56,26 +56,26 @@ if [ -f ~/tunnels ]; then
 fi
 
 # Functions
-if [ -f ~/.bash/functions ]; then
-	. ~/.bash/functions
+if [ -f $PWD/.bash/functions ]; then
+	. $PWD/.bash/functions
 fi
 
 # ENV
-if [ -f ~/.bash/env ]; then
-	. ~/.bash/env
+if [ -f $PWD/.bash/env ]; then
+	. $PWD/.bash/env
 fi
 
 # Bash completion settings
-if [ -f ~/.bash/completion ]; then
-	. ~/.bash/completion
+if [ -f $PWD/.bash/completion ]; then
+	. $PWD/.bash/completion
 fi
 
 # Sshfs mount aliases
-if [ -f ~/.bash/mount ]; then
-	. ~/.bash/mount
+if [ -f $PWD/.bash/mount ]; then
+	. $PWD/.bash/mount
 fi
 
 # Prompt
-if [ -f ~/.bash/prompt ]; then
-	. ~/.bash/prompt
+if [ -f $PWD/.bash/prompt ]; then
+	. $PWD/.bash/prompt
 fi
