@@ -27,10 +27,10 @@ function docker-clean {
 		echo -e "The following containers have exited and will be removed:"
 		echo
 		docker ps -a -f "status=exited"
-		echo
 		if [ "-f" == "${1}" ] || [ "--force" == "${1}" ]; then
 			EXECUTE="y"
 		else
+			echo
 			read -p "Do you want to remove the listed containers? [y/N]: " EXECUTE
 		fi
 
@@ -51,10 +51,10 @@ function docker-clean {
 		echo -e "The following images are dangling and will be removed:"
 		echo
 		docker images -f "dangling=true"
-		echo
 		if [ "-f" == "${1}" ] || [ "--force" == "${1}" ]; then
 			EXECUTE="y"
 		else
+			echo
 			read -p "Do you want to remove the listed images? [y/N]: " EXECUTE
 		fi
 
