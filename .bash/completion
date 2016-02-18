@@ -1,3 +1,21 @@
+platform=`uname`
+if [[ $platform == 'Linux' ]]; then
+
+    # enable pathname expansion
+    shopt -s direxpand
+
+    # disable spelling correction
+    shopt -u dirspell
+
+
+elif [[ $platform == 'Darwin' ]]; then
+    alias ls='ls -GAaFf'
+
+elif [[ $platform == 'SunOS' ]]; then
+    alias ls='ls -laF'
+    export TERM=vt100
+fi
+
 # enable pathname expansion
 shopt -s direxpand
 
