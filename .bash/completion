@@ -16,12 +16,6 @@ elif [[ $platform == 'SunOS' ]]; then
     export TERM=vt100
 fi
 
-# enable pathname expansion
-shopt -s direxpand
-
-# disable spelling correction
-shopt -u dirspell
-
 # include dotfiles in filename expansion
 shopt -s dotglob
 
@@ -30,9 +24,6 @@ shopt -s expand_aliases
 
 # enable extended pattern matching: http://en.chys.info/2009/02/extglob/
 shopt -s extglob
-
-# enable '/**' and '/**/' pathnames for filename expansion
-shopt -s globstar
 
 # auto-complete hostnames in /etc/hosts
 export HOSTFILE=/etc/hosts
