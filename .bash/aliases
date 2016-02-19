@@ -33,6 +33,7 @@ alias pioc='nano'
 alias pcio='nano'
 alias pcoi='nano'
 alias vi='vim'
+alias ivm='vim'
 alias ed="emacs"
 alias em="emacs"
 
