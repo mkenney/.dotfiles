@@ -34,7 +34,7 @@ done
 #
 # git command wrapper + alias
 #
-function git-better {
+function _git_better {
 	custom_commands="$(git_autocomplete_commands)"
 	for a in ${custom_commands[@]}
 	do
@@ -47,6 +47,6 @@ function git-better {
 	/usr/bin/env git "$@"
 
 }
-export -f git-better
+export -f _git_better
 
-alias git=git-better
+alias git='_git_better'
