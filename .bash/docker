@@ -62,4 +62,4 @@ function _docker_better {
 }
 export -f _docker_better
 
-alias docker=_docker_better
+alias docker='_docker_better'
