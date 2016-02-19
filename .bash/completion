@@ -1,8 +1,20 @@
-# enable pathname expansion
-shopt -s direxpand
+platform=`uname`
+if [[ $platform == 'Linux' ]]; then
 
-# disable spelling correction
-shopt -u dirspell
+    # enable pathname expansion
+    shopt -s direxpand
+
+    # disable spelling correction
+    shopt -u dirspell
+
+
+elif [[ $platform == 'Darwin' ]]; then
+    alias ls='ls -GAaFf'
+
+elif [[ $platform == 'SunOS' ]]; then
+    alias ls='ls -laF'
+    export TERM=vt100
+fi
 
 # include dotfiles in filename expansion
 shopt -s dotglob
@@ -12,9 +24,6 @@ shopt -s expand_aliases
 
 # enable extended pattern matching: http://en.chys.info/2009/02/extglob/
 shopt -s extglob
-
-# enable '/**' and '/**/' pathnames for filename expansion
-shopt -s globstar
 
 # auto-complete hostnames in /etc/hosts
 export HOSTFILE=/etc/hosts
