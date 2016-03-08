@@ -1,9 +1,62 @@
-set mouse=a
+set nocompatible              " be iMproved, required
+filetype off                  " required
 
-source ~/.vim/php-doc.vim
-inoremap <C-P> <ESC>:call PhpDocSingle()<CR>i
-nnoremap <C-P> :call PhpDocSingle()<CR>
-vnoremap <C-P> :call PhpDocRange()<CR>
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+" alternatively, pass a path where Vundle should install plugins
+"call vundle#begin('~/some/path/here')
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" The following are examples of different formats supported.
+" Keep Plugin commands between vundle#begin/end.
+" plugin on GitHub repo
+"Plugin 'tpope/vim-fugitive'
+" plugin from http://vim-scripts.org/vim/scripts.html
+"Plugin 'L9'
+" Git plugin not hosted on GitHub
+"Plugin 'git://git.wincent.com/command-t.git'
+" git repos on your local machine (i.e. when working on your own plugin)
+"Plugin 'file:///home/gmarik/path/to/plugin'
+" The sparkup vim script is in a subdirectory of this repo called vim.
+" Pass the path to set the runtimepath properly.
+"Plugin 'rstacruz/sparkup', {'rtp': 'vim/'}
+" Install L9 and avoid a Naming conflict if you've already installed a
+" different version somewhere else.
+"Plugin 'ascenator/L9', {'name': 'newL9'}
+
+Bundle 'joonty/vim-phpqa'
+"Bundle 'joonty/vim-phpunitqf'
+Bundle 'scrooloose/syntastic'
+Bundle 'scrooloose/nerdtree'
+Bundle 'ervandew/supertab'
+let g:SuperTabDefaultCompletionType = ""
+
+" Mess detector config
+"let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
+
+" CodeSniffer rules
+let g:phpqa_codesniffer_args = "--standard=Zend"
+
+" All of your Plugins must be added before the following line
+call vundle#end()            " required
+filetype plugin indent on    " required
+" To ignore plugin indent changes, instead use:
+"filetype plugin on
+"
+" Brief help
+" :PluginList       - lists configured plugins
+" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"
+" see :h vundle for more details or wiki for FAQ
+" Put your non-Plugin stuff after this line
+
+
+set mouse=a
 
 " case-insensitive search
 set ignorecase
@@ -37,15 +90,6 @@ inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
   \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
 
-"###########################
-"##       PHP             ##
-"###########################
-" The php doc plugin
-" source ~/.vim/php-doc.vim
-inoremap <C-P> <ESC>:call PhpDocSingle()<CR>i
-nnoremap <C-P> :call PhpDocSingle()<CR>
-vnoremap <C-P> :call PhpDocRange()<CR>
-
 " run file with PHP CLI (CTRL-M)
 :autocmd FileType php noremap <C-M> :w!<CR>:!/usr/local/php/bin/php %<CR>
 
@@ -53,7 +97,6 @@ vnoremap <C-P> :call PhpDocRange()<CR>
 :autocmd FileType php noremap <C-L> :!/usr/local/php/bin/php -l %<CR>
 
 " Do use the currently active spell checking for completion though!
-" (I love this feature :-)
 set complete+=kspell
 
 " <TAB>-related options
@@ -69,11 +112,6 @@ set incsearch
 
 " highlt matches
 set hlsearch
-
-" Taken from http://peterodding.com/code/vim/profile/vimrc
-" Make Vim open and close folded text as needed because I can't be bothered to
-" do so myself and wouldn't use text folding at all if it wasn't automatic.
-" set foldmethod=marker foldopen=all,insert foldclose=all
 
 " Enable enhanced command line completion.
 set wildmenu wildmode=list:full
@@ -149,22 +187,6 @@ augroup JumpCursorOnEdit
  \ unlet b:doopenfold |
  \ endif
 augroup END
-
-" PHP code sniffer
-" If code sniffer is installed you can run it on current php file by running
-" :Phpcs
-function! RunPhpcs()
-    let l:filename=@%
-    let l:phpcs_output=system('phpcs --report=csv --standard=YMC '.l:filename)
-"    echo l:phpcs_output
-    let l:phpcs_list=split(l:phpcs_output, "\n")
-    unlet l:phpcs_list[0]
-    cexpr l:phpcs_list
-    cwindow
-endfunction
-
-set errorformat+=\"%f\"\\,%l\\,%c\\,%t%*[a-zA-Z]\\,\"%m\"
-command! Phpcs execute RunPhpcs()
 
 " Don't visually wrap lines
 set nowrap
