@@ -4,6 +4,8 @@
 platform=`uname`
 if [[ $platform == 'Linux' ]]; then
 	alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
+	export TERM='xterm-256color'
+    set -g xterm-keys on
 
 elif [[ $platform == 'Darwin' ]]; then
 	alias ls='ls -GAaFf'

@@ -55,6 +55,13 @@ filetype plugin indent on    " required
 " see :h vundle for more details or wiki for FAQ
 " Put your non-Plugin stuff after this line
 
+
+set t_ut=
+
+if $TERM == ('xterm')
+    set t_Co=256
+endif
+
 " Map tab switching
 nnoremap <C-Left> :tabprevious<CR>
 nnoremap <C-Right> :tabnext<CR>
@@ -211,10 +218,6 @@ set encoding=utf8
 set nu
 
 "set t_Co=256
-
-if $TERM == ('xterm')
-  set t_Co=256
-endif
 
 " Syntax highlighting
 hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
