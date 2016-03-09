@@ -28,9 +28,20 @@ Plugin 'VundleVim/Vundle.vim'
 "Plugin 'ascenator/L9', {'name': 'newL9'}
 
 Bundle 'joonty/vim-phpqa'
+
 "Bundle 'joonty/vim-phpunitqf'
+
 Bundle 'scrooloose/syntastic'
+
 Bundle 'scrooloose/nerdtree'
+let NERDTreeShowHidden=1
+function! StartUp()
+    if 0 == argc()
+        NERDTree
+    end
+endfunction
+autocmd VimEnter * call StartUp()
+
 Bundle 'ervandew/supertab'
 let g:SuperTabDefaultCompletionType = ""
 
@@ -57,14 +68,13 @@ filetype plugin indent on    " required
 
 
 set t_ut=
-
 if $TERM == ('xterm')
     set t_Co=256
 endif
 
 " Map tab switching
-nnoremap <C-Left> :tabprevious<CR>
-nnoremap <C-Right> :tabnext<CR>
+map <M-Left> :tabp<CR>
+map <M-Right> :tabn<CR>
 
 set mouse=a
 
