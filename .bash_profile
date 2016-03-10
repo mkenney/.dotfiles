@@ -79,3 +79,9 @@ fi
 if [ -f ~/.bash/prompt ]; then
 	. ~/.bash/prompt
 fi
+
+# devenv
+if [ -f ~/.bash/devenv ]; then
+	. ~/.bash/devenv
+fi
+

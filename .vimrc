@@ -261,3 +261,4 @@ let g:rainbow_active = 1
 
 
 
+:set tags=~/web.tags
