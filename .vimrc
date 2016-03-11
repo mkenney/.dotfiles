@@ -32,6 +32,7 @@ Bundle 'joonty/vim-phpqa'
 "Bundle 'joonty/vim-phpunitqf'
 
 Bundle 'scrooloose/syntastic'
+let g:syntastic_php_checkers = ['php', 'phpcs']
 
 Bundle 'scrooloose/nerdtree'
 let NERDTreeShowHidden=1
@@ -49,7 +50,8 @@ let g:SuperTabDefaultCompletionType = ""
 "let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
 
 " CodeSniffer rules
-let g:phpqa_codesniffer_args = "--standard=Zend"
+"let g:phpqa_codesniffer_args = "--standard=Zend"
+let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -110,11 +112,8 @@ inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
   \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
 
-" run file with PHP CLI (CTRL-M)
-:autocmd FileType php noremap <C-M> :w!<CR>:!/usr/local/php/bin/php %<CR>
-
 " PHP parser check (CTRL-L)
-:autocmd FileType php noremap <C-L> :!/usr/local/php/bin/php -l %<CR>
+:autocmd FileType php noremap <C-L> :!/usr/bin/php -l %<CR>
 
 " Do use the currently active spell checking for completion though!
 set complete+=kspell
@@ -230,6 +229,7 @@ set nu
 "set t_Co=256
 
 " Syntax highlighting
+"colorscheme evening
 hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
 hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
 hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
@@ -242,7 +242,7 @@ hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg gui
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
 if &diff
-   colorscheme darkblue
+    colorscheme darkblue
 endif
 
 set nofoldenable    " disable folding

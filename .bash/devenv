@@ -11,7 +11,7 @@ function _devenv_autocomplete {
 	_docker_container_names=""
 	# Add all current container names to the auto-complete command list
 	if [ "" != "$(docker ps -aq --no-trunc)" ]; then
-		for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do
+		for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc) | grep devenv); do
 			_docker_container_names="$_docker_container_names ${a:1:${#a}-1}"
 		done
 	fi
