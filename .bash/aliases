@@ -45,6 +45,8 @@ alias top='htop -d 5'
 alias suod='sudo'
 alias rsync='rsync --progress'
 
+alias cloc="perl ~/cloc.pl"
+
 alias locate='locate -i'
 alias pstree='pstree -ahlpuU'
 
