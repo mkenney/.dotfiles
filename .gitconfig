@@ -2,7 +2,7 @@
 	email = michael.kenney@returnpath.net
 	name = Michael Kenney
 [diff]
-    external = .vimdiff_wrapper
+    external = ~/.vimdiff_wrapper
 [pager]
     diff =
 [color]
