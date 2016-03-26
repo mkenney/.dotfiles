@@ -69,6 +69,17 @@ filetype plugin indent on    " required
 " Put your non-Plugin stuff after this line
 
 
+" Keep undo history across sessions by storing it in a file
+let vimDir = '$HOME/.vim'
+if has('persistent_undo')
+    let myUndoDir = expand(vimDir . '/undodir')
+    " Create dirs
+    call system('mkdir ' . vimDir)
+    call system('mkdir ' . myUndoDir)
+    let &undodir = myUndoDir
+    set undofile
+endif
+
 set t_ut=
 if $TERM == ('xterm')
     set t_Co=256
