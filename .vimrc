@@ -124,7 +124,7 @@ inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
 
 
 " PHP parser check (CTRL-L)
-:autocmd FileType php noremap <C-L> :!/usr/bin/env php -l %<CR>
+:autocmd FileType php noremap <C-P> :!/usr/bin/env php -l %<CR>
 
 " Do use the currently active spell checking for completion though!
 set complete+=kspell
