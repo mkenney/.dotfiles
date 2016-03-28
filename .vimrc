@@ -269,7 +269,3 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 
 " Rainbow parens
 let g:rainbow_active = 1
-
-
-
-:set tags=~/web.tags
