@@ -53,6 +53,11 @@ let g:SuperTabDefaultCompletionType = ""
 "let g:phpqa_codesniffer_args = "--standard=Zend"
 let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
 
+" powerline-like status bar
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
+
+
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
