@@ -20,9 +20,9 @@ function prompt_command() {
 
         # Line 1
 	if [ "$EUID" = "0" ]; then # Root
-		ps1_lines+='\n┌(\[${COLOR_RED_BOLD}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) -- \[${COLOR_NORM}\]\[$PWD\]'
+		ps1_lines+='\n┌(\[${COLOR_RED_BOLD}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
 	else
-		ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) -- \[${COLOR_NORM}\]\[$PWD\]'
+		ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
 	fi
 
         # Line 2
