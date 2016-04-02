@@ -53,6 +53,11 @@ let g:SuperTabDefaultCompletionType = ""
 "let g:phpqa_codesniffer_args = "--standard=Zend"
 let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
 
+" powerline-like status bar
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
+
+
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -124,7 +129,7 @@ inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
 
 
 " PHP parser check (CTRL-L)
-:autocmd FileType php noremap <C-L> :!/usr/bin/env php -l %<CR>
+:autocmd FileType php noremap <C-K> :!/usr/bin/env php -l %<CR>
 
 " Do use the currently active spell checking for completion though!
 set complete+=kspell
@@ -270,6 +275,3 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 " Rainbow parens
 let g:rainbow_active = 1
 
-
-
-:set tags=~/web.tags
