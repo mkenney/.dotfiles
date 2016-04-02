@@ -8,43 +8,46 @@
 
 function prompt_command() {
 
-        local last_status=$?
-        
-	GIT_PS1_SHOWDIRTYSTATE=1
-	GIT_PS1_SHOWSTASHSTATE=1
-	GIT_PS1_SHOWUNTRACKEDFILES=
-	GIT_PS1_SHOWUPSTREAM=1
-	git_line=$(__git_ps1 '%s')
+    local last_status=$?
 
-	local -a ps1_lines
+    COLOR_YELLOW=$'\e[38;5;226m'
+    COLOR_FADED_BLUE=$'\e[38;5;75m'
+    COLOR_RED_BLINK=$'\e[5m\e[38;5;196m'
+    
+    GIT_PS1_SHOWDIRTYSTATE=1
+    GIT_PS1_SHOWSTASHSTATE=1
+    GIT_PS1_SHOWUNTRACKEDFILES=
+    GIT_PS1_SHOWUPSTREAM=1
+    git_line=$(__git_ps1 '%s')
 
-        # Line 1
-	if [ "$EUID" = "0" ]; then # Root
-		ps1_lines+='\n┌(\[${COLOR_RED_BOLD}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
-	else
-		ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_BLUE}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
-	fi
+    local -a ps1_lines
+    # Line 1
+    if [ "$EUID" = "0" ]; then # Root
+        ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\e[0m\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
+    else
+        ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
+    fi
 
-        # Line 2
-	if [ "" != "$git_line" ]; then # In a git repo
-		ps1_lines+='\n├[\[${COLOR_YELLOW}\]$(__git_ps1 "git: %s")\[${COLOR_NORM}\]]'
-	fi
-        
-        # Line 3
-        # http://emojipedia.org/people/
-        if [ "0" == "$last_status" ]; then
-            faces=('\n└(😑 )→ ' '\n└(😎 )→ ' '\n└(😀 )→ ' '\n└(😉 )→ ' '\n└(😘 )→ ' '\n└(😇 )→ ' '\n└(😮 )→ ' '\n└(😪 )→ ' '\n└(😫 )→ ' '\n└(😜 )→ ' '\n└(😓 )→ ' '\n└(😜 )→ ' '\n└(😖 )→ ' '\n└(😤 )→ ' '\n└(😭 )→ ' '\n└(😦 )→ ' '\n└(😲 )→ ' '\n└(😨 )→ ' '\n└(😭 )→ ' '\n└(😱 )→ ')
-            ps1_lines+=${faces[$RANDOM % ${#faces[@]}]} # pick a random face
-        else
-            ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
-            #ps1_lines+='\n└(🔴 )⤳ ' # Last script exited with a non-zero code
-            #ps1_lines+='\n└(‼️ )⤳ ' # Last script exited with a non-zero code
-            #ps1_lines+='\n└(❌ )⤳ ' # Last script exited with a non-zero code
-            #ps1_lines+='\n└(⛔ )⤳ ' # Last script exited with a non-zero code
-            #ps1_lines+='\n└(🚫 )⤳ ' # Last script exited with a non-zero code
-        fi
+    # Line 2
+    if [ "" != "$git_line" ]; then # In a git repo
+        ps1_lines+='\n├[\[${COLOR_FADED_BLUE}\]$(__git_ps1 "git: %s")\[${COLOR_NORM}\]]'
+    fi
+    
+    # Line 3
+    # http://emojipedia.org/people/
+    if [ "0" == "$last_status" ]; then
+        faces=('\n└(😑 )→ ' '\n└(😎 )→ ' '\n└(😀 )→ ' '\n└(😉 )→ ' '\n└(😘 )→ ' '\n└(😇 )→ ' '\n└(😮 )→ ' '\n└(😪 )→ ' '\n└(😫 )→ ' '\n└(😜 )→ ' '\n└(😓 )→ ' '\n└(😜 )→ ' '\n└(😖 )→ ' '\n└(😤 )→ ' '\n└(😭 )→ ' '\n└(😦 )→ ' '\n└(😲 )→ ' '\n└(😨 )→ ' '\n└(😭 )→ ' '\n└(😱 )→ ')
+        ps1_lines+=${faces[$RANDOM % ${#faces[@]}]} # pick a random face
+    else
+        ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🔴 )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(‼️ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(❌ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(⛔ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🚫 )⤳ ' # Last script exited with a non-zero code
+    fi
 
-	PS1="${ps1_lines[*]}"
+    PS1="${ps1_lines[*]}"
 }
 
 export PROMPT_COMMAND=prompt_command
