@@ -28,7 +28,7 @@ function prompt_command() {
     if [ "" != "$git_line" ]; then # In a git repo
         ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$(__git_ps1 "git: %s")\[${COLOR_NORM}\]]'
     fi
-    
+
     # Line 3
     if [ "0" == "$last_status" ]; then
         ps1_lines+='\n└(\[${COLOR_GREEN}\]＄\[${COLOR_NORM}\])→ '
