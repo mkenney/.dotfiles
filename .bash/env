@@ -33,6 +33,7 @@ PATH=$PATH:/opt/rh/php54/root/usr/bin
 PATH=$PATH:/usr/local/apache-maven/bin
 PATH=$PATH:/usr/local/ant/bin
 PATH=$PATH:/usr/local/apache/bin
+PATH=$PATH:/usr/local/bin
 export PATH
 
 set -o vi
