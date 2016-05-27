@@ -1,28 +1,6 @@
-export HADOOP_HOME="/usr/local/hadoop"
-export HBASE_HOME="/usr/local/hbase"
-export GROOVY_HOME="/usr/local/groovy"
-export PIG_HOME="/urs/local/pig"
-export JAVA_HOME="/usr/java/latest"
-export LANG="en_US.UTF-8"
 
-
-export ORACLE_HOME=/oracle/product/latest
-export TNS_ADMIN=/na/home/mkenney/.oracle/network/admin
-export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
-export PATH=$ORACLE_HOME/bin:$PATH:$HOME/bin
-
-
-
-export PERLLIB=$HOME/projects/rp_perl_libs/lib:$HOME/projects/cert_performance_backend/lib:$HOME/projects/cert_applicants_backend/lib
-export PERL5LIB=$PERLLIB
-export CERT_PERFORMANCE_HOME=$HOME/projects/cert_performance_backend
-
-#
-# User specific environment and startup programs
-#
 PATH=/usr/local/bin:$PATH
-PATH=$PATH:$HOME
-PATH=$PATH:$HOME/bin
+PATH=$HOME/bin:$PATH
 PATH=$PATH:/usr/local/hadoop/bin
 PATH=$PATH:/usr/local/hbase/bin
 PATH=$PATH:/usr/local/hive/bin
@@ -34,15 +12,34 @@ PATH=$PATH:/usr/local/apache-maven/bin
 PATH=$PATH:/usr/local/ant/bin
 PATH=$PATH:/usr/local/apache/bin
 PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
+PATH=$PATH:$HOME
 export PATH
+
+export HADOOP_HOME="/usr/local/hadoop"
+export HBASE_HOME="/usr/local/hbase"
+export GROOVY_HOME="/usr/local/groovy"
+export PIG_HOME="/urs/local/pig"
+export JAVA_HOME="/usr/java/latest"
+export LANG="en_US.UTF-8"
+
+
+export ORACLE_HOME=/oracle/product/latest
+export TNS_ADMIN=/na/home/mkenney/.oracle/network/admin
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
+export PATH=$ORACLE_HOME/bin:$PATH
+
+export PERLLIB=$HOME/projects/rp_perl_libs/lib:$HOME/projects/cert_performance_backend/lib:$HOME/projects/cert_applicants_backend/lib
+export PERL5LIB=$PERLLIB
+export CERT_PERFORMANCE_HOME=$HOME/projects/cert_performance_backend
 
 export TERM='xterm-256color'
 
+# VI mode
 set -o vi
 export VISUAL=/usr/bin/vim
 export EDITOR=/usr/bin/vim
 
-#maven
+# maven
 export M2_HOME=/usr/local/apache-maven
 export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 
