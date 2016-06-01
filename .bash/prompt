@@ -31,7 +31,7 @@ function prompt_command() {
 
     # Line 3
     if [ "0" == "$last_status" ]; then
-        ps1_lines+='\n└(\[${COLOR_GREEN}\]＄\[${COLOR_NORM}\])→ '
+        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])→ '
     else
         # http://emojipedia.org/
         ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
