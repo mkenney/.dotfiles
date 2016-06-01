@@ -1,53 +1,53 @@
 # ~/.bash_profile
 
 # VIM stuff
-if [ -f $PWD/.bash/vim ]; then
-	. $PWD/.bash/vim
+if [ -f ~/.bash/vim ]; then
+	. ~/.bash/vim
 fi
 
 # Git stuff
-if [ -f $PWD/.bash/git ]; then
-	. $PWD/.bash/git
+if [ -f ~/.bash/git ]; then
+	. ~/.bash/git
 fi
 
 # Git completion
-if [ -f $PWD/.bash/git-completion ]; then
-	. $PWD/.bash/git-completion
+if [ -f ~/.bash/git-completion ]; then
+	. ~/.bash/git-completion
 fi
 
 # Git prompt
-if [ -f $PWD/.bash/git-prompt ]; then
-	. $PWD/.bash/git-prompt
+if [ -f ~/.bash/git-prompt ]; then
+	. ~/.bash/git-prompt
 fi
 
 # CVS stuff
-if [ -f $PWD/.bash/cvs ]; then
-	. $PWD/.bash/cvs
+if [ -f ~/.bash/cvs ]; then
+	. ~/.bash/cvs
 fi
 
 # Docker stuff
-if [ -f $PWD/.bash/docker ]; then
-	. $PWD/.bash/docker
+if [ -f ~/.bash/docker ]; then
+	. ~/.bash/docker
 fi
 
 # Perl stuff
-if [ -f $PWD/.bash/perl ]; then
-	. $PWD/.bash/perl
+if [ -f ~/.bash/perl ]; then
+	. ~/.bash/perl
 fi
 
 # Java stuff
-if [ -f $PWD/.bash/java ]; then
-	. $PWD/.bash/java
+if [ -f ~/.bash/java ]; then
+	. ~/.bash/java
 fi
 
 # Aliases
-if [ -f $PWD/.bash/aliases ]; then
-	. $PWD/.bash/aliases
+if [ -f ~/.bash/aliases ]; then
+	. ~/.bash/aliases
 fi
 
 # Screen aliases
-if [ -f $PWD/.bash/screen ]; then
-	. $PWD/.bash/screen
+if [ -f ~/.bash/screen ]; then
+	. ~/.bash/screen
 fi
 
 # SSH tunnel aliases
@@ -56,26 +56,31 @@ if [ -f ~/tunnels ]; then
 fi
 
 # Functions
-if [ -f $PWD/.bash/functions ]; then
-	. $PWD/.bash/functions
+if [ -f ~/.bash/functions ]; then
+	. ~/.bash/functions
 fi
 
 # ENV
-if [ -f $PWD/.bash/env ]; then
-	. $PWD/.bash/env
+if [ -f ~/.bash/env ]; then
+	. ~/.bash/env
 fi
 
 # Bash completion settings
-if [ -f $PWD/.bash/completion ]; then
-	. $PWD/.bash/completion
+if [ -f ~/.bash/completion ]; then
+	. ~/.bash/completion
 fi
 
 # Sshfs mount aliases
-if [ -f $PWD/.bash/mount ]; then
-	. $PWD/.bash/mount
+if [ -f ~/.bash/mount ]; then
+	. ~/.bash/mount
 fi
 
 # Prompt
-if [ -f $PWD/.bash/prompt ]; then
-	. $PWD/.bash/prompt
+if [ -f ~/.bash/prompt ]; then
+	. ~/.bash/prompt
+fi
+
+# devenv
+if [ -f ~/.bash/devenv ]; then
+	. ~/.bash/devenv
 fi

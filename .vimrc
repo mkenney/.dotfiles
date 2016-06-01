@@ -1,27 +1,105 @@
-set mouse=a
 
-source ~/.vim/php-doc.vim
-inoremap <C-P> <ESC>:call PhpDocSingle()<CR>i
-nnoremap <C-P> :call PhpDocSingle()<CR>
-vnoremap <C-P> :call PhpDocRange()<CR>
 
-" case-insensitive search
-set ignorecase
-" case-sensitive once I type an uppercase char...
-set smartcase
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Vundle configuration - keep this first
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" line wrapping
-set wrap
-set linebreak
-set textwidth=0
-set wrapmargin=0
+set nocompatible
+filetype off
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+"Bundle 'joonty/vim-phpqa'
+
+"Bundle 'joonty/vim-phpunitqf'
+
+Bundle 'scrooloose/syntastic'
+let g:syntastic_php_checkers = ['php', 'phpcs']
+
+Bundle 'scrooloose/nerdtree'
+let NERDTreeShowHidden=1
+let NERDTreeIgnore = ['\.sw?$']
+noremap gn :NERDTree<Cr>
+function! StartUp()
+    if 0 == argc()
+        NERDTree
+    end
+endfunction
+autocmd VimEnter * call StartUp()
+
+" Minimap
+Plugin 'severin-lemaignan/vim-minimap'
+
+"Bundle 'ervandew/supertab'
+"let g:SuperTabDefaultCompletionType = ""
+
+" Mess detector config
+"let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
+
+" CodeSniffer rules
+"let g:phpqa_codesniffer_args = "--standard=Zend"
+"let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
+
+" All of your Plugins must be added before the following line
+call vundle#end()            " required
+filetype plugin indent on    " required
+
+" Brief help
+" :PluginList       - lists configured plugins
+" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"
+" see :h vundle for more details or wiki for FAQ
+" Put your non-Plugin stuff after this line
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" terminal settings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 set nocp
-syntax on
-filetype plugin indent on
+set t_ut=
+set t_Co=256
+"set t_AB=^[[48;5;%dm
+"set t_AF=^[[38;5;%dm
+set mouse=a
+set noerrorbells
+set ttyfast
+set shell=bash
+" move screen with cursor when not using arrow keys
+noremap j j<c-e>
+noremap k k<c-y>
+" previous / next buffers
+map <C-j> :bprev<CR>
+map <C-k> :bnext<CR>
+set hidden
+" ignore caps for some commands
+:command WQ wq
+:command Wq wq
+:command W w
+:command Q q
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" sessions
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Don't remember source of this, i think it was already in my .vimrc
+" Keep undo history across sessions by storing it in a file
+let vimDir = '$HOME/.vim'
+if has('persistent_undo')
+    let myUndoDir = expand(vimDir . '/undodir')
+    " Create dirs
+    call system('mkdir ' . vimDir)
+    call system('mkdir ' . myUndoDir)
+    let &undodir = myUndoDir
+    set undofile
+endif
+
 " Tell vim to remember certain things when we exit
 "  '10 : marks will be remembered for up to 10 previously edited files
 "  "100 : will save up to 100 lines for each register
@@ -30,54 +108,21 @@ filetype plugin indent on
 "  n... : where to save the viminfo files
 set viminfo='10,\"100,:5000,%,n~/.viminfo
 
-" omnicomplete from: http://vim.wikia.com/wiki/VimTip1386
-set completeopt=longest,menuone
-inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
-inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
-  \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" search settings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-"###########################
-"##       PHP             ##
-"###########################
-" The php doc plugin
-" source ~/.vim/php-doc.vim
-inoremap <C-P> <ESC>:call PhpDocSingle()<CR>i
-nnoremap <C-P> :call PhpDocSingle()<CR>
-vnoremap <C-P> :call PhpDocRange()<CR>
-
-" run file with PHP CLI (CTRL-M)
-:autocmd FileType php noremap <C-M> :w!<CR>:!/usr/local/php/bin/php %<CR>
-
-" PHP parser check (CTRL-L)
-:autocmd FileType php noremap <C-L> :!/usr/local/php/bin/php -l %<CR>
-
-" Do use the currently active spell checking for completion though!
-" (I love this feature :-)
-set complete+=kspell
-
-" <TAB>-related options
-" disable tabs
-set expandtab
-set shiftwidth=4
-set softtabstop=4
-set tabstop=4
-"set autoindent
-
+" case-insensitive search
+set ignorecase
+" case-sensitive once I type an uppercase char...
+set smartcase
 " Incremental search
 set incsearch
-
-" highlt matches
+" highlight matches
 set hlsearch
-
-" Taken from http://peterodding.com/code/vim/profile/vimrc
-" Make Vim open and close folded text as needed because I can't be bothered to
-" do so myself and wouldn't use text folding at all if it wasn't automatic.
-" set foldmethod=marker foldopen=all,insert foldclose=all
-
 " Enable enhanced command line completion.
 set wildmenu wildmode=list:full
-
 " Ignore these filenames during enhanced command line completion.
 set wildignore+=*.aux,*.out,*.toc " LaTeX intermediate files
 set wildignore+=*.jpg,*.bmp,*.gif " binary images
@@ -86,45 +131,81 @@ set wildignore+=*.o,*.obj,*.exe,*.dll,*.manifest " compiled object files
 set wildignore+=*.pyc " Python byte code
 set wildignore+=*.spl " compiled spelling word lists
 set wildignore+=*.sw? " Vim swap files
+" omnicomplete from: http://vim.wikia.com/wiki/VimTip1386
+set completeopt=longest,menuone
+inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
+    \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
 
-" Enable completion dictionaries for PHP buffers.
-autocmd FileType php set complete+=k~/.vim/dict/PHP.dict
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" editing
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" PHP Autocomplete
-autocmd FileType php set omnifunc=phpcomplete#CompletePHP
-set ofu=syntaxcomplete#Complete
+" line wrapping
+set wrap
+set linebreak
+set textwidth=0
+set wrapmargin=0
+" Move vertically correctly across wrapped lines
+inoremap <Down> <C-o>gj
+inoremap <Up> <C-o>gk
+" keep at least 5 offsets around the cursor
+set scrolloff=5
+set sidescrolloff=5
+" show tabs and trailing whitespace
+set list
+set listchars=tab:>·,trail:·
+" leave cursor position alone
+set nostartofline
+" backspace over newlines
+set backspace=2
 
-" You might also find this useful
-" PHP Generated Code Highlights (HTML & SQL)
-let php_sql_query=1
-let php_htmlInStrings=1
-"let g:php_folding=2
-"set foldmethod=syntax
-"if line =~ '^\s*\(class\|function\)\s'
-
-
-" --------------------
-" Project
-" --------------------
-map <A-S-p> :Project<CR>
-map <A-S-o> :Project<CR>:redraw<CR>/
-nmap <silent> <F3> <Plug>ToggleProject
-"let g:proj_window_width = 30
-"let g:proj_window_increment = 150
-
-nnoremap <silent> <F8> :TlistToggle<CR>
-let Tlist_Exit_OnlyWindow = 1     " exit if taglist is last window open
-let Tlist_Show_One_File = 1       " Only show tags for current buffer
-let Tlist_Enable_Fold_Column = 0  " no fold column (only showing one file)
-let tlist_sql_settings = 'sql;P:package;t:table'
-let tlist_ant_settings = 'ant;p:Project;r:Property;t:Target'
-
-" auto change directory from:
+" set working directory to current file
 " http://vim.wikia.com/wiki/Set_working_directory_to_the_current_file
 autocmd BufEnter * if expand("%:p:h") !~ '^/tmp' | lcd %:p:h | endif
 
-" when we reload, tell vim to restore the cursor to the saved position
+" indentation
+set autoindent
+set smartindent
+set expandtab
+set shiftwidth=4
+set softtabstop=4
+set tabstop=4
+set shiftround
+set copyindent
+set preserveindent
+filetype plugin indent on
+
+"syntax hilighting
+syntax on
+
+" PHP Generated Code Highlights (HTML & SQL)
+let php_sql_query=1
+let php_htmlInStrings=1
+
+" code folding
+"let g:php_folding=2
+"set foldmethod=syntax
+
+" Trim trailing spaces
+autocmd BufWritePre *.* :%s/\s\+$//e
+
+" Fonts
+set gfn=Monospace\ 12
+set encoding=utf8
+
+" show line numbers
+set nu
+
+" don't create swp files
+set nobackup
+set noswapfile
+
+" type 'ii' to switch from insert to command mode
+imap ii <C-[>
+
+" when reopening a file, tell vim to restore the cursor to the saved position
 augroup JumpCursorOnEdit
  au!
  autocmd BufReadPost *
@@ -150,48 +231,32 @@ augroup JumpCursorOnEdit
  \ endif
 augroup END
 
-" PHP code sniffer
-" If code sniffer is installed you can run it on current php file by running
-" :Phpcs
-function! RunPhpcs()
-    let l:filename=@%
-    let l:phpcs_output=system('phpcs --report=csv --standard=YMC '.l:filename)
-"    echo l:phpcs_output
-    let l:phpcs_list=split(l:phpcs_output, "\n")
-    unlet l:phpcs_list[0]
-    cexpr l:phpcs_list
-    cwindow
-endfunction
+" syntax highlighting
+set background=dark
+highlight MatchParen ctermbg=darkblue guibg=blue
 
-set errorformat+=\"%f\"\\,%l\\,%c\\,%t%*[a-zA-Z]\\,\"%m\"
-command! Phpcs execute RunPhpcs()
+set colorcolumn=78
+hi ColorColumn ctermbg=017
+" cursor color
+"hi cursor cterm=NONE ctermbg=019
+"set cursor
+" cursor line color
+hi cursorline cterm=NONE ctermbg=052
+set cursorline
+" cursor column color
+"hi cursorcolumn cterm=NONE ctermbg=017
+"set cursorcolumn
+nnoremap <Leader>c :set cursorline! cursorcolumn!<CR>
+" visual selection color
+hi Visual  ctermbg=236 ctermfg=white cterm=none
+" line number color
+highlight LineNr ctermfg=008
+highlight CursorLineNr ctermfg=255
+" make the cursor an underscore
+let &t_SI .= "\<Esc>[3 q"
+let &t_EI .= "\<Esc>[3 q"
 
-" Don't visually wrap lines
-set nowrap
-
-" Trim trailing spaces
-autocmd BufWritePre *.* :%s/\s\+$//e
-
-" Status bar
-set statusline=%F%m%r%h%w\ \ Line\ %l,\ Col\ %v\ \(%p%%\)
-set laststatus=2
-
-" Fonts
-set gfn=Monospace\ 12
-set encoding=utf8
-
-"set shell=/bin/bash
-
-" line numbers
-set nu
-
-"set t_Co=256
-
-if $TERM == ('xterm')
-  set t_Co=256
-endif
-
-" Syntax highlighting
+" syntax colors
 hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
 hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
 hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
@@ -204,22 +269,24 @@ hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg gui
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
 if &diff
-   colorscheme darkblue
+    colorscheme darkblue
 endif
 
-set nofoldenable    " disable folding
-
-
-cmap w!! w !sudo tee %
-
+" diff highlighting
 highlight DiffAdd    cterm=bold ctermfg=10 ctermbg=21 gui=none guifg=bg guibg=Red
 highlight DiffChange cterm=bold ctermfg=10 ctermbg=17 gui=none guifg=bg guibg=Red
 highlight DiffDelete cterm=bold ctermfg=10 ctermbg=17 gui=none guifg=bg guibg=Red
 highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Red
-"highlight! link DiffText MatchParen
 
-" Rainbow parens
+" rainbow parens
 let g:rainbow_active = 1
 
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" key mappings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Map tab switching
+map <M-Left> :tabp<CR>
+map <M-Right> :tabn<CR>
 

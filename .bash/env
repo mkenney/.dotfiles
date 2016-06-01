@@ -1,3 +1,20 @@
+
+PATH=/usr/local/bin:$PATH
+PATH=$HOME/bin:$PATH
+PATH=$PATH:/usr/local/hadoop/bin
+PATH=$PATH:/usr/local/hbase/bin
+PATH=$PATH:/usr/local/hive/bin
+PATH=$PATH:/usr/local/pig/bin
+PATH=$PATH:$HOME/hdshell/bin
+#PATH=$PATH:/usr/local/php/bin
+PATH=$PATH:/opt/rh/php54/root/usr/bin
+PATH=$PATH:/usr/local/apache-maven/bin
+PATH=$PATH:/usr/local/ant/bin
+PATH=$PATH:/usr/local/apache/bin
+PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
+PATH=$PATH:$HOME
+export PATH
+
 export HADOOP_HOME="/usr/local/hadoop"
 export HBASE_HOME="/usr/local/hbase"
 export GROOVY_HOME="/usr/local/groovy"
@@ -9,43 +26,20 @@ export LANG="en_US.UTF-8"
 export ORACLE_HOME=/oracle/product/latest
 export TNS_ADMIN=/home/mkenney/.oracle/network/admin
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
-export PATH=$ORACLE_HOME/bin:$PATH:$HOME/bin
-
-
-#export ORACLE_HOME=/oracle/product/latest
-#export TNS_ADMIN=$ORACLE_HOME/network/admin
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib
+export PATH=$ORACLE_HOME/bin:$PATH
 
 export PERLLIB=$HOME/projects/rp_perl_libs/lib:$HOME/projects/cert_performance_backend/lib:$HOME/projects/cert_applicants_backend/lib
 export PERL5LIB=$PERLLIB
 export CERT_PERFORMANCE_HOME=$HOME/projects/cert_performance_backend
-#export TNS_ADMIN='/usr/local/oracle'
-#export LD_LIBRARY_PATH=$BERKELEYDB/lib:$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ORACLE_HOME/lib:/usr/lib/oracle/lib:/usr/local/lib:/local/BerkeleyDB.4.1/lib:/local/reroute/lib:/local/lib:/local/BerkeleyDB.4.0/lib
 
-#
-# User specific environment and startup programs
-#
-PATH=/usr/local/bin:$PATH
-PATH=$PATH:$HOME
-PATH=$PATH:$HOME/bin
-PATH=$PATH:/usr/local/hadoop/bin
-PATH=$PATH:/usr/local/hbase/bin
-PATH=$PATH:/usr/local/hive/bin
-PATH=$PATH:/usr/local/pig/bin
-PATH=$PATH:$HOME/hdshell/bin
-#PATH=$PATH:/usr/local/php/bin
-PATH=$PATH:/opt/rh/php54/root/usr/bin
-PATH=$PATH:/usr/local/apache-maven/bin
-PATH=$PATH:/usr/local/ant/bin
-PATH=$PATH:/usr/local/apache/bin
-export PATH
+export TERM='xterm-256color'
 
+# VI mode
 set -o vi
 export VISUAL=/usr/bin/vim
 export EDITOR=/usr/bin/vim
 
-#maven
+# maven
 export M2_HOME=/usr/local/apache-maven
 export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 

@@ -11,6 +11,7 @@
 .MacOSX/
 .mysql_history
 .netbeans/
+.npm
 .pearrc
 .php_history
 .razorsql/

@@ -37,7 +37,10 @@ function docker-clean {
 		echo
 		if [ "y" == "${EXECUTE}" ]; then
 			if [ -n "$EXITED" ]; then
-				echo -e "Removed:\n$(docker rm $EXITED)"
+				for CONTAINER_ID in `docker ps -a -q -f "status=exited"`; do
+					docker rm $CONTAINER_ID > /dev/null
+					echo -e "Removed container ${CONTAINER_ID}"
+				done
 			else
 				echo "No containers to remove"
 			fi
@@ -61,7 +64,10 @@ function docker-clean {
 		echo
 		if [ "y" == "${EXECUTE}" ]; then
 			if [ -n "$DANGLING" ]; then
-				echo -e "Removed:\n$(docker rmi $DANGLING)"
+				for IMAGE_ID in `docker images -q -f "dangling=true"`; do
+					docker rmi $IMAGE_ID > /dev/null
+					echo -e "Removed image ${IMAGE_ID}"
+				done
 			else
 				echo "No images to remove"
 			fi

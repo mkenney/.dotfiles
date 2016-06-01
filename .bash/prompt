@@ -7,36 +7,42 @@
 . ~/.bash/color
 
 function prompt_command() {
-	GIT_PS1_SHOWDIRTYSTATE=1
-	GIT_PS1_SHOWSTASHSTATE=1
-	GIT_PS1_SHOWUNTRACKEDFILES=
-	GIT_PS1_SHOWUPSTREAM=1
-	git_line=$(__git_ps1 '%s')
 
-	local -a ps1_lines
-	if [ "$EUID" = "0" ]; then # Root
-		ps1_lines+='\n\[${COLOR_RED_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]'
-	else
-		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]\u\[${COLOR_NORM_BOLD}\]@\[${COLOR_YELLOW_BOLD}\]\h: \[${COLOR_NORM_BOLD}\]\[$PWD\]'
-	fi
+    local last_status=$?
 
-	if [ "" != "$git_line" ]; then # In a git repo
-		ps1_lines+='\n\[${COLOR_YELLOW_BOLD}\]$(__git_ps1 "[git: %s]")\[${COLOR_NORM_BOLD}\]'
-	fi
+    GIT_PS1_SHOWDIRTYSTATE=1
+    GIT_PS1_SHOWSTASHSTATE=1
+    GIT_PS1_SHOWUNTRACKEDFILES=
+    GIT_PS1_SHOWUPSTREAM=1
+    git_line=$(__git_ps1 '%s')
 
-	if [ "$EUID" = "0" ]; then # Root
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]😡\[${COLOR_NORM}\] '
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👺\[${COLOR_NORM}\] '
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👹\[${COLOR_NORM}\] '
-		ps1_lines+='\n\[${COLOR_RED_BOLD}\]👀 \[${COLOR_NORM}\] '
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]👒 \[${COLOR_NORM}\] '
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]🙈 \[${COLOR_NORM}\] '
-		#ps1_lines+='\n\[${COLOR_RED_BOLD}\]😨 \[${COLOR_NORM}\] '
-	else
-		ps1_lines+='\n\[${COLOR_GREEN_BOLD}\]⚡\[${COLOR_NORM}\] '
-	fi
+    local -a ps1_lines
+    # Line 1
+    if [ "$EUID" = "0" ]; then # Root
+        ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\e[0m\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
+    else
+        ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
+    fi
 
-	PS1="${ps1_lines[*]}"
+    # Line 2
+    if [ "" != "$git_line" ]; then # In a git repo
+        ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$(__git_ps1 "git: %s")\[${COLOR_NORM}\]]'
+    fi
+
+    # Line 3
+    if [ "0" == "$last_status" ]; then
+        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])→ '
+    else
+        # http://emojipedia.org/
+        ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🔴 )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(‼️ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(❌ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(⛔ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🚫 )⤳ ' # Last script exited with a non-zero code
+    fi
+
+    PS1="${ps1_lines[*]}"
 }
 
 export PROMPT_COMMAND=prompt_command

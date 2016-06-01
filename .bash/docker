@@ -23,8 +23,20 @@ function _docker_autocomplete {
 	local cur prev opts _docker_container_names
 	COMPREPLY=()
 
+	_docker_container_names=""
 	# Add all current container names to the auto-complete command list
-	_docker_container_names=$(for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do echo ${a:1:${#a}-1}; done)
+	if [ "" != "$(docker ps -aq --no-trunc)" ]; then
+		for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do
+			_docker_container_names="$_docker_container_names ${a:1:${#a}-1}"
+		done
+	fi
+	# Add image names
+	#if [ "" != "$(docker images -q -f "dangling=false")" ]; then
+	#	for a in $(docker images -q -f "dangling=false" --format "{{.Repository}}"); do
+	#		_docker_container_names="$_docker_container_names ${a:1:${#a}-1}"
+	#	done
+	#fi
+	#_docker_container_names=$(for a in $(docker inspect --format='{{.Name}}' $(docker ps -aq --no-trunc)); do echo ${a:1:${#a}-1}; done)
 
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -62,4 +74,4 @@ function _docker_better {
 }
 export -f _docker_better
 
-alias docker=_docker_better
+alias docker='_docker_better'
