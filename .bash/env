@@ -7,7 +7,7 @@ export LANG="en_US.UTF-8"
 
 
 export ORACLE_HOME=/oracle/product/latest
-export TNS_ADMIN=/na/home/mkenney/.oracle/network/admin
+export TNS_ADMIN=/home/mkenney/.oracle/network/admin
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 export PATH=$ORACLE_HOME/bin:$PATH:$HOME/bin
 

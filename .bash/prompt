@@ -19,9 +19,9 @@ function prompt_command() {
     local -a ps1_lines
     # Line 1
     if [ "$EUID" = "0" ]; then # Root
-        ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\e[0m\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
+        ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\e[0m\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
     else
-        ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM_HIGHLIGHT}\]\[$PWD\]\[${COLOR_NORM}\]'
+        ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
     fi
 
     # Line 2
