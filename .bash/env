@@ -44,6 +44,6 @@ export M2_HOME=/usr/local/apache-maven
 export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 
 # command history length
-export HISTSIZE=2000
+export HISTSIZE=""
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
