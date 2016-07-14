@@ -24,7 +24,7 @@ export LANG="en_US.UTF-8"
 
 
 export ORACLE_HOME=/oracle/product/latest
-export TNS_ADMIN=/na/home/mkenney/.oracle/network/admin
+export TNS_ADMIN=/home/mkenney/.oracle/network/admin
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 export PATH=$ORACLE_HOME/bin:$PATH
 
@@ -44,6 +44,6 @@ export M2_HOME=/usr/local/apache-maven
 export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 
 # command history length
-export HISTSIZE=2000
+export HISTSIZE=""
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator

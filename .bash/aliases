@@ -34,6 +34,9 @@ alias cloc="perl ~/cloc.pl"
 alias locate='locate -i'
 alias pstree='pstree -ahlpuU'
 
+alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
+alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
+
 alias yes="echo no"
 
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
