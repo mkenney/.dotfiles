@@ -35,6 +35,6 @@
 	#l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)--------------------------------------------------------------------------------%C(reset)%n' --all
 	ll = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n' --all
 	#l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n' --all
-	committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | uniq | less
+	committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
 [push]
 	default = matching
