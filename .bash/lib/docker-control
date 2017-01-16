@@ -6,9 +6,9 @@ export _docker_custom_commands="${_docker_custom_commands} control"
 #
 function docker-control {
     if [ "" != "$2" ]; then
-        docker exec -ti ${1} ${@:2}
+        docker exec --rm -ti ${1} ${@:2}
     else
-        docker exec -ti ${1} bash
+        docker exec --rm -ti ${1} bash
     fi
 
 }
