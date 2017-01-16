@@ -1,5 +1,5 @@
 
-export GOPATH=$HOME/my_projects/go
+export GOPATH=$HOME/my_projects/go:$HOME/my_projects/docker-tools/image:$HOME/my_projects/docker-tools/image/lib
 
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
@@ -16,6 +16,7 @@ PATH=$PATH:/usr/local/ant/bin
 PATH=$PATH:/usr/local/apache/bin
 PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=$PATH:$HOME
+PATH=$PATH:/usr/local/protoc-3.1.0-osx-x86_64/bin
 export PATH
 
 export HADOOP_HOME="/usr/local/hadoop"
