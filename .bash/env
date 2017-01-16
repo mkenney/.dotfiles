@@ -1,6 +1,9 @@
 
+export GOPATH=$HOME/my_projects/go
+
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
+PATH=$PATH:$GOPATH/bin
 PATH=$PATH:/usr/local/hadoop/bin
 PATH=$PATH:/usr/local/hbase/bin
 PATH=$PATH:/usr/local/hive/bin
