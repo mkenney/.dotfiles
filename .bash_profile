@@ -45,6 +45,11 @@ if [ -f ~/.bash/aliases ]; then
 	. ~/.bash/aliases
 fi
 
+# Work Aliases
+if [ -f ~/.bash/work-aliases ]; then
+	. ~/.bash/work-aliases
+fi
+
 # Screen aliases
 if [ -f ~/.bash/screen ]; then
 	. ~/.bash/screen
