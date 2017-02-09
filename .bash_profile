@@ -89,3 +89,8 @@ fi
 if [ -f ~/.bash/devenv ]; then
 	. ~/.bash/devenv
 fi
+
+# kubectl
+if [ -f ~/.bash/kubectl ]; then
+	. ~/.bash/kubectl
+fi

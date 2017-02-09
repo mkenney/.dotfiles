@@ -61,7 +61,7 @@ alias vim-plugins="vim +PluginInstall +qall"
 #
 platform=`uname`
 if [[ $platform == 'Linux' ]]; then
-    echo "can't have an empty if statement" > /dev/null
+    echo "nothing to do but can't have an empty if statement" > /dev/null
 
 elif [[ $platform == 'Darwin' ]]; then
     alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'

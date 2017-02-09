@@ -1,0 +1,4 @@
+
+alias kube-test="KUBECONFIG=$HOME/.kube/test/config kubectl"
+alias kube-prod="KUBECONFIG=$HOME/.kube/prod/config kubectl"
+
