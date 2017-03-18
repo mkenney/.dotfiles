@@ -34,6 +34,8 @@ alias cloc="perl ~/cloc.pl"
 alias locate='locate -i'
 alias pstree='pstree -ahlpuU'
 
+alias cloc='perl ~/cloc.pl'
+
 alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
 alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
 
