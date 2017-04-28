@@ -85,8 +85,19 @@ if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfil
     ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
 fi
 
+DOTFILE=".vim"
+if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
+    rm -rf $HOME/$DOTFILE
+    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
+fi
+
 DOTFILE=".vimrc"
 if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
     rm -f $HOME/$DOTFILE
     ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
 fi
+
+cd $HOME/.dotfiles \
+    && git submodule update --init --recursive \
+    && vim +PluginInstall +qall
+

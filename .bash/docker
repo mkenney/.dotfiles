@@ -52,7 +52,7 @@ complete -o default -W "${_dc_commands}" dc
 #
 # Load all of the custom commands in .bash/lib/.  These must be prefixed with 'docker-'
 #
-for docker_lib in $(find ${HOME}/.bash/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+for docker_lib in $(find ${HOME}/.dotfiles/.bash/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
 	. $docker_lib
 done
 

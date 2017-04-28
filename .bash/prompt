@@ -4,7 +4,7 @@
 #
 
 # Load color definitions
-. ~/.bash/color
+. ~/.dotfiles/.bash/color
 
 function prompt_command() {
 
