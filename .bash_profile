@@ -1,58 +1,58 @@
 # ~/.bash_profile
 
 # VIM stuff
-if [ -f ~/.bash/vim ]; then
-	. ~/.bash/vim
+if [ -f ~/.dotfiles/.bash/vim ]; then
+	. ~/.dotfiles/.bash/vim
 fi
 
 # Git stuff
-if [ -f ~/.bash/git ]; then
-	. ~/.bash/git
+if [ -f ~/.dotfiles/.bash/git ]; then
+	. ~/.dotfiles/.bash/git
 fi
 
 # Git completion
-if [ -f ~/.bash/git-completion ]; then
-	. ~/.bash/git-completion
+if [ -f ~/.dotfiles/.bash/git-completion ]; then
+	. ~/.dotfiles/.bash/git-completion
 fi
 
 # Git prompt
-if [ -f ~/.bash/git-prompt ]; then
-	. ~/.bash/git-prompt
+if [ -f ~/.dotfiles/.bash/git-prompt ]; then
+	. ~/.dotfiles/.bash/git-prompt
 fi
 
 # CVS stuff
-if [ -f ~/.bash/cvs ]; then
-	. ~/.bash/cvs
+if [ -f ~/.dotfiles/.bash/cvs ]; then
+	. ~/.dotfiles/.bash/cvs
 fi
 
 # Docker stuff
-if [ -f ~/.bash/docker ]; then
-	. ~/.bash/docker
+if [ -f ~/.dotfiles/.bash/docker ]; then
+	. ~/.dotfiles/.bash/docker
 fi
 
 # Perl stuff
-if [ -f ~/.bash/perl ]; then
-	. ~/.bash/perl
+if [ -f ~/.dotfiles/.bash/perl ]; then
+	. ~/.dotfiles/.bash/perl
 fi
 
 # Java stuff
-if [ -f ~/.bash/java ]; then
-	. ~/.bash/java
+if [ -f ~/.dotfiles/.bash/java ]; then
+	. ~/.dotfiles/.bash/java
 fi
 
 # Aliases
-if [ -f ~/.bash/aliases ]; then
-	. ~/.bash/aliases
+if [ -f ~/.dotfiles/.bash/aliases ]; then
+	. ~/.dotfiles/.bash/aliases
 fi
 
 # Work Aliases
-if [ -f ~/.bash/work-aliases ]; then
-	. ~/.bash/work-aliases
+if [ -f ~/.dotfiles/.bash/work-aliases ]; then
+	. ~/.dotfiles/.bash/work-aliases
 fi
 
 # Screen aliases
-if [ -f ~/.bash/screen ]; then
-	. ~/.bash/screen
+if [ -f ~/.dotfiles/.bash/screen ]; then
+	. ~/.dotfiles/.bash/screen
 fi
 
 # SSH tunnel aliases
@@ -61,36 +61,41 @@ if [ -f ~/tunnels ]; then
 fi
 
 # Functions
-if [ -f ~/.bash/functions ]; then
-	. ~/.bash/functions
+if [ -f ~/.dotfiles/.bash/functions ]; then
+	. ~/.dotfiles/.bash/functions
 fi
 
 # ENV
-if [ -f ~/.bash/env ]; then
-	. ~/.bash/env
+if [ -f ~/.dotfiles/.bash/env ]; then
+	. ~/.dotfiles/.bash/env
 fi
 
 # Bash completion settings
-if [ -f ~/.bash/completion ]; then
-	. ~/.bash/completion
+if [ -f ~/.dotfiles/.bash/completion ]; then
+	. ~/.dotfiles/.bash/completion
 fi
 
 # Sshfs mount aliases
-if [ -f ~/.bash/mount ]; then
-	. ~/.bash/mount
+if [ -f ~/.dotfiles/.bash/mount ]; then
+	. ~/.dotfiles/.bash/mount
 fi
 
 # Prompt
-if [ -f ~/.bash/prompt ]; then
-	. ~/.bash/prompt
+if [ -f ~/.dotfiles/.bash/prompt ]; then
+	. ~/.dotfiles/.bash/prompt
 fi
 
 # devenv
-if [ -f ~/.bash/devenv ]; then
-	. ~/.bash/devenv
+if [ -f ~/.dotfiles/.bash/devenv ]; then
+	. ~/.dotfiles/.bash/devenv
 fi
 
 # kubectl
-if [ -f ~/.bash/kubectl ]; then
-	. ~/.bash/kubectl
+if [ -f ~/.dotfiles/.bash/kubectl ]; then
+	. ~/.dotfiles/.bash/kubectl
+fi
+
+# tmuxinator-completion
+if [ -f ~/.dotfiles/.bash/tmuxinator-completion ]; then
+	. ~/.dotfiles/.bash/tmuxinator-completion
 fi

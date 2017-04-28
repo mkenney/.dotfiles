@@ -2,7 +2,7 @@
     email = michael.kenney@returnpath.net
     name = Michael Kenney
 [diff]
-    external = ~/.vimdiff_wrapper
+    external = ~/.dotfiles/.vimdiff_wrapper
 [pager]
     diff =
 [color]
@@ -45,6 +45,5 @@
     cb = !git show-closest-branch
     pb = !git show-closest-parent-branch
     committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
-
 [push]
     default = matching
