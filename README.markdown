@@ -1,10 +1,9 @@
-Basic terminal environment
-==========================
+# Shell Environment Configuration
 
 To keep me sane.  You want me sane.  Believe me.
 
 
-ToDo
-----
+## ToDo
 
-...
+Add `zsh` support and configurations
+
