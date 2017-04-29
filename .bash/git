@@ -27,7 +27,7 @@ export -f git_autocomplete_commands
 #
 # Load all of the custom commands in .bash/lib/.  These must be prefixed with 'git-'
 #
-for git_lib in $(find ${HOME}/.bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+for git_lib in $(find ${HOME}/.dotfiles/.bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
 	. $git_lib
 done
 
