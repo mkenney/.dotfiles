@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 alias sls="screen -list"
 alias slr="screen -r"
 alias screen='screen -U -A -d -R'

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #
 # Create an ISO from a vido_ts folder
 # The video_ts folder must be INSIDE of the specified directory

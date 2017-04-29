@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # add 'clean' to the current list of custom commands
 export _docker_custom_commands="${_docker_custom_commands} containers"
 

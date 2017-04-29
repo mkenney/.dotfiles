@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # add 'branch' to the current list of custom commands
 export git_custom_commands="${git_custom_commands} branch"
 

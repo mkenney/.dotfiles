@@ -19,84 +19,34 @@
 #
 ##############################################################################
 
-DOTFILE=".bash_profile"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
+function link-dotfile {
+    DOTFILE=$1
+    if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
+        rm -rf $HOME/$DOTFILE
+        ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
+    fi
+}
+
+link-dotfile .bash_profile
+link-dotfile .bashrc
+link-dotfile .gitconfig
+link-dotfile .gitignore
+link-dotfile .gitignore_global
+link-dotfile .gitmodules
+link-dotfile .inputrc
+link-dotfile .my.cnf
+link-dotfile .phpcs_rules.xml
+link-dotfile .screenrc
+link-dotfile .tmux.conf
+link-dotfile .vim
+link-dotfile .vimrc
+
+# My solarized-dark theme for Visual Studio Code
+if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
+    ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
 fi
 
-DOTFILE=".bashrc"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".gitconfig"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".gitignore"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".gitignore_global"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".gitmodules"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".inputrc"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".my.cnf"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".phpcs_rules.xml"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".screenrc"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".tmux.conf"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".vim"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -rf $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
-DOTFILE=".vimrc"
-if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-    rm -f $HOME/$DOTFILE
-    ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
-fi
-
+# install vim plugins
 cd $HOME/.dotfiles \
     && git submodule update --init --recursive \
     && vim +PluginInstall +qall

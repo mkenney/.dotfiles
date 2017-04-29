@@ -1,5 +1,4 @@
-#!/bin/bash
-# Source this file
+#!/usr/bin/env bash
 
 CONTAINER_SUFFIX=.devenv
 

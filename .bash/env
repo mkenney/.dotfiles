@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+
+platform=`uname`
 
 export GOPATH=$HOME/my_projects/go:$HOME/my_projects/docker-tools/image:$HOME/my_projects/docker-tools/image/lib
 
@@ -9,7 +12,6 @@ PATH=$PATH:/usr/local/hbase/bin
 PATH=$PATH:/usr/local/hive/bin
 PATH=$PATH:/usr/local/pig/bin
 PATH=$PATH:$HOME/hdshell/bin
-#PATH=$PATH:/usr/local/php/bin
 PATH=$PATH:/opt/rh/php54/root/usr/bin
 PATH=$PATH:/usr/local/apache-maven/bin
 PATH=$PATH:/usr/local/ant/bin
@@ -17,6 +19,10 @@ PATH=$PATH:/usr/local/apache/bin
 PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=$PATH:$HOME
 PATH=$PATH:/usr/local/protoc-3.1.0-osx-x86_64/bin
+
+# https://www.python.org/ftp/python/3.4.4/python-3.4.4-macosx10.6.pkg
+PATH=$PATH:~/Library/Python/3.4/bin
+
 export PATH
 
 export HADOOP_HOME="/usr/local/hadoop"

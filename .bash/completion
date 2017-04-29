@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 platform=`uname`
 if [[ $platform == 'Linux' ]]; then
 
