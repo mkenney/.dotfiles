@@ -42,7 +42,7 @@ link-dotfile .vim
 link-dotfile .vimrc
 
 # My solarized-dark theme for Visual Studio Code
-if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
+if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
     ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
 fi
 
@@ -50,4 +50,3 @@ fi
 cd $HOME/.dotfiles \
     && git submodule update --init --recursive \
     && vim +PluginInstall +qall
-
