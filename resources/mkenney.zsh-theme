@@ -98,6 +98,7 @@ __git_status() {
     while read line; do
         flag1=${line:0:1}
         flag2=${line:1:1}
+echo "line: '$line'"
         total=$((total + 1))
         if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
             untracked=$((untracked + 1))
