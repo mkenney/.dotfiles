@@ -53,7 +53,7 @@ elif [[ $platform == 'Darwin' ]]; then
 
     # os x native, doesn't show broken symlinks
     else
-        export LSCOLORS=ExGxcxdxcxegedcbcdacad # http://www.marinamele.com/2014/05/customize-colors-of-your-terminal-in-mac-os-x.html
+        export LSCOLORS="ExGxcxdxcxegedcbcdacad" # http://www.marinamele.com/2014/05/customize-colors-of-your-terminal-in-mac-os-x.html
         alias ls='ls -aFG'
     fi
 
