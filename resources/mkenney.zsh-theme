@@ -77,6 +77,16 @@ __git_status() {
     local untracked_str=
     local unstaged_str=
     local total=0
+    local ahead=0
+    local behind=0
+
+    if [ "" != "$(git rev-list origin..HEAD)" ]; then
+        ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}') "
+    fi
+
+    if [ "" != "$(git rev-list HEAD..origin)" ]; then
+        behind_str=">$(git rev-list HEAD..origin | wc | awk '{print $1}') "
+    fi
 
     if [ "" != "$(git diff --name-only)" ]; then
         unstaged_str="*$(git diff --name-only | wc | awk '{print $1}') "
@@ -118,7 +128,7 @@ EOF
 
     total_str="#$total "
     if [ 0 -ne $output ]; then
-        echo "$(echo -e " $untracked_str$added_str$deleted_str$renamed_str$modified_str$unstaged_str$total_str" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "$ahead_str$behind_str$untracked_str$added_str$deleted_str$renamed_str$modified_str$unstaged_str$total_str" | sed -e 's/[[:space:]]*$//')"
     fi
 }
 
