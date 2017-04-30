@@ -6,7 +6,7 @@
 #
 
 # Load color definitions
-. ~/.dotfiles/.bash/color
+. ~/.dotfiles/resources/color
 
 # Make the cursor a blinking vertical line
 # http://stackoverflow.com/questions/4416909/anyway-change-the-cursor-vertical-line-instead-of-a-box
@@ -37,15 +37,15 @@ function prompt_command() {
 
     # Line 3
     if [ "0" == "$last_status" ]; then
-        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\]) \[${COLOR_NORM}\]\e[90mbash\[${COLOR_NORM}\] → '
+        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])\[${COLOR_NORM}\]\e[90m(bash)\[${COLOR_NORM}\]→ '
     else
         # http://emojipedia.org/
-        ps1_lines+='\n└(💀 ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(🔴 ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(‼️ ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(❌ ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(⛔ ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(🚫 ) \e[90mbash ⤳ ' # Last script exited with a non-zero code
+        ps1_lines+='\n└(💀 )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🔴 )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(‼️ )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(❌ )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(⛔ )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(🚫 )\e[90m(bash)⤳ ' # Last script exited with a non-zero code
     fi
 
     PS1="${ps1_lines[*]}"

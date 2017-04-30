@@ -163,11 +163,11 @@ __prompt_git() {
 __prompt_cmd() {
     if [ "0" = "$last_status" ]; then
         echo "
-└(%{${COLOR_GREEN}%}%*%{${COLOR_NORM}%}) %F{240}(zsh)%f → "
+└(%{${COLOR_GREEN}%}%*%{${COLOR_NORM}%})%F{240}(zsh)%f→ "
     else
         # http://emojipedia.org/
         echo "
-└(💀 ) %{%F{240}%}(zsh)%{${COLOR_NORM}%} ⤳ " # Last script exited with a non-zero code
+└(💀 )%{%F{240}%}(zsh)%{${COLOR_NORM}%}⤳ " # Last script exited with a non-zero code
     #ps1_lines+='\n└(🔴 ) %F240bash${COLOR_NORM} ⤳ ' # Last script exited with a non-zero code
     #ps1_lines+='\n└(‼️ ) %F240bash${COLOR_NORM} ⤳ ' # Last script exited with a non-zero code
     #ps1_lines+='\n└(❌ ) %F240bash${COLOR_NORM} ⤳ ' # Last script exited with a non-zero code
