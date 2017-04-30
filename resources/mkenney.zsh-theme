@@ -82,12 +82,12 @@ __git_status() {
     local branch_name=$(git rev-parse --abbrev-ref HEAD)
 
     if [ "" != "$(git rev-list origin..HEAD)" ]; then
-        ahead_str="$(git rev-list origin..HEAD | wc | awk '{print $1}')>"
+        ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}')"
         output=1
     fi
 
     if [ "" != "$(git rev-list HEAD..origin)" ]; then
-        behind_str="<$(git rev-list HEAD..origin | wc | awk '{print $1}')"
+        behind_str="$(git rev-list HEAD..origin | wc | awk '{print $1}')>"
         output=1
     fi
 
@@ -142,7 +142,7 @@ EOF
     fi
 
     if [ 0 -ne $output ]; then
-        echo "$(echo -e "${ahead_str}${branch_name}${behind_str} ${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "${behind_str}${branch_name}${ahead_str} ${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     else
         echo "${branch_name}"
     fi
