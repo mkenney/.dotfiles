@@ -82,12 +82,12 @@ __git_status() {
     local branch_name=$(git rev-parse --abbrev-ref HEAD)
 
     if [ "" != "$(git rev-list origin..HEAD)" ]; then
-        ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}')"
+        ahead_str=">$(git rev-list origin..HEAD | wc | awk '{print $1}')"
         output=1
     fi
 
     if [ "" != "$(git rev-list HEAD..origin)" ]; then
-        behind_str="$(git rev-list HEAD..origin | wc | awk '{print $1}')>"
+        behind_str="$(git rev-list HEAD..origin | wc | awk '{print $1}')<"
         output=1
     fi
 
