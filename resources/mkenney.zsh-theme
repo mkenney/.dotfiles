@@ -81,6 +81,7 @@ __git_status() {
     local behind=0
 
     if [ "" != "$(git rev-list origin..HEAD)" ]; then
+printf "got here"
         ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}') "
     fi
 
