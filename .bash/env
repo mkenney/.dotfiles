@@ -2,7 +2,7 @@
 
 platform=`uname`
 
-export GOPATH=$HOME/my_projects/go:$HOME/my_projects/docker-tools/image:$HOME/my_projects/docker-tools/image/lib
+export GOPATH=$HOME/my_projects/go
 
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
