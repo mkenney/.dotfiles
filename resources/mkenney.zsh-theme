@@ -77,11 +77,10 @@ __git_status() {
     local untracked_str=
     local unstaged_str=
     local total=0
-    local ahead=0
-    local behind=0
+    local ahead_str=
+    local behind_str=
 
     if [ "" != "$(git rev-list origin..HEAD)" ]; then
-printf "got here"
         ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}') "
     fi
 
