@@ -98,32 +98,33 @@ __git_status() {
     while read line; do
         flag1=${line:0:1}
         flag2=${line:1:1}
-echo "line: '$line'"
-        total=$((total + 1))
-        if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
-            untracked=$((untracked + 1))
-            untracked_str="?$untracked "
-            output=1
-        fi
-        if [ "A" = "$flag1" ] || [ "A" = "$flag2" ]; then
-            added=$((added + 1))
-            added_str="+$added "
-            output=1
-        fi
-        if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
-            deleted=$((deleted + 1))
-            deleted_str="X$deleted "
-            output=1
-        fi
-        if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
-            modified=$((modified + 1))
-            modified_str="≠$modified "
-            output=1
-        fi
-        if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
-            renamed=$((renamed + 1))
-            renamed_str="⤿ $renamed "
-            output=1
+        if [ "" != "$line" ]; then
+            total=$((total + 1))
+            if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
+                untracked=$((untracked + 1))
+                untracked_str="?$untracked "
+                output=1
+            fi
+            if [ "A" = "$flag1" ] || [ "A" = "$flag2" ]; then
+                added=$((added + 1))
+                added_str="+$added "
+                output=1
+            fi
+            if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
+                deleted=$((deleted + 1))
+                deleted_str="X$deleted "
+                output=1
+            fi
+            if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
+                modified=$((modified + 1))
+                modified_str="≠$modified "
+                output=1
+            fi
+            if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
+                renamed=$((renamed + 1))
+                renamed_str="⤿ $renamed "
+                output=1
+            fi
         fi
     done << EOF
 $(git status --porcelain)
