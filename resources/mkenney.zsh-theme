@@ -79,6 +79,7 @@ __git_status() {
     local total=0
     local ahead_str=
     local behind_str=
+    local branch_name=$(git rev-parse --abbrev-ref HEAD)
 
     if [ "" != "$(git rev-list origin..HEAD)" ]; then
         ahead_str="<$(git rev-list origin..HEAD | wc | awk '{print $1}') "
@@ -95,35 +96,40 @@ __git_status() {
         output=1
     fi
 
+
     while read line; do
         flag1=${line:0:1}
         flag2=${line:1:1}
         if [ "" != "$line" ]; then
-            total=$((total + 1))
             if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
                 untracked=$((untracked + 1))
                 untracked_str="?$untracked "
                 output=1
+                total=$((total + 1))
             fi
             if [ "A" = "$flag1" ] || [ "A" = "$flag2" ]; then
                 added=$((added + 1))
                 added_str="+$added "
                 output=1
+                total=$((total + 1))
             fi
             if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
                 deleted=$((deleted + 1))
                 deleted_str="X$deleted "
                 output=1
+                total=$((total + 1))
             fi
             if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
                 modified=$((modified + 1))
                 modified_str="≠$modified "
                 output=1
+                total=$((total + 1))
             fi
             if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
                 renamed=$((renamed + 1))
                 renamed_str="⤿ $renamed "
                 output=1
+                total=$((total + 1))
             fi
         fi
     done << EOF
@@ -132,9 +138,13 @@ EOF
 
     if [ 0 -lt $total ]; then
         total_str="#$total "
+        output=1
     fi
+
     if [ 0 -ne $output ]; then
-        echo "$(echo -e "${ahead_str}${behind_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "${behind_str}${branch_name}${ahead_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+    else
+        echo "${branch_name}"
     fi
 }
 
@@ -144,7 +154,7 @@ EOF
 __prompt_git() {
     # In a git repo
     if [ "" != "$(git rev-parse --git-dir 2> /dev/null)" ]; then
-        branch=$(git rev-parse --abbrev-ref HEAD)
+
         echo "
 ├[%{${COLOR_BLUE_FADED}%}git: $branch$(__git_status)%{${COLOR_NORM}%}]"
     fi
