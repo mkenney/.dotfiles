@@ -14,7 +14,7 @@
 
 #
 # List of custom commands, space delimited.  This var should be
-# updated by your .bash/lib/[git-command] file
+# updated by your resources/lib/[git-command] file
 #
 export git_custom_commands=""
 
@@ -24,12 +24,12 @@ export git_custom_commands=""
 function git_autocomplete_commands {
 	echo "${git_custom_commands}"
 }
-export -f git_autocomplete_commands
+#export -f git_autocomplete_commands
 
 #
-# Load all of the custom commands in .bash/lib/.  These must be prefixed with 'git-'
+# Load all of the custom commands in resources/lib/.  These must be prefixed with 'git-'
 #
-for git_lib in $(find ${HOME}/.dotfiles/.bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+for git_lib in $(find ${HOME}/.dotfiles/resources/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
 	. $git_lib
 done
 
@@ -49,6 +49,6 @@ function _git_better {
 	/usr/bin/env git "$@"
 
 }
-export -f _git_better
+#export -f _git_better
 
 alias git='_git_better'

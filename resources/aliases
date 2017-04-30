@@ -51,7 +51,7 @@ elif [[ $platform == 'Darwin' ]]; then
         eval $(gdircolors)
         alias ls='gls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
 
-    # os x native
+    # os x native, doesn't show broken symlinks
     else
         export LSCOLORS=ExGxcxdxcxegedcbcdacad # http://www.marinamele.com/2014/05/customize-colors-of-your-terminal-in-mac-os-x.html
         alias ls='ls -aFG'

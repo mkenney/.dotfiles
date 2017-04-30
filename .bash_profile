@@ -1,58 +1,58 @@
 # ~/.bash_profile
 
 # VIM stuff
-if [ -f ~/.dotfiles/.bash/vim ]; then
-	. ~/.dotfiles/.bash/vim
+if [ -f ~/.dotfiles/resources/vim ]; then
+	. ~/.dotfiles/resources/vim
 fi
 
 # Git stuff
-if [ -f ~/.dotfiles/.bash/git ]; then
-	. ~/.dotfiles/.bash/git
+if [ -f ~/.dotfiles/resources/git ]; then
+	. ~/.dotfiles/resources/git
 fi
 
 # Git completion
-if [ -f ~/.dotfiles/.bash/git-completion ]; then
-	. ~/.dotfiles/.bash/git-completion
+if [ -f ~/.dotfiles/resources/git-completion ]; then
+	. ~/.dotfiles/resources/git-completion
 fi
 
 # Git prompt
-if [ -f ~/.dotfiles/.bash/git-prompt ]; then
-	. ~/.dotfiles/.bash/git-prompt
+if [ -f ~/.dotfiles/resources/git-prompt ]; then
+	. ~/.dotfiles/resources/git-prompt
 fi
 
 # CVS stuff
-if [ -f ~/.dotfiles/.bash/cvs ]; then
-	. ~/.dotfiles/.bash/cvs
+if [ -f ~/.dotfiles/resources/cvs ]; then
+	. ~/.dotfiles/resources/cvs
 fi
 
 # Docker stuff
-if [ -f ~/.dotfiles/.bash/docker ]; then
-	. ~/.dotfiles/.bash/docker
+if [ -f ~/.dotfiles/resources/docker ]; then
+	. ~/.dotfiles/resources/docker
 fi
 
 # Perl stuff
-if [ -f ~/.dotfiles/.bash/perl ]; then
-	. ~/.dotfiles/.bash/perl
+if [ -f ~/.dotfiles/resources/perl ]; then
+	. ~/.dotfiles/resources/perl
 fi
 
 # Java stuff
-if [ -f ~/.dotfiles/.bash/java ]; then
-	. ~/.dotfiles/.bash/java
+if [ -f ~/.dotfiles/resources/java ]; then
+	. ~/.dotfiles/resources/java
 fi
 
 # Aliases
-if [ -f ~/.dotfiles/.bash/aliases ]; then
-	. ~/.dotfiles/.bash/aliases
+if [ -f ~/.dotfiles/resources/aliases ]; then
+	. ~/.dotfiles/resources/aliases
 fi
 
 # Work Aliases
-if [ -f ~/.dotfiles/.bash/work-aliases ]; then
-	. ~/.dotfiles/.bash/work-aliases
+if [ -f ~/.dotfiles/resources/work-aliases ]; then
+	. ~/.dotfiles/resources/work-aliases
 fi
 
 # Screen aliases
-if [ -f ~/.dotfiles/.bash/screen ]; then
-	. ~/.dotfiles/.bash/screen
+if [ -f ~/.dotfiles/resources/screen ]; then
+	. ~/.dotfiles/resources/screen
 fi
 
 # SSH tunnel aliases
@@ -61,43 +61,43 @@ if [ -f ~/tunnels ]; then
 fi
 
 # Functions
-if [ -f ~/.dotfiles/.bash/functions ]; then
-	. ~/.dotfiles/.bash/functions
+if [ -f ~/.dotfiles/resources/functions ]; then
+	. ~/.dotfiles/resources/functions
 fi
 
 # ENV
-if [ -f ~/.dotfiles/.bash/env ]; then
-	. ~/.dotfiles/.bash/env
+if [ -f ~/.dotfiles/resources/env ]; then
+	. ~/.dotfiles/resources/env
 fi
 
 # Bash completion settings
-if [ -f ~/.dotfiles/.bash/completion ]; then
-	. ~/.dotfiles/.bash/completion
+if [ -f ~/.dotfiles/resources/completion ]; then
+	. ~/.dotfiles/resources/completion
 fi
 
 # Sshfs mount aliases
-if [ -f ~/.dotfiles/.bash/mount ]; then
-	. ~/.dotfiles/.bash/mount
+if [ -f ~/.dotfiles/resources/mount ]; then
+	. ~/.dotfiles/resources/mount
 fi
 
 # Prompt
-if [ -f ~/.dotfiles/.bash/prompt ]; then
-	. ~/.dotfiles/.bash/prompt
+if [ -f ~/.dotfiles/resources/prompt ]; then
+	. ~/.dotfiles/resources/prompt
 fi
 
 # devenv
-if [ -f ~/.dotfiles/.bash/devenv ]; then
-	. ~/.dotfiles/.bash/devenv
+if [ -f ~/.dotfiles/resources/devenv ]; then
+	. ~/.dotfiles/resources/devenv
 fi
 
 # kubectl
-if [ -f ~/.dotfiles/.bash/kubectl ]; then
-	. ~/.dotfiles/.bash/kubectl
+if [ -f ~/.dotfiles/resources/kubectl ]; then
+	. ~/.dotfiles/resources/kubectl
 fi
 
 # tmuxinator-completion
-if [ -f ~/.dotfiles/.bash/tmuxinator-completion ]; then
-	. ~/.dotfiles/.bash/tmuxinator-completion
+if [ -f ~/.dotfiles/resources/tmuxinator-completion ]; then
+	. ~/.dotfiles/resources/tmuxinator-completion
 fi
 
 # Setting PATH for Python 3.4

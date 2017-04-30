@@ -16,6 +16,7 @@
 #   ~/.screenrc
 #   ~/.tmux.conf
 #   ~/.vimrc
+#   ~/.zshrc
 #
 ##############################################################################
 
@@ -40,11 +41,22 @@ link-dotfile .screenrc
 link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
+link-dotfile .zshrc
 
 # My solarized-dark theme for Visual Studio Code
-if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
-    ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+platform=`uname`
+if [[ $platform == 'Darwin' ]]; then
+    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
+        ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    fi
 fi
+
+# oh-my-zsh
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+fi
+rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+ln -s $HOME/.dotfiles/resources/mkenney.zsh-theme $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 
 # install vim plugins
 cd $HOME/.dotfiles \

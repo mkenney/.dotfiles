@@ -13,7 +13,7 @@ export _dc_commands="build help kill logs port ps pull rm run scale start stop u
 export _docker_commands="daemon attach build commit cp create diff events exec export history images import info inspect kill load login logout logs pause port ps pull push rename restart rm rmi run save search start stats stop tag top unpause version wait"
 
 # List of custom commands, space delimited.  This var should be
-# updated by your .bash/lib/[docker-command] files
+# updated by your resources/lib/[docker-command] files
 export _docker_custom_commands=""
 
 #
@@ -52,9 +52,9 @@ complete -o default -W "${_dc_commands}" docker-compose
 complete -o default -W "${_dc_commands}" dc
 
 #
-# Load all of the custom commands in .bash/lib/.  These must be prefixed with 'docker-'
+# Load all of the custom commands in resources/lib/.  These must be prefixed with 'docker-'
 #
-for docker_lib in $(find ${HOME}/.dotfiles/.bash/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+for docker_lib in $(find ${HOME}/.dotfiles/resources/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
 	. $docker_lib
 done
 
@@ -74,6 +74,6 @@ function _docker_better {
 
 	/usr/bin/env docker "$@"
 }
-export -f _docker_better
+#export -f _docker_better
 
 alias docker='_docker_better'
