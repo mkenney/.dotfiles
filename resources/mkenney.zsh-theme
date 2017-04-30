@@ -130,7 +130,9 @@ __git_status() {
 $(git status --porcelain)
 EOF
 
-    total_str="#$total "
+    if [ 0 -lt $total ]; then
+        total_str="#$total "
+    fi
     if [ 0 -ne $output ]; then
         echo "$(echo -e " ahead: $ahead_str; output=$output ${ahead_str}${behind_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     fi
