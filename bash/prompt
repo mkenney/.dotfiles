@@ -28,12 +28,12 @@ __git_status() {
     local origin=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
 
     if [ "" != "$(git rev-list $origin..HEAD)" ]; then
-        ahead_str=">$(git rev-list $origin..HEAD 2> /dev/null | wc | awk '{print $1}') "
+        ahead_str="a$(git rev-list $origin..HEAD 2> /dev/null | wc | awk '{print $1}') "
         output=1
     fi
 
     if [ "" != "$(git rev-list HEAD..$origin)" ]; then
-        behind_str="<$(git rev-list HEAD..$origin 2> /dev/null | wc | awk '{print $1}') "
+        behind_str="b$(git rev-list HEAD..$origin 2> /dev/null | wc | awk '{print $1}') "
         output=1
     fi
 
