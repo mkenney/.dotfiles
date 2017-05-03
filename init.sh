@@ -20,7 +20,7 @@
 #
 ##############################################################################
 
-function link-dotfile {
+link-dotfile() {
     DOTFILE=$1
     if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
         rm -rf $HOME/$DOTFILE
@@ -56,7 +56,7 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
     sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
-ln -s $HOME/.dotfiles/resources/mkenney.zsh-theme $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 
 # install vim plugins
 cd $HOME/.dotfiles \

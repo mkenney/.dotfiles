@@ -20,7 +20,7 @@ export _docker_custom_commands=""
 # Return the list of standard and custom commands as well as current
 # container names for tab-completion
 #
-function _docker_autocomplete {
+_docker_autocomplete() {
 
 	local cur prev opts _docker_container_names
 	COMPREPLY=()
@@ -47,21 +47,24 @@ function _docker_autocomplete {
 	COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 	return 0
 }
-complete -o default -F _docker_autocomplete docker
-complete -o default -W "${_dc_commands}" docker-compose
-complete -o default -W "${_dc_commands}" dc
+_dc_autocomplete() {
+	echo $_dc_commands
+}
+
+compdef _docker_autocomplete docker
+compdef _dc_autocomplete docker-compose dc
 
 #
 # Load all of the custom commands in resources/lib/.  These must be prefixed with 'docker-'
 #
-for docker_lib in $(find ${HOME}/.dotfiles/resources/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
+for docker_lib in $(find ${HOME}/.dotfiles/zsh/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
 	. $docker_lib
 done
 
 #
 # docker command wrapper + alias
 #
-function _docker_better {
+_docker_better() {
 	custom_commands="${_docker_custom_commands}"
 
 	for a in ${custom_commands[@]}
@@ -74,6 +77,5 @@ function _docker_better {
 
 	/usr/bin/env docker "$@"
 }
-#export -f _docker_better
 
 alias docker='_docker_better'

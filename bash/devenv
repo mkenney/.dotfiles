@@ -4,7 +4,7 @@ CONTAINER_SUFFIX=.devenv
 
 # Return the list of standard and custom commands as well as current
 # container names for tab-completion
-function _devenv_autocomplete {
+_devenv_autocomplete() {
     local cur prev opts _docker_container_names name _devenv_commands
     _devenv_commands="--ctags-exclude= --daemonize --help --target= --tmux --tmux= --tmux-prefix= --path= attach init help kill ls pause refresh restart reload rename self-update start stop unpause"
     COMPREPLY=()

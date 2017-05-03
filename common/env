@@ -20,8 +20,9 @@ PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=$PATH:$HOME
 PATH=$PATH:/usr/local/protoc-3.1.0-osx-x86_64/bin
 
-# https://www.python.org/ftp/python/3.4.4/python-3.4.4-macosx10.6.pkg
-PATH=$PATH:~/Library/Python/3.4/bin
+# Setting PATH for Python 3.4
+# The orginal version is saved in .bash_profile.pysave
+PATH="/Library/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
 
 export PATH
 
@@ -54,6 +55,6 @@ export M2_HOME=/usr/local/apache-maven
 export MAVEN_OPTS='-XX:MaxPermSize=128m -Xmx400m'
 
 # command history length
-export HISTSIZE=""
+export HISTSIZE="1000000"
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
