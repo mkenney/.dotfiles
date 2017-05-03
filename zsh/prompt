@@ -47,12 +47,12 @@ __git_status() {
     local origin=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
 
     if [ "" != "$(git rev-list $origin..HEAD)" ]; then
-        ahead_str="a$(git rev-list $origin..HEAD 2> /dev/null | wc | awk '{print $1}') "
+        ahead_str=">$(git rev-list $origin..HEAD 2> /dev/null | wc | awk '{print $1}') "
         output=1
     fi
 
     if [ "" != "$(git rev-list HEAD..$origin)" ]; then
-        behind_str="b$(git rev-list HEAD..$origin 2> /dev/null | wc | awk '{print $1}') "
+        behind_str="<$(git rev-list HEAD..$origin 2> /dev/null | wc | awk '{print $1}') "
         output=1
     fi
 
@@ -107,7 +107,7 @@ EOF
     fi
 
     if [ 0 -ne $output ]; then
-        echo "$(echo -e "${behind_str}${ahead_str}${branch_name} ${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "${branch_name} ${behind_str}${ahead_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     else
         echo "${branch_name}"
     fi
@@ -121,7 +121,7 @@ __prompt_git() {
     if [ "" != "$(git rev-parse --git-dir 2> /dev/null)" ]; then
 
         echo "
-├[${COLOR_BLUE_FADED}git: ${branch}$(__git_status)${COLOR_NORM}]"
+├[${COLOR_BLUE_FADED}${branch}$(__git_status)${COLOR_NORM}]"
     fi
 }
 
