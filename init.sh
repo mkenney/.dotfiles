@@ -28,6 +28,22 @@ link-dotfile() {
     fi
 }
 
+# My solarized-dark theme for Visual Studio Code
+platform=`uname`
+if [[ $platform == 'Darwin' ]]; then
+    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
+        ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    fi
+fi
+
+# oh-my-zsh
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $HOME/.oh-my-zsh
+    #echo $(sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch)
+fi
+rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+
 link-dotfile .bash_profile
 link-dotfile .bashrc
 link-dotfile .gitconfig
@@ -42,21 +58,6 @@ link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
 link-dotfile .zshrc
-
-# My solarized-dark theme for Visual Studio Code
-platform=`uname`
-if [[ $platform == 'Darwin' ]]; then
-    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
-        ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    fi
-fi
-
-# oh-my-zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo $(sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch)
-fi
-rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
-ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 
 # install vim plugins
 cd $HOME/.dotfiles \

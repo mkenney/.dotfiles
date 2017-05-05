@@ -134,9 +134,9 @@ prompt_command() {
         ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])\[${COLOR_NORM}\]→ '
     else
         # http://emojipedia.org/
-        ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
+        ps1_lines+='\n└(💀 )\[${COLOR_NORM}\]⤳ ' # Last script exited with a non-zero code
         #ps1_lines+='\n└(🔴 )⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(‼️ )⤳ ' # Last script exited with a non-zero code
+        #ps1_lines+='\n└(‼️)⤳ ' # Last script exited with a non-zero code
         #ps1_lines+='\n└(❌ )⤳ ' # Last script exited with a non-zero code
         #ps1_lines+='\n└(⛔ )⤳ ' # Last script exited with a non-zero code
         #ps1_lines+='\n└(🚫 )⤳ ' # Last script exited with a non-zero code
