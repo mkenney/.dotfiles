@@ -53,7 +53,9 @@ fi
 
 # oh-my-zsh
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch || {
+      echo "Could not install Oh My Zsh" >/dev/stderr
+    }
 fi
 rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
