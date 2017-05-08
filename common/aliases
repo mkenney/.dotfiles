@@ -31,6 +31,7 @@ alias rsync='rsync --progress'
 alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
 alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
 alias suod='sudo'
+alias t='terraform'
 alias top='htop -d 5'
 alias vi='vim'
 alias yes="echo no"

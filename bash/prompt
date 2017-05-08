@@ -25,16 +25,22 @@ __git_status() {
     local ahead_str=
     local behind_str=
     local branch_name=$(git rev-parse --abbrev-ref HEAD)
-    local origin=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
+    local origin_name=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
 
-    if [ "" != "$(git rev-list $origin..HEAD)" ]; then
-        ahead_str=">$(git rev-list $origin..HEAD 2> /dev/null | wc | awk '{print $1}') "
-        output=1
-    fi
+    if [ "" != "$origin_name" ]; then
+        if [ "" != "$(git rev-list $origin_name..HEAD)" ]; then
+            ahead_str=">$(git rev-list $origin_name..HEAD 2> /dev/null | wc | awk '{print $1}') "
+            output=1
+        fi
 
-    if [ "" != "$(git rev-list HEAD..$origin)" ]; then
-        behind_str="<$(git rev-list HEAD..$origin 2> /dev/null | wc | awk '{print $1}') "
-        output=1
+        if [ "" != "$(git rev-list HEAD..$origin_name)" ]; then
+            behind_str="<$(git rev-list HEAD..$origin_name 2> /dev/null | wc | awk '{print $1}') "
+            output=1
+        fi
+
+        display_branch=$origin_name
+    else
+        display_branch="local/$branch_name"
     fi
 
     if [ "" != "$(git diff --name-only)" ]; then
@@ -88,9 +94,9 @@ EOF
     fi
 
     if [ 0 -ne $output ]; then
-        echo "$(echo -e "${branch_name} ${behind_str}${ahead_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "${display_branch} ${behind_str}${ahead_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     else
-        echo "${branch_name}"
+        echo "${display_branch}"
     fi
 }
 

@@ -2,6 +2,8 @@
 
 platform=`uname`
 
+export AWS_PROFILE=eo
+
 export GOPATH=$HOME/my_projects/go
 
 PATH=/usr/local/bin:$PATH
