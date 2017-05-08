@@ -29,12 +29,12 @@ __git_status() {
 
     if [ "" != "$origin_name" ]; then
         if [ "" != "$(git rev-list $origin_name..HEAD)" ]; then
-            ahead_str=">$(git rev-list $origin_name..HEAD 2> /dev/null | wc | awk '{print $1}') "
+            ahead_str="<$(git rev-list $origin_name..HEAD 2> /dev/null | wc | awk '{print $1}') "
             output=1
         fi
 
         if [ "" != "$(git rev-list HEAD..$origin_name)" ]; then
-            behind_str="<$(git rev-list HEAD..$origin_name 2> /dev/null | wc | awk '{print $1}') "
+            behind_str=">$(git rev-list HEAD..$origin_name 2> /dev/null | wc | awk '{print $1}') "
             output=1
         fi
 
