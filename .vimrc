@@ -223,7 +223,7 @@ set gfn=Monospace\ 12
 set encoding=utf8
 
 " show line numbers
-"set nu
+set nu
 set relativenumber
 
 " don't create swp files
