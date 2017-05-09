@@ -13,7 +13,7 @@ function git-build-jenkins {
 		# Test environment build
 		# Production environment build
 		"ci" | "test" | "prod")
-			command ~/.dotfiles/resources/lib/.git-build-jenkins/build.py $1 ${current_git_project}
+			command ~/.dotfiles/zsh_resources/lib/.git-build-jenkins/build.py $1 ${current_git_project}
 		;;
 
 		# Default

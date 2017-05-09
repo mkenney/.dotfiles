@@ -1,7 +1,4 @@
-#!/usr/bin/env bash
-
-function ccommit # CVS commit.
-{
+ccommit() { # CVS commit.
 	if [ $# -gt 0 ] && [ ! -e "$1" ]; then REPLY=$* && files=.
 	else files=$* && echo -n "Enter note: " && read -e && echo
 	fi
@@ -14,8 +11,7 @@ function ccommit # CVS commit.
 	| sed s/".*  <--  \(.*\)"/"[01;32m\1[0m"/;
 }
 
-function cdiff # CVS diff, colorized.
-{
+cdiff() { # CVS diff, colorized.
 	cvs diff $@ 2>&1 \
 	| grep -v "^cvs diff:" \
 	| grep -v "^cvs server:" \
@@ -25,21 +21,18 @@ function cdiff # CVS diff, colorized.
 	| sed s/"^RCS file: .*"/"[01;35m&[0m"/;
 }
 
-function clog # CVS log, colorized.
-{
+clog() { # CVS log, colorized.
 	cvs log $@ 2>&1 \
 	| sed s/"^RCS file: .*"/"[01;03m&[0m"/ \
 	| sed s/"^revision .*"/"[01;36m&[0m"/ | more;
 }
 
-function cremove # CVS remove.
-{
+cremove() { # CVS remove.
 	rm -f $@
 	cvs remove $@
 }
 
-function cupdate # CVS update, colorized.
-{
+cupdate() { # CVS update, colorized.
 	find . -name ".#*" -exec rm {} \;
 	cvs update -dP $@ 2>&1 \
 	| grep -v ": Updating " \

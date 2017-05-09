@@ -14,6 +14,9 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
+" install control p
+Plugin 'ctrlpvim/ctrlp.vim'
+
 "Bundle 'joonty/vim-phpqa'
 
 "Bundle 'joonty/vim-phpunitqf'
@@ -125,7 +128,7 @@ set hlsearch
 set wildmenu wildmode=list:full
 " Ignore these filenames during enhanced command line completion.
 set wildignore+=*.aux,*.out,*.toc " LaTeX intermediate files
-set wildignore+=*.jpg,*.bmp,*.gif " binary images
+set wildignore+=*.jpg,*.bmp,*.gif,*.png " binary images
 set wildignore+=*.luac " Lua byte code
 set wildignore+=*.o,*.obj,*.exe,*.dll,*.manifest " compiled object files
 set wildignore+=*.pyc " Python byte code

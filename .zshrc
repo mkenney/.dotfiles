@@ -1,8 +1,9 @@
-# ~/.bash_profile
+# ~/.zshrc
 
 
-# Path to your oh-my-zsh installation.
+# oh-my-zsh
 export ZSH=$HOME/.oh-my-zsh
+source $ZSH/oh-my-zsh.sh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -40,61 +41,57 @@ export LANG=en_US.UTF-8
 # Preferred editor for local and remote sessions
 export EDITOR='vim'
 
-source $ZSH/oh-my-zsh.sh
+# History support
+export HISTFILE="${HOME}/.zsh_history"
 
 # VIM stuff
-if [ -f ~/.dotfiles/resources/vim ]; then
-	. ~/.dotfiles/resources/vim
+if [ -f ~/.dotfiles/common/vim ]; then
+	. ~/.dotfiles/common/vim
 fi
 
 # Git stuff
-if [ -f ~/.dotfiles/resources/git ]; then
-	. ~/.dotfiles/resources/git
+if [ -f ~/.dotfiles/zsh/git ]; then
+	. ~/.dotfiles/zsh/git
 fi
 
 # Git completion
-#if [ -f ~/.dotfiles/resources/git-completion ]; then
-#	. ~/.dotfiles/resources/git-completion
-#fi
+if [ -f ~/.dotfiles/zsh/git-completion ]; then
+	. ~/.dotfiles/zsh/git-completion
+fi
 
 # Git prompt
-if [ -f ~/.dotfiles/resources/git-prompt ]; then
-	. ~/.dotfiles/resources/git-prompt
+if [ -f ~/.dotfiles/zsh/git-prompt ]; then
+	. ~/.dotfiles/zsh/git-prompt
 fi
 
 # CVS stuff
-if [ -f ~/.dotfiles/resources/cvs ]; then
-	. ~/.dotfiles/resources/cvs
+if [ -f ~/.dotfiles/common/cvs ]; then
+	. ~/.dotfiles/common/cvs
 fi
 
 # Docker stuff
-#if [ -f ~/.dotfiles/resources/docker ]; then
-#	. ~/.dotfiles/resources/docker
-#fi
+if [ -f ~/.dotfiles/zsh/docker ]; then
+	. ~/.dotfiles/zsh/docker
+fi
 
 # Perl stuff
-if [ -f ~/.dotfiles/resources/perl ]; then
-	. ~/.dotfiles/resources/perl
+if [ -f ~/.dotfiles/common/perl ]; then
+	. ~/.dotfiles/common/perl
 fi
 
 # Java stuff
-if [ -f ~/.dotfiles/resources/java ]; then
-	. ~/.dotfiles/resources/java
+if [ -f ~/.dotfiles/common/java ]; then
+	. ~/.dotfiles/common/java
 fi
 
 # Aliases
-if [ -f ~/.dotfiles/resources/aliases ]; then
-	. ~/.dotfiles/resources/aliases
-fi
-
-# Work Aliases
-if [ -f ~/.dotfiles/resources/work-aliases ]; then
-	. ~/.dotfiles/resources/work-aliases
+if [ -f ~/.dotfiles/common/aliases ]; then
+	. ~/.dotfiles/common/aliases
 fi
 
 # Screen aliases
-if [ -f ~/.dotfiles/resources/screen ]; then
-	. ~/.dotfiles/resources/screen
+if [ -f ~/.dotfiles/common/screen ]; then
+	. ~/.dotfiles/common/screen
 fi
 
 # SSH tunnel aliases
@@ -103,50 +100,71 @@ if [ -f ~/tunnels ]; then
 fi
 
 # Functions
-if [ -f ~/.dotfiles/resources/functions ]; then
-	. ~/.dotfiles/resources/functions
+if [ -f ~/.dotfiles/common/functions ]; then
+	. ~/.dotfiles/common/functions
 fi
 
 # ENV
-if [ -f ~/.dotfiles/resources/env ]; then
-	. ~/.dotfiles/resources/env
+if [ -f ~/.dotfiles/common/env ]; then
+	. ~/.dotfiles/common/env
 fi
 
 # Bash completion settings
-#if [ -f ~/.dotfiles/resources/completion ]; then
-#	. ~/.dotfiles/resources/completion
-#fi
-
-# Sshfs mount aliases
-if [ -f ~/.dotfiles/resources/mount ]; then
-	. ~/.dotfiles/resources/mount
+if [ -f ~/.dotfiles/zsh/completion ]; then
+	. ~/.dotfiles/zsh/completion
 fi
 
 # Prompt
-#if [ -f ~/.dotfiles/resources/zsh_prompt ]; then
-#	. ~/.dotfiles/resources/zsh_prompt
-#fi
+if [ -f ~/.dotfiles/zsh/prompt ]; then
+	. ~/.dotfiles/zsh/prompt
+fi
 
 # devenv
-#if [ -f ~/.dotfiles/resources/devenv ]; then
-#	. ~/.dotfiles/resources/devenv
-#fi
+if [ -f ~/.dotfiles/zsh/devenv ]; then
+	. ~/.dotfiles/zsh/devenv
+fi
 
 # kubectl
-if [ -f ~/.dotfiles/resources/kubectl ]; then
-	. ~/.dotfiles/resources/kubectl
+if [ -f ~/.dotfiles/common/kubectl ]; then
+	. ~/.dotfiles/common/kubectl
 fi
 
 # tmuxinator-completion
-#if [ -f ~/.dotfiles/resources/tmuxinator-completion ]; then
-#	. ~/.dotfiles/resources/tmuxinator-completion
-#fi
+if [ -f ~/.dotfiles/zsh/tmuxinator-completion ]; then
+	. ~/.dotfiles/zsh/tmuxinator-completion
+fi
+
+# added by travis gem
+if [ -f /Users/mkenney/.travis/travis.sh ]; then
+    source /Users/mkenney/.travis/travis.sh
+fi
 
 bindkey "^[[A" history-beginning-search-backward
 bindkey "^[[B" history-beginning-search-forward
 
+#zstyle ‘:completion:*’ verbose yes
+#zstyle ‘:completion:*:descriptions’ format ‘%B%d%b’
+#zstyle ‘:completion:*:messages’ format ‘%d’
+#zstyle ‘:completion:*:warnings’ format ‘No matches for: %d’
+#zstyle ‘:completion:*’ group-name ”
 
-# Setting PATH for Python 3.4
-# The orginal version is saved in .bash_profile.pysave
-PATH="/Library/Frameworks/Python.framework/Versions/3.4/bin:${PATH}"
-#export PATH
+fpath=($HOME/.dotfiles/zsh/completion $fpath)
+
+zmodload zsh/complist
+autoload -U compinit && compinit
+
+zstyle ':completion:::::' completer _complete _approximate
+
+zstyle ':completion:*:descriptions' format "- %d -"
+zstyle ':completion:*:corrections' format "- %d - (errors %e})"
+zstyle ':completion:*:default' list-prompt '%S%M matches%s'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:manuals' separate-sections true
+zstyle ':completion:*:manuals.(^1*)' insert-sections true
+zstyle ':completion:*' menu select
+zstyle ':completion:*' verbose yes
+
+zstyle -e ':completion:*:approximate:*' max-errors 'reply=( $(( ($#PREFIX + $#SUFFIX) / 3 )) )'
+zstyle ':completion::approximate*:*' prefix-needed false
+
+zstyle ':completion:*:*:git:*' user-commands rp-clone:'custom new branch function'

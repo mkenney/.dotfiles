@@ -4,7 +4,7 @@
 # Create an ISO from a vido_ts folder
 # The video_ts folder must be INSIDE of the specified directory
 #
-function makedvd {
+makedvd() {
 	DIR=$1
 	NAME=$(basename "${DIR}")
 	echo "hdiutil makehybrid -udf -udf-volume-name \"${NAME}\" -o \"${NAME}.iso\" \"${DIR}\""
@@ -40,6 +40,6 @@ alias decompress="extract"
 #
 # Get the size of the files in this dir
 #
-function lsbytes {
+lsbytes() {
 	echo -n $(ls -l | awk '/^-/{total += $5} END{printf "%.2f", total/1048576}')
 }

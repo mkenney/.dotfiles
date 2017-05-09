@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 alias a="cal"
-alias automagicproxy="docker stop automagicproxy && docker rm -f automagicproxy && docker pull kcmerrill/automagicproxy && docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name automagicproxy kcmerrill/automagicproxy --dockerized --containerized --dev"
+alias automagicproxy="docker stop automagicproxy || docker rm automagicproxy || docker pull kcmerrill/automagicproxy && docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name automagicproxy kcmerrill/automagicproxy --dockerized --containerized --dev"
+alias fetchproxy="docker stop fetch-proxy || docker rm fetch-proxy || docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name fetch-proxy -e DOCKER_API_VERSION=1.18 kcmerrill/fetch-proxy --dev --containerized"
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
 alias cloc="perl ~/cloc.pl"
 alias cls='clear'
@@ -17,7 +18,7 @@ alias lcs='clear'
 alias less='less -R'
 alias ll='ls -l'
 alias locate='locate -i'
-alias ls='ls gls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
+alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
 alias more='less'
 alias mv='mv -i'
 alias rm='rm -i'
@@ -30,6 +31,7 @@ alias rsync='rsync --progress'
 alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
 alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
 alias suod='sudo'
+alias t='terraform'
 alias top='htop -d 5'
 alias vi='vim'
 alias yes="echo no"

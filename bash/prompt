@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+#
+# Set the bash prompt
+# https://wiki.archlinux.org/index.php/Color_Bash_Prompt
+#
+
+# Load color definitions
+source ~/.dotfiles/common/color
+
+__git_status() {
+    local output=0
+    local modified=0
+    local modified_str=
+    local added=0
+    local added_str=
+    local renamed=0
+    local renamed_str=
+    local deleted=0
+    local deleted_str=
+    local untracked=0
+    local untracked_str=
+    local unstaged_str=
+    local total=0
+    local ahead_str=
+    local behind_str=
+    local branch_name=$(git rev-parse --abbrev-ref HEAD)
+    local origin_name=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
+
+    if [ "" != "$origin_name" ]; then
+        if [ "" != "$(git rev-list $origin_name..HEAD)" ]; then
+            ahead_str="<$(git rev-list $origin_name..HEAD 2> /dev/null | wc | awk '{print $1}') "
+            output=1
+        fi
+
+        if [ "" != "$(git rev-list HEAD..$origin_name)" ]; then
+            behind_str=">$(git rev-list HEAD..$origin_name 2> /dev/null | wc | awk '{print $1}') "
+            output=1
+        fi
+
+        display_branch=$origin_name
+    else
+        display_branch="local/$branch_name"
+    fi
+
+    if [ "" != "$(git diff --name-only)" ]; then
+        #unstaged_str="𝞫$(git diff --name-only | wc | awk '{print $1}') "
+        unstaged_str="⸮$(git diff --name-only | wc | awk '{print $1}') "
+        output=1
+    fi
+
+
+    while read line; do
+        flag1=${line:0:1}
+        flag2=${line:1:1}
+        if [ "" != "$line" ]; then
+            if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
+                untracked=$((untracked + 1))
+                untracked_str="?$untracked "
+                output=1
+                total=$((total + 1))
+            fi
+            if [ "A" = "$flag1" ] || [ "A" = "$flag2" ]; then
+                added=$((added + 1))
+                added_str="+$added "
+                output=1
+                total=$((total + 1))
+            fi
+            if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
+                deleted=$((deleted + 1))
+                #deleted_str="×$deleted "
+                #deleted_str="␡$deleted "
+                deleted_str="␥$deleted "
+                output=1
+                total=$((total + 1))
+            fi
+            if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
+                modified=$((modified + 1))
+                #modified_str="≠$modified "
+                modified_str="𝚫$modified "
+                output=1
+                total=$((total + 1))
+            fi
+            if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
+                renamed=$((renamed + 1))
+                #renamed_str="⤿ $renamed "
+                #renamed_str="r$renamed "
+                renamed_str="↪$renamed "
+                output=1
+                total=$((total + 1))
+            fi
+        fi
+    done << EOF
+$(git status --porcelain)
+EOF
+
+    if [ 0 -lt $total ]; then
+        total_str="#$total "
+        output=1
+    fi
+
+    if [ 0 -ne $output ]; then
+        echo "$(echo -e "${display_branch} ${behind_str}${ahead_str}${untracked_str}${deleted_str}${added_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+    else
+        echo "${display_branch}"
+    fi
+}
+
+__prompt_command() {
+
+    # always first
+    local last_status=$?
+
+    local -a ps1_lines
+
+    # Line 1 - host and current path
+    if [ "$EUID" = "0" ]; then # Root
+        ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]$PWD\[${COLOR_NORM}\]'
+    else
+        ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]$PWD\[${COLOR_NORM}\]'
+    fi
+
+    # Line 2 - git status line
+    git -C . rev-parse 2> /dev/null
+    if [ 0 -eq $? ]; then # In a git repo
+        ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]]'
+    fi
+
+    # Line 3 - time or error state
+    if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
+        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])→ '
+    else
+        # http://emojipedia.org/
+        ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
+    fi
+
+    # Make the cursor a blinking vertical line
+    # http://stackoverflow.com/questions/4416909/anyway-change-the-cursor-vertical-line-instead-of-a-box
+    ps1_lines+=$(echo -e -n "\[\x1b[\x35 q\]")
+
+    PS1="${ps1_lines[*]}"
+}
+
+export PROMPT_COMMAND=__prompt_command
+
+export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '
