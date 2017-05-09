@@ -110,8 +110,7 @@ __prompt_command() {
 
     # always first
     local last_status=$?
-
-    local git_line=$(__prompt_git)
+    git_status=$(__git_status)
     local -a ps1_lines
 
     # Line 1 - host and current path
@@ -122,8 +121,8 @@ __prompt_command() {
     fi
 
     # Line 2 - git status line
-    if [ "" != "$git_line" ]; then # In a git repo
-        ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]]'
+    if [ "" != "$git_status" ]; then # In a git repo
+        ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$git_status\[${COLOR_NORM}\]]'
     fi
 
     # Line 3 - time or error state
