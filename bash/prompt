@@ -44,7 +44,8 @@ __git_status() {
     fi
 
     if [ "" != "$(git diff --name-only)" ]; then
-        unstaged_str="*$(git diff --name-only | wc | awk '{print $1}') "
+        #unstaged_str="𝞫$(git diff --name-only | wc | awk '{print $1}') "
+        unstaged_str="⸮$(git diff --name-only | wc | awk '{print $1}') "
         output=1
     fi
 
@@ -67,19 +68,24 @@ __git_status() {
             fi
             if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
                 deleted=$((deleted + 1))
-                deleted_str="X$deleted "
+                #deleted_str="×$deleted "
+                #deleted_str="␡$deleted "
+                deleted_str="␥$deleted "
                 output=1
                 total=$((total + 1))
             fi
             if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
                 modified=$((modified + 1))
-                modified_str="≠$modified "
+                #modified_str="≠$modified "
+                modified_str="𝚫$modified "
                 output=1
                 total=$((total + 1))
             fi
             if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
                 renamed=$((renamed + 1))
-                renamed_str="⤿ $renamed "
+                #renamed_str="⤿ $renamed "
+                #renamed_str="r$renamed "
+                renamed_str="↪$renamed "
                 output=1
                 total=$((total + 1))
             fi
@@ -94,58 +100,38 @@ EOF
     fi
 
     if [ 0 -ne $output ]; then
-        echo "$(echo -e "${display_branch} ${behind_str}${ahead_str}${untracked_str}${added_str}${deleted_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "$(echo -e "${display_branch} ${behind_str}${ahead_str}${untracked_str}${deleted_str}${added_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     else
         echo "${display_branch}"
     fi
 }
 
-#
-# git status line
-#
-__prompt_git() {
-    # In a git repo
-    if [ "" != "$(git rev-parse --git-dir 2> /dev/null)" ]; then
+__prompt_command() {
 
-        echo "
-├[${COLOR_BLUE_FADED}${branch}$(__git_status)${COLOR_NORM}]"
-    fi
-}
-
-prompt_command() {
-
+    # always first
     local last_status=$?
 
-    GIT_PS1_SHOWDIRTYSTATE=1
-    GIT_PS1_SHOWSTASHSTATE=1
-    GIT_PS1_SHOWUNTRACKEDFILES=
-    GIT_PS1_SHOWUPSTREAM=1
-    git_line=$(__git_ps1 '%s')
-
+    local git_line=$(__prompt_git)
     local -a ps1_lines
-    # Line 1
+
+    # Line 1 - host and current path
     if [ "$EUID" = "0" ]; then # Root
         ps1_lines+='\n┌(\[${COLOR_RED_BLINK}\]\u\e[0m\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
     else
         ps1_lines+='\n┌(\[${COLOR_GREEN}\]\u\[${COLOR_YELLOW}\]@\H\[${COLOR_NORM}\]) - \[${COLOR_NORM}\]\[$PWD\]\[${COLOR_NORM}\]'
     fi
 
-    # Line 2
+    # Line 2 - git status line
     if [ "" != "$git_line" ]; then # In a git repo
-        ps1_lines+=$(__prompt_git) #'\n├[\[${COLOR_BLUE_FADED}\]$(__git_ps1 "git: %s")\[${COLOR_NORM}\]]'
+        ps1_lines+='\n├[\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]]'
     fi
 
-    # Line 3
+    # Line 3 - time or error state
     if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
-        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])\[${COLOR_NORM}\]→ '
+        ps1_lines+='\n└(\[${COLOR_GREEN}\]\t\[${COLOR_NORM}\])→ '
     else
         # http://emojipedia.org/
-        ps1_lines+='\n└(💀 )\[${COLOR_NORM}\]⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(🔴 )⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(‼️)⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(❌ )⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(⛔ )⤳ ' # Last script exited with a non-zero code
-        #ps1_lines+='\n└(🚫 )⤳ ' # Last script exited with a non-zero code
+        ps1_lines+='\n└(💀 )⤳ ' # Last script exited with a non-zero code
     fi
 
     # Make the cursor a blinking vertical line
@@ -155,6 +141,6 @@ prompt_command() {
     PS1="${ps1_lines[*]}"
 }
 
-export PROMPT_COMMAND=prompt_command
+export PROMPT_COMMAND=__prompt_command
 
 export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '
