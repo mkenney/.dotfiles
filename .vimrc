@@ -66,22 +66,29 @@ filetype plugin indent on    " required
 " terminal settings
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" disable vi compatibility mode
 set nocp
+
+" term colors
 set t_ut=
 set t_Co=256
 "set t_AB=^[[48;5;%dm
 "set t_AF=^[[38;5;%dm
+
 set mouse=a
 set noerrorbells
 set ttyfast
 set shell=bash
+
 " move screen with cursor when not using arrow keys
 noremap j j<c-e>
 noremap k k<c-y>
+
 " previous / next buffers
 map <C-j> :bprev<CR>
 map <C-k> :bnext<CR>
 set hidden
+
 " ignore caps for some commands
 :command WQ wq
 :command Wq wq
@@ -120,7 +127,7 @@ set viminfo='10,\"100,:5000,%,n~/.viminfo
 set ignorecase
 " case-sensitive once I type an uppercase char...
 set smartcase
-" Incremental search
+" incremental search
 set incsearch
 " highlight matches
 set hlsearch
@@ -150,19 +157,36 @@ set wrap
 set linebreak
 set textwidth=0
 set wrapmargin=0
+
 " Move vertically correctly across wrapped lines
 inoremap <Down> <C-o>gj
 inoremap <Up> <C-o>gk
+
 " keep at least 5 offsets around the cursor
 set scrolloff=5
 set sidescrolloff=5
+
 " show tabs and trailing whitespace
 set list
 set listchars=tab:>·,trail:·
+
 " leave cursor position alone
 set nostartofline
+
 " backspace over newlines
 set backspace=2
+
+" don’t update screen during macro and script execution
+set lazyredraw
+
+" always display the status bar
+set laststatus=2
+
+" always display the cursor position
+set ruler
+
+" automatically re-read files if unmodified inside vim
+set autoread
 
 " set working directory to current file
 " http://vim.wikia.com/wiki/Set_working_directory_to_the_current_file
@@ -199,7 +223,8 @@ set gfn=Monospace\ 12
 set encoding=utf8
 
 " show line numbers
-set nu
+"set nu
+set relativenumber
 
 " don't create swp files
 set nobackup
