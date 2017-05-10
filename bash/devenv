@@ -27,3 +27,4 @@ _devenv_autocomplete() {
     return 0
 }
 complete -o default -F _devenv_autocomplete devenv
+complete -o default -F _devenv_autocomplete dev
