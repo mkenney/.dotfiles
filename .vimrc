@@ -271,7 +271,7 @@ set encoding=utf8
 
 " show line numbers
 set nu
-set relativenumber
+"set relativenumber
 
 " don't create swp files
 set nobackup
