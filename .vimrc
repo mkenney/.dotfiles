@@ -1,7 +1,6 @@
 
-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Vundle configuration - keep this first
+" Vundle configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 set nocompatible
@@ -16,6 +15,7 @@ Plugin 'VundleVim/Vundle.vim'
 
 " install control p
 Plugin 'ctrlpvim/ctrlp.vim'
+let g:ctrlp_show_hidden = 1
 
 "Bundle 'joonty/vim-phpqa'
 
@@ -36,19 +36,42 @@ endfunction
 autocmd VimEnter * call StartUp()
 
 " Minimap
+""""""""""""""""""""""
 Plugin 'severin-lemaignan/vim-minimap'
 
-"Bundle 'ervandew/supertab'
-"let g:SuperTabDefaultCompletionType = ""
+" Display buffers as tabs
+""""""""""""""""""""""
+Bundle 'ap/vim-buftabline'
+
+" Snippet plugins
+"""""""""""""""""
+Plugin 'SirVer/ultisnips'
+
+" My snippet lib
+"""""""""""""""""
+Plugin 'git@github.com:mkenney/vim-snippets'
+
+" Trigger configuration. Do not use <tab> if you use https://github.com/Valloric/YouCompleteMe.
+"""""""""""""""""
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-b>"
+let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+
+" If you want :UltiSnipsEdit to split your window.
+"""""""""""""""""
+let g:UltiSnipsEditSplit="vertical"
 
 " Mess detector config
+""""""""""""""""""""""
 "let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
 
 " CodeSniffer rules
+""""""""""""""""""""""
 "let g:phpqa_codesniffer_args = "--standard=Zend"
 "let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
 
 " All of your Plugins must be added before the following line
+""""""""""""""""""""""
 call vundle#end()            " required
 filetype plugin indent on    " required
 
@@ -63,37 +86,61 @@ filetype plugin indent on    " required
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" terminal settings
+" General configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Source .vimrc on save
+autocmd! BufWritePost ~/.vimrc nested :source ~/.vimrc
 
 " disable vi compatibility mode
 set nocp
 
-" term colors
-set t_ut=
-set t_Co=256
-"set t_AB=^[[48;5;%dm
-"set t_AF=^[[38;5;%dm
+" Performance enhancements
+set timeoutlen=1000 ttimeoutlen=0
+set ttyfast                         " improves vim scrolling and redraws
+set lazyredraw                      " buffer screen updates instead of updating all the time
 
-set mouse=a
-set noerrorbells
-set ttyfast
-set shell=bash
+set noerrorbells                    " disable error bells
+set shell=bash                      " set the shell environment
 
 " move screen with cursor when not using arrow keys
 noremap j j<c-e>
 noremap k k<c-y>
 
+" mouse support
+set mouse=a
+set ttymouse=xterm2
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Terminal configuration
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" term colors
+set t_ut=                            " Fixes the background color in vim when using tmux (https://sunaku.github.io/vim-256color-bce.html)
+set t_Co=256                         " Force 256 colors in terminal
+"set t_AB=^[[48;5;%dm                " ?
+"set t_AF=^[[38;5;%dm                " ?
+
 " previous / next buffers
+set hidden
 map <C-j> :bprev<CR>
 map <C-k> :bnext<CR>
-set hidden
+" Map tab switching
+map <M-Left> :bprev<CR>
+map <M-Right> :bnext<CR>
+
 
 " ignore caps for some commands
 :command WQ wq
 :command Wq wq
 :command W w
 :command Q q
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" buffering
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " sessions
@@ -308,13 +355,3 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 
 " rainbow parens
 let g:rainbow_active = 1
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" key mappings
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" Map tab switching
-map <M-Left> :tabp<CR>
-map <M-Right> :tabn<CR>
-
