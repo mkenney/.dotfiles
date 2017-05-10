@@ -24,16 +24,16 @@ let g:ctrlp_show_hidden = 1
 Bundle 'scrooloose/syntastic'
 let g:syntastic_php_checkers = ['php', 'phpcs']
 
-Bundle 'scrooloose/nerdtree'
-let NERDTreeShowHidden=1
-let NERDTreeIgnore = ['\.sw?$']
-noremap gn :NERDTree<Cr>
-function! StartUp()
-    if 0 == argc()
-        NERDTree
-    end
-endfunction
-autocmd VimEnter * call StartUp()
+"Bundle 'scrooloose/nerdtree'
+"let NERDTreeShowHidden=1
+"let NERDTreeIgnore = ['\.sw?$']
+"noremap gn :NERDTree<Cr>
+"function! StartUp()
+"    if 0 == argc()
+"        NERDTree
+"    end
+"endfunction
+"autocmd VimEnter * call StartUp()
 
 " Minimap
 """"""""""""""""""""""
