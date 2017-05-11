@@ -39,13 +39,13 @@ let g:syntastic_php_checkers = ['php', 'phpcs']
 Plugin 'severin-lemaignan/vim-minimap'
 
 " Display buffers as tabs
-Bundle 'git@github.com:mkenney/vim-buftabline'
+Bundle 'mkenney/vim-buftabline'
 
 " Snippet plugin
 Plugin 'SirVer/ultisnips'
 
 " Snippet lib
-Plugin 'git@github.com:mkenney/vim-snippets'
+Plugin 'mkenney/vim-snippets'
 
 " Snippet trigger configuration. Do not use <tab> if you use
 " https://github.com/Valloric/YouCompleteMe.
