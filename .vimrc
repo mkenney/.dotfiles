@@ -116,8 +116,12 @@ let g:netrw_liststyle = 0
 " Hide the file explorer banner
 let g:netrw_banner = 0
 
-" Open files in a new vertical split
-let g:netrw_browse_split = 2
+" Open method for file browser
+let g:netrw_browse_split = 0 " Open in current window
+"let g:netrw_browse_split = 1 " Open files in a new horizontal split
+"let g:netrw_browse_split = 2 " Open files in a new vertical split
+"let g:netrw_browse_split = 3 " Open files in a new tab
+"let g:netrw_browse_split = 4 " Open in previous window
 
 " Default split width 85%
 let g:netrw_winsize = 85
