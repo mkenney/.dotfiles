@@ -36,53 +36,45 @@ let g:syntastic_php_checkers = ['php', 'phpcs']
 "autocmd VimEnter * call StartUp()
 
 " Minimap
-""""""""""""""""""""""
 Plugin 'severin-lemaignan/vim-minimap'
 
 " Display buffers as tabs
-""""""""""""""""""""""
 Bundle 'ap/vim-buftabline'
 
-" Snippet plugins
-"""""""""""""""""
+" Snippet plugin
 Plugin 'SirVer/ultisnips'
 
-" My snippet lib
-"""""""""""""""""
+" Snippet lib
 Plugin 'git@github.com:mkenney/vim-snippets'
 
-" Trigger configuration. Do not use <tab> if you use https://github.com/Valloric/YouCompleteMe.
-"""""""""""""""""
+" Snippet trigger configuration. Do not use <tab> if you use
+" https://github.com/Valloric/YouCompleteMe.
 let g:UltiSnipsExpandTrigger="<tab>"
 let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 
 " If you want :UltiSnipsEdit to split your window.
-"""""""""""""""""
 let g:UltiSnipsEditSplit="vertical"
 
 " Mess detector config
-""""""""""""""""""""""
 "let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
 
 " CodeSniffer rules
-""""""""""""""""""""""
 "let g:phpqa_codesniffer_args = "--standard=Zend"
 "let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
 
-" All of your Plugins must be added before the following line
-""""""""""""""""""""""
+" Syntax highlighting scheme
+Bundle 'Lokaltog/vim-distinguished'
+
+" Git gutter
+Bundle 'airblade/vim-gitgutter'
+
+" Marks gutter
+Bundle 'kshenoy/vim-signature'
+
+" All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
-
-" Brief help
-" :PluginList       - lists configured plugins
-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-"
-" see :h vundle for more details or wiki for FAQ
-" Put your non-Plugin stuff after this line
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -91,9 +83,6 @@ filetype plugin indent on    " required
 
 " Source .vimrc on save
 autocmd! BufWritePost ~/.vimrc nested :source ~/.vimrc
-
-" disable vi compatibility mode
-set nocp
 
 " Performance enhancements
 set timeoutlen=1000 ttimeoutlen=0
@@ -111,6 +100,39 @@ noremap k k<c-y>
 set mouse=a
 set ttymouse=xterm2
 
+" enable showing matching enclosing characters
+set showmatch
+
+" Disable 'textwidth'
+set textwidth=0
+
+" spelling
+set spelllang=en
+set spellfile=$HOME/.vim/en.utf-8.add
+
+" File explorer tree list
+let g:netrw_liststyle = 3
+
+" Hide the file explorer banner
+let g:netrw_banner = 0
+
+" Open files in the previous window
+let g:netrw_browse_split = 4
+
+" Max width 15%
+let g:netrw_winsize = 15
+
+"
+let g:netrw_altv = 1
+
+" Sort of a nerd-tree like drawer using the native file browser... doesn't
+" work very well
+"augroup ProjectDrawer
+"  autocmd!
+"  autocmd VimEnter * :Vexplore
+"augroup END
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Terminal configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -125,9 +147,8 @@ set t_Co=256                         " Force 256 colors in terminal
 set hidden
 map <C-j> :bprev<CR>
 map <C-k> :bnext<CR>
-" Map tab switching
-map <M-Left> :bprev<CR>
-map <M-Right> :bnext<CR>
+map <C-Left> :bprev<CR>
+map <C-Right> :bnext<CR>
 
 
 " ignore caps for some commands
@@ -137,9 +158,22 @@ map <M-Right> :bnext<CR>
 :command Q q
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" buffering
+" commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+command JsonFormat %!python -m json.tool
+command SpellOn setlocal spell
+command SpellOff setlocal nospell
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" tmux
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Rename tmux pane based on which file is open
+autocmd BufEnter * call system("tmux rename-window " . expand("%:t"))
+autocmd VimLeave * call system("tmux rename-window bash")
+autocmd BufEnter * let &titlestring = ' ' . expand("%:t")
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -154,16 +188,17 @@ if has('persistent_undo')
     call system('mkdir ' . vimDir)
     call system('mkdir ' . myUndoDir)
     let &undodir = myUndoDir
+    set undolevels=5000
     set undofile
 endif
 
 " Tell vim to remember certain things when we exit
-"  '10 : marks will be remembered for up to 10 previously edited files
+"  '10  : marks will be remembered for up to 10 previously edited files
 "  "100 : will save up to 100 lines for each register
-"  :5000 : up to 5000 lines of command-line history will be remembered
-"  % : saves and restores the buffer list
+"  :500 : up to 500 lines of command-line history will be remembered
+"  %    : saves and restores the buffer list
 "  n... : where to save the viminfo files
-set viminfo='10,\"100,:5000,%,n~/.viminfo
+set viminfo='10,\"100,:500,%,n~/.viminfo
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -355,3 +390,4 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 
 " rainbow parens
 let g:rainbow_active = 1
+
