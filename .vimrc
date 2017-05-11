@@ -119,8 +119,8 @@ let g:netrw_banner = 0
 " Open files in the previous window
 let g:netrw_browse_split = 4
 
-" Max width 15%
-let g:netrw_winsize = 15
+" Default split width 85%
+let g:netrw_winsize = 85
 
 "
 let g:netrw_altv = 1
