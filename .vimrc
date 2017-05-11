@@ -111,7 +111,7 @@ set spelllang=en
 set spellfile=$HOME/.vim/en.utf-8.add
 
 " File explorer tree list
-let g:netrw_liststyle = 3
+let g:netrw_liststyle = 0
 
 " Hide the file explorer banner
 let g:netrw_banner = 0
@@ -393,4 +393,25 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 
 " rainbow parens
 let g:rainbow_active = 1
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" folding
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set fillchars=fold:·
+
+function! FunctionFold()
+    setl foldmethod=syntax
+    setl foldlevelstart=1
+    syn region foldBraces start=/{/ end=/}/ transparent fold keepend extend
+
+    function! FoldText()
+        return substitute(getline(v:foldstart), '{.*', '{...}', '')
+    endfunction
+    setl foldtext=FoldText()
+endfunction
+
+au FileType javascript call FunctionFold()
+au FileType javascript setl fen
+au FileType php call FunctionFold()
+au FileType php setl fen
 
