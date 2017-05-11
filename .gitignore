@@ -33,6 +33,7 @@ www
 .docker/
 .dockercfg
 .composer/
+.vim/data/
 .vim/bundle/
 .vim/undodir/
 .profile

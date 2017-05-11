@@ -39,7 +39,7 @@ let g:syntastic_php_checkers = ['php', 'phpcs']
 Plugin 'severin-lemaignan/vim-minimap'
 
 " Display buffers as tabs
-Bundle 'ap/vim-buftabline'
+Bundle 'git@github.com:mkenney/vim-buftabline'
 
 " Snippet plugin
 Plugin 'SirVer/ultisnips'
@@ -198,7 +198,10 @@ endif
 "  :500 : up to 500 lines of command-line history will be remembered
 "  %    : saves and restores the buffer list
 "  n... : where to save the viminfo files
-set viminfo='10,\"100,:500,%,n~/.viminfo
+let myDataDir = expand(vimDir . '/data')
+call system('mkdir ' . vimDir)
+call system('mkdir ' . myDataDir)
+set viminfo='10,\"100,:500,%,n~/.vim/data/viminfo
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
