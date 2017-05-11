@@ -45,6 +45,7 @@ __git_status() {
 
     if [ "" != "$(git diff --name-only)" ]; then
         #unstaged_str="𝞫$(git diff --name-only | wc | awk '{print $1}') "
+        #unstaged_str="α$(git diff --name-only | wc | awk '{print $1}') "
         unstaged_str="⸮$(git diff --name-only | wc | awk '{print $1}') "
         output=1
     fi
