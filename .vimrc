@@ -81,7 +81,7 @@ set lazyredraw                      " buffer screen updates instead of updating 
 set noerrorbells                    " disable error bells
 set shell=bash                      " set the shell environment
 
-" move screen with cursor when not using arrow keys
+" move screen with cursor when not scrolling with the arrow keys
 noremap j j<c-e>
 noremap k k<c-y>
 
@@ -113,8 +113,8 @@ let g:netrw_browse_split = 0 " Open in current window
 "let g:netrw_browse_split = 3 " Open files in a new tab
 "let g:netrw_browse_split = 4 " Open in previous window
 
-" Default split width 85%
-let g:netrw_winsize = 85
+" Default split width 50%
+let g:netrw_winsize = 50
 
 "
 let g:netrw_altv = 1
@@ -138,15 +138,15 @@ map <C-Left> :bprev<CR>
 map <C-Right> :bnext<CR>
 
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" commands
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 " ignore caps for some commands
 :command WQ wq
 :command Wq wq
 :command W w
 :command Q q
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" commands
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 command JsonFmt %!python -m json.tool
 command SpellOn setlocal spell
@@ -158,9 +158,9 @@ command SpellOff setlocal nospell
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Rename tmux pane based on which file is open
-"autocmd BufEnter * call system("tmux rename-window " . expand("%:t"))
-"autocmd VimLeave * call system("tmux rename-window bash")
-"autocmd BufEnter * let &titlestring = ' ' . expand("%:t")
+autocmd BufEnter * call system("tmux rename-window 'vim ".expand("%:t")."'")
+autocmd VimLeave * call system("tmux rename-window bash")
+autocmd BufEnter * let &titlestring = ' '.expand("%:t")
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -170,10 +170,10 @@ command SpellOff setlocal nospell
 " Keep undo history across sessions by storing it in a file
 let vimDir = '$HOME/.vim'
 if has('persistent_undo')
-    let myUndoDir = expand(vimDir . '/undodir')
+    let myUndoDir = expand(vimDir.'/undodir')
     " Create dirs
-    call system('mkdir ' . vimDir)
-    call system('mkdir ' . myUndoDir)
+    call system('mkdir '.vimDir)
+    call system('mkdir '.myUndoDir)
     let &undodir = myUndoDir
     set undolevels=5000
     set undofile
@@ -185,9 +185,9 @@ endif
 "  :500 : up to 500 lines of command-line history will be remembered
 "  %    : saves and restores the buffer list
 "  n... : where to save the viminfo files
-let myDataDir = expand(vimDir . '/data')
-call system('mkdir ' . vimDir)
-call system('mkdir ' . myDataDir)
+let myDataDir = expand(vimDir.'/data')
+call system('mkdir '.vimDir)
+call system('mkdir '.myDataDir)
 set viminfo='10,\"100,:500,%,n~/.vim/data/viminfo
 
 
