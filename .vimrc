@@ -175,9 +175,9 @@ command SpellOff setlocal nospell
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Rename tmux pane based on which file is open
-autocmd BufEnter * call system("tmux rename-window " . expand("%:t"))
-autocmd VimLeave * call system("tmux rename-window bash")
-autocmd BufEnter * let &titlestring = ' ' . expand("%:t")
+"autocmd BufEnter * call system("tmux rename-window " . expand("%:t"))
+"autocmd VimLeave * call system("tmux rename-window bash")
+"autocmd BufEnter * let &titlestring = ' ' . expand("%:t")
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
