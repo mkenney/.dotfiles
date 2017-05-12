@@ -275,27 +275,16 @@ set copyindent
 set preserveindent
 filetype plugin indent on
 
-"syntax hilighting
-syntax on
-
-" PHP Generated Code Highlights (HTML & SQL)
-let php_sql_query=1
-let php_htmlInStrings=1
-
-" code folding
-"let g:php_folding=2
-"set foldmethod=syntax
-
 " Trim trailing spaces
 autocmd BufWritePre *.* :%s/\s\+$//e
-
-" Fonts
-set gfn=Monospace\ 12
-set encoding=utf8
 
 " show line numbers
 set nu
 "set relativenumber
+
+" Fonts
+set gfn=Monospace\ 12
+set encoding=utf8
 
 " don't create swp files
 set nobackup
@@ -330,43 +319,61 @@ augroup JumpCursorOnEdit
  \ endif
 augroup END
 
-" syntax highlighting
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" syntax hilighting
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+syntax on
+
+" PHP Generated Code Highlights (HTML & SQL)
+let php_sql_query=1
+let php_htmlInStrings=1
+
+colorscheme distinguished
 set background=dark
 highlight MatchParen ctermbg=darkblue guibg=blue
 
+" Column highlight
 set colorcolumn=78
 hi ColorColumn ctermbg=017
-" cursor color
+
+" Cursor color
 "hi cursor cterm=NONE ctermbg=019
 "set cursor
-" cursor line color
+
+" Cursor line color
 hi cursorline cterm=NONE ctermbg=052
 set cursorline
-" cursor column color
+
+" Cursor column color
 "hi cursorcolumn cterm=NONE ctermbg=017
 "set cursorcolumn
 nnoremap <Leader>c :set cursorline! cursorcolumn!<CR>
+
 " visual selection color
 hi Visual  ctermbg=236 ctermfg=white cterm=none
+
 " line number color
-highlight LineNr ctermfg=008
-highlight CursorLineNr ctermfg=255
+highlight LineNr ctermfg=008 ctermbg=0
+highlight CursorLineNr ctermfg=255  ctermbg=052
+
 " make the cursor an underscore
 let &t_SI .= "\<Esc>[3 q"
 let &t_EI .= "\<Esc>[3 q"
 
 " syntax colors
 hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
-hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
-hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
-hi Identifier	term=underline cterm=bold ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#40ffff guibg=NONE
-hi Statement	term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ffff60 guibg=NONE
-hi PreProc		term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
-hi Type			term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold guifg=#60ff60 guibg=NONE
-hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
-hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
+"hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
+"hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
+"hi Identifier	term=underline cterm=bold ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#40ffff guibg=NONE
+"hi Statement	term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ffff60 guibg=NONE
+"hi PreProc		term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
+"hi Type			term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold guifg=#60ff60 guibg=NONE
+"hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
+"hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
 hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE
-hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
+"hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
 if &diff
     colorscheme darkblue
 endif
