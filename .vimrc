@@ -24,17 +24,6 @@ let g:ctrlp_show_hidden = 1
 Bundle 'scrooloose/syntastic'
 let g:syntastic_php_checkers = ['php', 'phpcs']
 
-"Bundle 'scrooloose/nerdtree'
-"let NERDTreeShowHidden=1
-"let NERDTreeIgnore = ['\.sw?$']
-"noremap gn :NERDTree<Cr>
-"function! StartUp()
-"    if 0 == argc()
-"        NERDTree
-"    end
-"endfunction
-"autocmd VimEnter * call StartUp()
-
 " Minimap
 Plugin 'severin-lemaignan/vim-minimap'
 
@@ -129,13 +118,6 @@ let g:netrw_winsize = 85
 "
 let g:netrw_altv = 1
 
-" Sort of a nerd-tree like drawer using the native file browser... doesn't
-" work very well
-"augroup ProjectDrawer
-"  autocmd!
-"  autocmd VimEnter * :Vexplore
-"augroup END
-
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Terminal configuration
@@ -165,7 +147,7 @@ map <C-Right> :bnext<CR>
 " commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-command JsonFormat %!python -m json.tool
+command JsonFmt %!python -m json.tool
 command SpellOn setlocal spell
 command SpellOff setlocal nospell
 
