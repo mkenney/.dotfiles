@@ -359,6 +359,7 @@ hi Visual  ctermbg=236 ctermfg=white cterm=none
 " line number color
 highlight LineNr ctermfg=008 ctermbg=0
 highlight CursorLineNr ctermfg=255  ctermbg=052
+highlight NonText ctermfg=4
 
 " make the cursor an underscore
 let &t_SI .= "\<Esc>[3 q"
