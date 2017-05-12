@@ -97,7 +97,8 @@ set textwidth=0
 
 " spelling
 set spelllang=en
-set spellfile=$HOME/.vim/en.utf-8.add
+set spellfile=$HOME/.vim/data/en.utf-8.add
+setlocal spell
 
 " File explorer tree list
 let g:netrw_liststyle = 0
