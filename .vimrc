@@ -330,7 +330,9 @@ syntax on
 let php_sql_query=1
 let php_htmlInStrings=1
 
-colorscheme distinguished
+silent! colorscheme darkblue
+silent! colorscheme distinguished
+
 set background=dark
 highlight MatchParen ctermbg=darkblue guibg=blue
 
