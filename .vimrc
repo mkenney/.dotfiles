@@ -334,7 +334,6 @@ silent! colorscheme darkblue
 silent! colorscheme distinguished
 
 set background=dark
-highlight MatchParen ctermbg=darkblue guibg=blue
 
 " Column highlight
 set colorcolumn=78
@@ -366,20 +365,17 @@ let &t_SI .= "\<Esc>[3 q"
 let &t_EI .= "\<Esc>[3 q"
 
 " syntax colors
-hi Comment		term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
-"hi Constant		term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
-"hi Special		term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
-"hi Identifier	term=underline cterm=bold ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#40ffff guibg=NONE
-"hi Statement	term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ffff60 guibg=NONE
-"hi PreProc		term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
-"hi Type			term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold guifg=#60ff60 guibg=NONE
-"hi Underlined	term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
-"hi Ignore		term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
-hi String		term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE
-"hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
-if &diff
-    colorscheme darkblue
-endif
+hi Comment      term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
+"hi Constant     term=underline cterm=NONE ctermfg=Magenta ctermbg=NONE gui=NONE guifg=#ffa0a0 guibg=NONE
+"hi Special      term=bold cterm=NONE ctermfg=LightRed ctermbg=NONE gui=NONE guifg=Orange guibg=NONE
+"hi Identifier   term=underline cterm=bold ctermfg=Cyan ctermbg=NONE gui=NONE guifg=#40ffff guibg=NONE
+"hi Statement    term=bold cterm=NONE ctermfg=Yellow ctermbg=NONE gui=bold guifg=#ffff60 guibg=NONE
+"hi PreProc      term=underline cterm=NONE ctermfg=LightBlue ctermbg=NONE gui=NONE guifg=#ff80ff guibg=NONE
+"hi Type         term=underline cterm=NONE ctermfg=LightGreen ctermbg=NONE gui=bold guifg=#60ff60 guibg=NONE
+"hi Underlined   term=underline cterm=underline ctermfg=LightBlue gui=underline guifg=#80a0ff
+"hi Ignore       term=NONE cterm=NONE ctermfg=Black ctermbg=NONE gui=NONE guifg=bg guibg=NONE
+hi String       term=NONE cterm=NONE ctermfg=DarkGreen ctermbg=NONE gui=NONE guifg=bg guibg=NONE
+hi Search       term=bold cterm=bold ctermfg=white ctermbg=blue
 
 " diff highlighting
 highlight DiffAdd    cterm=bold ctermfg=10 ctermbg=21 gui=none guifg=bg guibg=Red
@@ -389,6 +385,7 @@ highlight DiffText   cterm=bold ctermfg=10 ctermbg=88 gui=none guifg=bg guibg=Re
 
 " rainbow parens
 let g:rainbow_active = 1
+highlight MatchParen ctermbg=darkblue guibg=blue
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " folding
