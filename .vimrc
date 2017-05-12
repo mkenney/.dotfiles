@@ -335,6 +335,9 @@ silent! colorscheme distinguished
 
 set background=dark
 
+" Vertical split separator
+set fillchars+=vert:│
+
 " Column highlight
 set colorcolumn=78
 hi ColorColumn ctermbg=017
@@ -407,4 +410,3 @@ au FileType javascript call FunctionFold()
 au FileType javascript setl fen
 au FileType php call FunctionFold()
 au FileType php setl fen
-
