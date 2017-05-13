@@ -24,8 +24,8 @@ __git_status() {
     local total=0
     local ahead_str=
     local behind_str=
-    local branch_name=$(git rev-parse --abbrev-ref HEAD)
-    local origin_name=$(git rev-parse --abbrev-ref --symbolic-full-name @{u})
+    local branch_name=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+    local origin_name=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2> /dev/null)
 
     if [ "" != "$origin_name" ]; then
         if [ "" != "$(git rev-list $origin_name..HEAD)" ]; then
