@@ -22,7 +22,7 @@ export git_custom_commands=""
 # Return the list of custom commands.  This is also used for tab-completion
 #
 git_autocomplete_commands() {
-	echo "${git_custom_commands}"
+    echo "${git_custom_commands}"
 }
 export -f git_autocomplete_commands
 
@@ -30,24 +30,90 @@ export -f git_autocomplete_commands
 # Load all of the custom commands in resources/lib/.  These must be prefixed with 'git-'
 #
 for git_lib in $(find ${HOME}/.dotfiles/bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
-	. $git_lib
+    . $git_lib
 done
 
 #
 # git command wrapper + alias
 #
 _git_better() {
-	custom_commands="$(git_autocomplete_commands)"
-	for a in ${custom_commands[@]}
-	do
-		if [ "${1}" = "${a}" ]; then
-			"git-$a" "${@:2}"
-			return
-		fi
-	done
+    custom_commands="$(git_autocomplete_commands)"
+    git_command=$(echo /usr/bin/env git "$@")
+    for a in ${custom_commands[@]}
+    do
+        if [ "${1}" = "${a}" ]; then
+            git_command=$(echo "git-$a" "${@:2}")
+            break
+        fi
+    done
 
-	/usr/bin/env git "$@"
+    local tmpfile=$(mktemp)
+    $git_command 2> $tmpfile
+    exit_code=$?
+    git_errors=$(cat $tmpfile)
 
+    if [ "" != "$exit_code" ] && [ 0 -ne $exit_code ]; then
+        if [ "" != "$(echo "$git_errors" | grep -i "Did you mean")" ]; then
+            reading_options=0
+            local -a options
+            while read -r line; do
+                line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+                if [ "" = "$line" ]; then
+                    reading_options=0
+                fi
+                if [ 1 -eq $reading_options ]; then
+                    options+=($line)
+                fi
+                if [ "" != "$(echo "$line" | grep -i "Did you mean")" ]; then
+                    reading_options=1
+                fi
+            done <<< "$git_errors"
+
+            bad_command=$(echo "$git_errors" | grep -o "^git: '[a-zA-Z0-9]*" | sed s/"git: \'"//)
+
+            # Replace error output
+            >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
+            >&2 echo
+            if [ 1 -eq "${#options[@]}" ]; then
+                >&2 echo "    Did you mean this?"
+            else
+                >&2 echo "    Did you mean one of these?"
+            fi
+            local cnt=0
+            for a in "${options[@]}"; do
+                opt_key=$((cnt + 1))
+                >&2 echo "        $opt_key: ${options[$cnt]}"
+                cnt=$((cnt + 1))
+            done
+            >&2 echo
+
+            # Prompt for input
+            old_IFS=$IFS
+            IFS='%'
+            if [ 1 -eq $cnt ]; then
+                prompt="[Y/n] > "
+            else
+                >&2 echo "        0: n/a"
+                prompt="Select [1] > "
+            fi
+            read -p $prompt -t 60 option
+            IFS=$old_IFS
+
+            if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
+                if [ "" = "$option" ]; then
+                    option=1
+                fi
+                option=$((option - 1))
+
+                new_command=$(echo $git_command | sed s/"git $bad_command"/"git ${options[$option]}/")
+                $new_command
+            fi
+
+        else
+            >&2 echo $git_errors
+            return $exit_code
+        fi
+    fi
 }
 export -f _git_better
 

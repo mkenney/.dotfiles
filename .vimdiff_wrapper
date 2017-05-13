@@ -1,4 +1,4 @@
 #!/bin/bash
-echo -e "    $5                                    \c"
+echo -e "    $5                                                 \c"
 vimdiff -R "$2" "$5"
 
