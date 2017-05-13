@@ -69,9 +69,9 @@ _git_better() {
                 fi
             done <<< "$git_errors"
 
-            bad_command=$(echo "$git_errors" | grep -o "^git: '[a-zA-Z0-9]*" | sed s/"git: \'"//)
+            bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
 
-            # Replace error output
+            # rebuild git error output
             >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
             >&2 echo
             if [ 1 -eq "${#options[@]}" ]; then
@@ -81,8 +81,12 @@ _git_better() {
             fi
             local cnt=0
             for a in "${options[@]}"; do
-                opt_key=$((cnt + 1))
-                >&2 echo "        $opt_key: ${options[$cnt]}"
+                if [ 1 -eq "${#options[@]}" ]; then
+                    opt_key="•"
+                else
+                    opt_key="$((cnt + 1)):"
+                fi
+                >&2 echo "        $opt_key ${options[$cnt]}"
                 cnt=$((cnt + 1))
             done
             >&2 echo
@@ -93,10 +97,11 @@ _git_better() {
             if [ 1 -eq $cnt ]; then
                 prompt="[Y/n] > "
             else
-                >&2 echo "        0: n/a"
-                prompt="Select [1] > "
+                >&2 echo "        0: quit"
+                >&2 echo
+                prompt="[1] > "
             fi
-            read -p $prompt -t 60 option
+            read -r -p $prompt -t 60 option
             IFS=$old_IFS
 
             if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
