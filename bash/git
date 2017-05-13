@@ -105,12 +105,15 @@ _git_better() {
             IFS=$old_IFS
 
             if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
-                if [ "" = "$option" ]; then
+                if [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
                     option=1
                 fi
                 option=$((option - 1))
 
                 new_command=$(echo $git_command | sed s/"git $bad_command"/"git ${options[$option]}/")
+
+                echo "executing '$new_command'"
+                echo
                 $new_command
             fi
 
