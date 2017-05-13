@@ -48,7 +48,7 @@ _git_better() {
     done
 
     local tmpfile=$(mktemp)
-    $git_command 2> $tmpfile
+    /usr/bin/env git "$@" 2> $tmpfile
     exit_code=$?
     git_errors=$(cat $tmpfile)
 
@@ -101,7 +101,7 @@ _git_better() {
                 >&2 echo
                 prompt="[1] > "
             fi
-            read -r -p $prompt -t 60 option
+            read -e -p $prompt -t 60 option
             IFS=$old_IFS
 
             if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
