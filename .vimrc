@@ -29,7 +29,7 @@ Plugin 'severin-lemaignan/vim-minimap'
 
 " Display buffers as tabs
 Bundle 'mkenney/vim-buftabline'
-g:buftabline_indicators = 1
+"g:buftabline_indicators = 1 " causes errors in scripted operations for some reason...
 
 " Snippet plugin
 Plugin 'SirVer/ultisnips'
