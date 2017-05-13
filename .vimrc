@@ -61,6 +61,10 @@ Bundle 'airblade/vim-gitgutter'
 " Marks gutter
 Bundle 'kshenoy/vim-signature'
 
+" YouCompleteMe
+Plugin 'Valloric/YouCompleteMe'
+let g:ycm_collect_identifiers_from_tags_files = 1
+
 " All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
