@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
 
-#
-# Gerrit-specific aliases and functions
-#
-
-# Auto-clean common coding style errors
-#export GIT_PRECH_CLEANALL=true
-
-# Don't let phpcs errors block commits
-#export GIT_PRECH_ALWAYSCOMMIT=true
-
-#unalias vimdiff_wrapper='vimdiff "$2" "$5"'
+# git built-in commands
+export git_commands="add bisect branch checkout clone commit diff fetch grep init log merge mv pull push rebase reset rm show status tag"
 
 #
 # List of custom commands, space delimited.  This var should be
@@ -22,22 +13,26 @@ export git_custom_commands=""
 # Return the list of custom commands.  This is also used for tab-completion
 #
 git_autocomplete_commands() {
-    echo "${git_custom_commands}"
+    #git_commands="$git_commands $(git branch | tr -d '\n')"
+    printf "${git_custom_commands}"
 }
+#git_autocomplete_commands() {
+#    echo "${git_custom_commands}"
+#}
 export -f git_autocomplete_commands
 
 #
 # Load all of the custom commands in resources/lib/.  These must be prefixed with 'git-'
 #
 for git_lib in $(find ${HOME}/.dotfiles/bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
-    . $git_lib
+    source $git_lib
 done
 
 #
 # git command wrapper + alias
 #
 _git_better() {
-    custom_commands="$(git_autocomplete_commands)"
+    custom_commands="$git_custom_commands"
     git_command=$(echo /usr/bin/env git "$@")
     for a in ${custom_commands[@]}
     do
@@ -110,11 +105,10 @@ _git_better() {
                 fi
                 option=$((option - 1))
 
-                new_command=$(echo $git_command | sed s/"git $bad_command"/"git ${options[$option]}/")
-
-                echo "executing '$new_command'"
+                shift
+                echo "executing /usr/bin/env git ${options[$option]} $@"
                 echo
-                $new_command
+                /usr/bin/env git ${options[$option]} "$@"
             fi
 
         else
@@ -124,5 +118,6 @@ _git_better() {
     fi
 }
 export -f _git_better
-
 alias git='_git_better'
+complete -o default -F _git_autocomplete git
+

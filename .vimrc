@@ -282,7 +282,7 @@ set preserveindent
 filetype plugin indent on
 
 " Trim trailing spaces
-autocmd BufWritePre *.* :%s/\s\+$//e
+autocmd BufWritePre * %s/\s\+$//e
 
 " show line numbers
 set nu
