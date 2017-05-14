@@ -13,12 +13,8 @@ export git_custom_commands=""
 # Return the list of custom commands.  This is also used for tab-completion
 #
 git_autocomplete_commands() {
-    #git_commands="$git_commands $(git branch | tr -d '\n')"
-    printf "${git_custom_commands}"
+    echo "${git_custom_commands}"
 }
-#git_autocomplete_commands() {
-#    echo "${git_custom_commands}"
-#}
 export -f git_autocomplete_commands
 
 #
@@ -32,11 +28,11 @@ done
 # git command wrapper + alias
 #
 _git_better() {
+
     custom_commands="$git_custom_commands"
     git_command=$(echo /usr/bin/env git "$@")
-    for a in ${custom_commands[@]}
-    do
-        if [ "${1}" = "${a}" ]; then
+    for a in ${custom_commands[@]}; do
+        if [ "$1" = "$a" ]; then
             git_command=$(echo "git-$a" "${@:2}")
             break
         fi
@@ -65,7 +61,6 @@ _git_better() {
             done <<< "$git_errors"
 
             bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
-
             # rebuild git error output
             >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
             >&2 echo
@@ -77,7 +72,7 @@ _git_better() {
             local cnt=0
             for a in "${options[@]}"; do
                 if [ 1 -eq "${#options[@]}" ]; then
-                    opt_key="•"
+                    opt_key=""
                 else
                     opt_key="$((cnt + 1)):"
                 fi
@@ -112,12 +107,10 @@ _git_better() {
             fi
 
         else
-            >&2 echo $git_errors
+            echo $git_errors
             return $exit_code
         fi
     fi
 }
 export -f _git_better
 alias git='_git_better'
-complete -o default -F _git_autocomplete git
-
