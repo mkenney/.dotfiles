@@ -2,92 +2,92 @@
 
 # VIM stuff
 if [ -f ./.dotfiles/common/vim ]; then
-    source ./.dotfiles/common/vim
+    . ./.dotfiles/common/vim
 fi
 
 # Git stuff
 if [ -f ./.dotfiles/bash/git ]; then
-    source ./.dotfiles/bash/git
+    . ./.dotfiles/bash/git
 fi
 
 # Git completion
 if [ -f ./.dotfiles/common/git-completion ]; then
-    source ./.dotfiles/common/git-completion
+    . ./.dotfiles/common/git-completion
 fi
 
 # Git prompt
 #if [ -f ./.dotfiles/common/git-prompt ]; then
-#    source ./.dotfiles/common/git-prompt
+#    . ./.dotfiles/common/git-prompt
 #fi
 
 # CVS stuff
 if [ -f ./.dotfiles/common/cvs ]; then
-    source ./.dotfiles/common/cvs
+    . ./.dotfiles/common/cvs
 fi
 
 # Docker stuff
 if [ -f ./.dotfiles/bash/docker ]; then
-    source ./.dotfiles/bash/docker
+    . ./.dotfiles/bash/docker
 fi
 
 # Perl stuff
 if [ -f ./.dotfiles/common/perl ]; then
-    source ./.dotfiles/common/perl
+    . ./.dotfiles/common/perl
 fi
 
 # Java stuff
 if [ -f ./.dotfiles/common/java ]; then
-    source ./.dotfiles/common/java
+    . ./.dotfiles/common/java
 fi
 
 # Aliases
 if [ -f ./.dotfiles/common/aliases ]; then
-    source ./.dotfiles/common/aliases
+    . ./.dotfiles/common/aliases
 fi
 
 # Screen aliases
 if [ -f ./.dotfiles/common/screen ]; then
-    source ./.dotfiles/common/screen
+    . ./.dotfiles/common/screen
 fi
 
 # SSH tunnel aliases
 if [ -f ./tunnels ]; then
-    source ./tunnels
+    . ./tunnels
 fi
 
 # Functions
 if [ -f ./.dotfiles/common/functions ]; then
-    source ./.dotfiles/common/functions
+    . ./.dotfiles/common/functions
 fi
 
 # ENV
 if [ -f ./.dotfiles/common/env ]; then
-    source ./.dotfiles/common/env
+    . ./.dotfiles/common/env
 fi
 
 # Bash completion settings
 if [ -f ./.dotfiles/bash/completion ]; then
-    source ./.dotfiles/bash/completion
+    . ./.dotfiles/bash/completion
 fi
 
 # Prompt
 if [ -f ./.dotfiles/bash/prompt ]; then
-    source ./.dotfiles/bash/prompt
+    . ./.dotfiles/bash/prompt
 fi
 
 # devenv
 if [ -f ./.dotfiles/bash/devenv ]; then
-    source ./.dotfiles/bash/devenv
+    . ./.dotfiles/bash/devenv
 fi
 
 # kubectl
 if [ -f ./.dotfiles/common/kubectl ]; then
-    source ./.dotfiles/common/kubectl
+    . ./.dotfiles/common/kubectl
 fi
 
 # tmuxinator-completion
 if [ -f ./.dotfiles/bash/tmuxinator-completion ]; then
-    source ./.dotfiles/bash/tmuxinator-completion
+    . ./.dotfiles/bash/tmuxinator-completion
 fi
 
 # added by travis gem
