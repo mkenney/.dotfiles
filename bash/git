@@ -31,84 +31,88 @@ _git_better() {
 
     custom_commands="$git_custom_commands"
     git_command=$(echo /usr/bin/env git "$@")
+    custom_command_executed=0
     for a in ${custom_commands[@]}; do
         if [ "$1" = "$a" ]; then
-            git_command=$(echo "git-$a" "${@:2}")
+            $(echo "git-$a" "${@:2}")
+            custom_command_executed=1
             break
         fi
     done
 
-    local tmpfile=$(mktemp)
-    /usr/bin/env git "$@" 2> $tmpfile
-    exit_code=$?
-    git_errors=$(cat $tmpfile)
+    if [ 0 -eq $custom_command_executed ]; then
+        local tmpfile=$(mktemp)
+        /usr/bin/env git "$@" 2> $tmpfile
+        exit_code=$?
+        git_errors=$(cat $tmpfile)
 
-    if [ "" != "$exit_code" ] && [ 0 -ne $exit_code ]; then
-        if [ "" != "$(echo "$git_errors" | grep -i "Did you mean")" ]; then
-            reading_options=0
-            local -a options
-            while read -r line; do
-                line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-                if [ "" = "$line" ]; then
-                    reading_options=0
-                fi
-                if [ 1 -eq $reading_options ]; then
-                    options+=($line)
-                fi
-                if [ "" != "$(echo "$line" | grep -i "Did you mean")" ]; then
-                    reading_options=1
-                fi
-            done <<< "$git_errors"
+        if [ "" != "$exit_code" ] && [ 0 -ne $exit_code ]; then
+            if [ "" != "$(echo "$git_errors" | grep -i "Did you mean")" ]; then
+                reading_options=0
+                local -a options
+                while read -r line; do
+                    line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+                    if [ "" = "$line" ]; then
+                        reading_options=0
+                    fi
+                    if [ 1 -eq $reading_options ]; then
+                        options+=($line)
+                    fi
+                    if [ "" != "$(echo "$line" | grep -i "Did you mean")" ]; then
+                        reading_options=1
+                    fi
+                done <<< "$git_errors"
 
-            bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
-            # rebuild git error output
-            >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
-            >&2 echo
-            if [ 1 -eq "${#options[@]}" ]; then
-                >&2 echo "    Did you mean this?"
-            else
-                >&2 echo "    Did you mean one of these?"
-            fi
-            local cnt=0
-            for a in "${options[@]}"; do
-                if [ 1 -eq "${#options[@]}" ]; then
-                    opt_key=""
-                else
-                    opt_key="$((cnt + 1)):"
-                fi
-                >&2 echo "        $opt_key ${options[$cnt]}"
-                cnt=$((cnt + 1))
-            done
-            >&2 echo
-
-            # Prompt for input
-            old_IFS=$IFS
-            IFS='%'
-            if [ 1 -eq $cnt ]; then
-                prompt="[Y/n] > "
-            else
-                >&2 echo "        0: quit"
+                bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
+                # rebuild git error output
+                >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
                 >&2 echo
-                prompt="[1] > "
-            fi
-            read -e -p $prompt -t 60 option
-            IFS=$old_IFS
-
-            if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
-                if [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
-                    option=1
+                if [ 1 -eq "${#options[@]}" ]; then
+                    >&2 echo "    Did you mean this?"
+                else
+                    >&2 echo "    Did you mean one of these?"
                 fi
-                option=$((option - 1))
+                local cnt=0
+                for a in "${options[@]}"; do
+                    if [ 1 -eq "${#options[@]}" ]; then
+                        opt_key=""
+                    else
+                        opt_key="$((cnt + 1)):"
+                    fi
+                    >&2 echo "        $opt_key ${options[$cnt]}"
+                    cnt=$((cnt + 1))
+                done
+                >&2 echo
 
-                shift
-                echo "executing /usr/bin/env git ${options[$option]} $@"
-                echo
-                /usr/bin/env git ${options[$option]} "$@"
+                # Prompt for input
+                old_IFS=$IFS
+                IFS='%'
+                if [ 1 -eq $cnt ]; then
+                    prompt="[Y/n] > "
+                else
+                    >&2 echo "        0: quit"
+                    >&2 echo
+                    prompt="[1] > "
+                fi
+                read -e -p $prompt -t 60 option
+                IFS=$old_IFS
+
+                if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
+                    if [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
+                        option=1
+                    fi
+                    option=$((option - 1))
+
+                    shift
+                    echo "executing /usr/bin/env git ${options[$option]} $@"
+                    echo
+                    /usr/bin/env git ${options[$option]} "$@"
+                fi
+
+            else
+                echo $git_errors
+                return $exit_code
             fi
-
-        else
-            echo $git_errors
-            return $exit_code
         fi
     fi
 }
