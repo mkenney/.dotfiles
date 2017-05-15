@@ -157,6 +157,9 @@ command JsonFmt %!python -m json.tool
 command SpellOn setlocal spell
 command SpellOff setlocal nospell
 
+" browse recent files
+command! Bo browse oldfiles
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " tmux
