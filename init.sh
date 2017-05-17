@@ -53,6 +53,7 @@ link-dotfile .gitmodules
 link-dotfile .inputrc
 link-dotfile .my.cnf
 link-dotfile .phpcs_rules.xml
+link-dotfile .psqlrc
 link-dotfile .screenrc
 link-dotfile .tmux.conf
 link-dotfile .vim
