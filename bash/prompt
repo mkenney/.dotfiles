@@ -60,6 +60,7 @@ __git_status() {
         if [ "" != "$line" ]; then
             if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
                 untracked=$((untracked + 1))
+                # ∑
                 untracked_str="?$untracked "
                 output=1
                 total=$((total + 1))
@@ -72,22 +73,21 @@ __git_status() {
             fi
             if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
                 deleted=$((deleted + 1))
-                #deleted_str="×$deleted "
+                # × ␥
                 deleted_str="␡$deleted "
-                #deleted_str="␥$deleted "
                 output=1
                 total=$((total + 1))
             fi
             if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
                 modified=$((modified + 1))
-                #modified_str="≠$modified "
+                # ≠ ≢
                 modified_str="𝚫$modified "
                 output=1
                 total=$((total + 1))
             fi
             if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
                 renamed=$((renamed + 1))
-                #renamed_str="⤿ $renamed "
+                # ⤿ 
                 renamed_str="↪$renamed "
                 output=1
                 total=$((total + 1))
