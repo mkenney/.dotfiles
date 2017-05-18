@@ -29,7 +29,8 @@ Plugin 'severin-lemaignan/vim-minimap'
 
 " Display buffers as tabs
 Bundle 'mkenney/vim-buftabline'
-"g:buftabline_indicators = 1 " causes errors in scripted operations for some reason...
+"g:buftabline_indicators = 1 " causes errors in scripted operations for some
+                            " reason...
 
 " Snippet plugin
 Plugin 'SirVer/ultisnips'
@@ -73,7 +74,6 @@ Plugin 'vim-scripts/taglist.vim'
 nmap <F8> :TlistToggle<CR>
 "noremap <silent> <F8> :TlistToggle<CR>
 
-
 " All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -83,20 +83,46 @@ filetype plugin indent on    " required
 " General configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+" wish i new about this sooner...
+set showcmd
+
+" space is better but don't break it for everyone else. And it'll show in the
+" command corner
+map <space> <Leader>
+
+" open splits to the right
+set splitbelow
+set splitright
+
+" move to the beginning of the next line when trying to move past the end of
+" the current line
+set whichwrap+=h,l
+set whichwrap+=<,>,[,] " this is for the arrow keys
+
+" insert a blank line in normal mode
+nnoremap <CR> o<Esc>
+
 " Source .vimrc on save
 autocmd! BufWritePost ~/.vimrc nested :source ~/.vimrc
 
 " Performance enhancements
 set timeoutlen=1000 ttimeoutlen=0
 set ttyfast                         " improves vim scrolling and redraws
-set lazyredraw                      " buffer screen updates instead of updating all the time
+set lazyredraw                      " buffer screen updates instead of
+                                    " updating all the time
 
 set noerrorbells                    " disable error bells
 set shell=bash                      " set the shell environment
 
+
+
 " move screen with cursor when not scrolling with the arrow keys
-noremap j j<c-e>
-noremap k k<c-y>
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+" toggle between two windows
+nnoremap <tab><tab> <c-w><c-w>
 
 " mouse support
 set mouse=a
@@ -138,17 +164,18 @@ let g:netrw_altv = 1
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " term colors
-set t_ut=                            " Fixes the background color in vim when using tmux (https://sunaku.github.io/vim-256color-bce.html)
-set t_Co=256                         " Force 256 colors in terminal
-"set t_AB=^[[48;5;%dm                " ?
-"set t_AF=^[[38;5;%dm                " ?
+set t_ut=             " Fixes the background color in vim when using tmux
+                      " (https://sunaku.github.io/vim-256color-bce.html)
+set t_Co=256          " Force 256 colors in terminal
+"set t_AB=^[[48;5;%dm " ?
+"set t_AF=^[[38;5;%dm " ?
 
 " previous / next buffers
 set hidden
-map <C-j> :bprev<CR>
-map <C-k> :bnext<CR>
-map <C-Left> :bprev<CR>
-map <C-Right> :bnext<CR>
+map <S-j> :bprev<CR>
+map <S-k> :bnext<CR>
+map <S-Left> :bprev<CR>
+map <S-Right> :bnext<CR>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -206,6 +233,8 @@ call system('mkdir '.vimDir)
 call system('mkdir '.myDataDir)
 set viminfo='10,\"100,:500,%,n~/.vim/data/viminfo
 
+" remember the last 100 commands
+set history=1000
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " search settings
@@ -371,7 +400,6 @@ set cursorline
 " Cursor column color
 "hi cursorcolumn cterm=NONE ctermbg=017
 "set cursorcolumn
-nnoremap <Leader>c :set cursorline! cursorcolumn!<CR>
 
 " visual selection color
 hi Visual  ctermbg=236 ctermfg=white cterm=none
@@ -428,3 +456,13 @@ au FileType javascript call FunctionFold()
 au FileType javascript setl fen
 au FileType php call FunctionFold()
 au FileType php setl fen
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" leader keys, etc
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Toggle the cursor column
+nnoremap <Leader>c :set cursorcolumn!<CR>
+
+" type '//' to search for visually seleted text
+vnoremap // y/<C-R>"<CR>
