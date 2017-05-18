@@ -110,7 +110,7 @@ _git_better() {
                 fi
 
             else
-                echo $git_errors
+                echo "$git_errors"
                 return $exit_code
             fi
         fi
