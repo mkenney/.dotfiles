@@ -68,6 +68,12 @@ let g:ycm_collect_identifiers_from_tags_files = 1
 let g:ycm_add_preview_to_completeopt = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 
+" Taglist
+Plugin 'vim-scripts/taglist.vim'
+nmap <F8> :TlistToggle<CR>
+"noremap <silent> <F8> :TlistToggle<CR>
+
+
 " All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -150,10 +156,10 @@ map <C-Right> :bnext<CR>
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " ignore caps for some commands
-:command WQ wq
-:command Wq wq
-:command W w
-:command Q q
+command WQ wq
+command Wq wq
+command W w
+command Q q
 
 command JsonFmt %!python -m json.tool
 command SpellOn setlocal spell
@@ -347,7 +353,8 @@ silent! colorscheme distinguished
 set background=dark
 
 " Vertical split separator
-set fillchars+=vert:│
+set fillchars+=vert:\│
+hi VertSplit ctermbg=0 ctermfg=4
 
 " Column highlight
 set colorcolumn=78
@@ -404,7 +411,7 @@ highlight MatchParen ctermbg=darkblue guibg=blue
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " folding
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-set fillchars=fold:·
+set fillchars+=fold:·
 
 function! FunctionFold()
     setl foldmethod=syntax
