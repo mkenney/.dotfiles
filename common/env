@@ -2,6 +2,8 @@
 
 platform=`uname`
 
+export PAGER=less
+
 export AWS_PROFILE=eo
 
 export GOPATH=$HOME/my_projects/go

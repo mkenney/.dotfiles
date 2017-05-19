@@ -1,3 +1,8 @@
 
 \set ON_ERROR_STOP on
+\set PROMPT1 '%M:%>\n%n@%/%R%#%x '
+\set HISTFILE ~/.psql_history- :HOST - :DBNAME
+\set HISTSIZE 2000
+\timing
+\encoding unicode
 
