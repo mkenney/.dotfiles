@@ -390,31 +390,39 @@ hi VertSplit ctermbg=0 ctermfg=4
 
 " Column highlight
 set colorcolumn=78
-hi ColorColumn ctermbg=017
+hi ColorColumn ctermbg=232
 
 " Cursor color
 "hi cursor cterm=NONE ctermbg=019
 "set cursor
 
 " Cursor line color
-hi cursorline cterm=NONE ctermbg=052
 set cursorline
+hi CursorLine cterm=none ctermbg=17
+autocmd InsertEnter * highlight CursorLine cterm=none ctermbg=52
+autocmd InsertLeave * highlight CursorLine cterm=none ctermbg=17
 
 " Cursor column color
-"hi cursorcolumn cterm=NONE ctermbg=017
-"set cursorcolumn
+hi cursorcolumn ctermbg=233
 
 " visual selection color
 hi Visual  ctermbg=236 ctermfg=white cterm=none
 
 " line number color
-highlight LineNr ctermfg=008 ctermbg=0
-highlight CursorLineNr ctermfg=255  ctermbg=052
-highlight NonText ctermfg=4
+hi LineNr ctermfg=8 ctermbg=0
+hi CursorLineNr ctermfg=255  ctermbg=17
+autocmd InsertEnter * highlight CursorLineNr ctermfg=255 ctermbg=52
+autocmd InsertLeave * highlight CursorLineNr cterm=none ctermbg=17
+
+hi NonText ctermfg=4
 
 " make the cursor an underscore
-let &t_SI .= "\<Esc>[3 q"
-let &t_EI .= "\<Esc>[3 q"
+"let &t_SI .= "\<Esc>[3 q"
+"let &t_EI .= "\<Esc>[3 q"
+
+" make the cursor a vertical line
+let &t_SI .= "\<Esc>[35 q"
+let &t_EI .= "\<Esc>[35 q"
 
 " syntax colors
 hi Comment      term=bold cterm=NONE ctermfg=DarkGrey ctermbg=NONE gui=NONE guifg=#80a0ff guibg=NONE
