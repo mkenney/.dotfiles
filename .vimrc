@@ -107,16 +107,18 @@ autocmd! BufWritePost ~/.vimrc nested :source ~/.vimrc
 
 " Performance enhancements
 set timeoutlen=1000 ttimeoutlen=0
-set ttyfast                         " improves vim scrolling and redraws
-set lazyredraw                      " buffer screen updates instead of
-                                    " updating all the time
+set ttyfast        " improves vim scrolling and redraws
+set lazyredraw     " buffer screen updates instead of
+                   " updating all the time
 
-set noerrorbells                    " disable error bells
-set shell=bash                      " set the shell environment
-
-
+set noerrorbells   " disable error bells
+set shell=bash     " set the shell environment
 
 " move screen with cursor when not scrolling with the arrow keys
+noremap j j<c-e>
+noremap k k<c-y>
+
+" move around split windows with control+movment key
 nnoremap <C-h> <C-w>h
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
@@ -144,6 +146,7 @@ let g:netrw_liststyle = 0
 
 " Hide the file explorer banner
 let g:netrw_banner = 0
+
 
 " Open method for file browser
 let g:netrw_browse_split = 0 " Open in current window
