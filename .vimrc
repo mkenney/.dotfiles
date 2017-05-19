@@ -390,7 +390,7 @@ hi VertSplit ctermbg=0 ctermfg=4
 
 " Column highlight
 set colorcolumn=78
-hi ColorColumn ctermbg=232
+hi ColorColumn ctermbg=235
 
 " Cursor color
 "hi cursor cterm=NONE ctermbg=019
@@ -403,7 +403,7 @@ autocmd InsertEnter * highlight CursorLine cterm=none ctermbg=52
 autocmd InsertLeave * highlight CursorLine cterm=none ctermbg=17
 
 " Cursor column color
-hi cursorcolumn ctermbg=233
+hi cursorcolumn ctermbg=235
 
 " visual selection color
 hi Visual  ctermbg=236 ctermfg=white cterm=none
