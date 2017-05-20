@@ -406,7 +406,7 @@ autocmd InsertLeave * highlight CursorLine ctermbg=17
 hi cursorcolumn ctermbg=235
 
 " visual selection color
-hi Visual  ctermbg=236 ctermfg=white cterm=none
+hi Visual ctermbg=236 ctermfg=none
 
 " line number color
 hi LineNr ctermfg=8 ctermbg=0
