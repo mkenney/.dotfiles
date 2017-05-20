@@ -135,7 +135,8 @@ __prompt_command() {
         ps1_lines+='\n╰ \[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
     else
         # http://emojipedia.org/
-        ps1_lines+="\n╰(💀  : \[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\])⤳ " # Last script exited with a non-zero code
+        #ps1_lines+="\n╰(💀  : \[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\])⤳ " # Last script exited with a non-zero code
+        ps1_lines+="\n╰ \[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ " # Last script exited with a non-zero code
     fi
 
     # Make the cursor a blinking vertical line
