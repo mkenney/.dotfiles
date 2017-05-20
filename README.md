@@ -1,6 +1,6 @@
 # Shell Environment Configuration
 
-To keep me sane.  You want me sane.  Believe me.
+To keep me sane.  You want me sane.
 
 ## Usage
 
