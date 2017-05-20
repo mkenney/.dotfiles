@@ -92,5 +92,5 @@ fi
 
 # added by travis gem
 if [ -f /Users/mkenney/.travis/travis.sh ]; then
-    source /Users/mkenney/.travis/travis.sh
+    source ~/.travis/travis.sh
 fi
