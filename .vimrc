@@ -398,9 +398,9 @@ hi ColorColumn ctermbg=235
 
 " Cursor line color
 set cursorline
-hi CursorLine cterm=none ctermbg=17
-autocmd InsertEnter * highlight CursorLine cterm=none ctermbg=52
-autocmd InsertLeave * highlight CursorLine cterm=none ctermbg=17
+hi CursorLine ctermfg=none ctermbg=17
+autocmd InsertEnter * highlight CursorLine ctermbg=52
+autocmd InsertLeave * highlight CursorLine ctermbg=17
 
 " Cursor column color
 hi cursorcolumn ctermbg=235
@@ -411,8 +411,8 @@ hi Visual  ctermbg=236 ctermfg=white cterm=none
 " line number color
 hi LineNr ctermfg=8 ctermbg=0
 hi CursorLineNr ctermfg=255  ctermbg=17
-autocmd InsertEnter * highlight CursorLineNr ctermfg=255 ctermbg=52
-autocmd InsertLeave * highlight CursorLineNr cterm=none ctermbg=17
+autocmd InsertEnter * highlight CursorLineNr ctermbg=52
+autocmd InsertLeave * highlight CursorLineNr ctermbg=17
 
 hi NonText ctermfg=4
 
