@@ -181,10 +181,10 @@ set t_Co=256          " Force 256 colors in terminal
 
 " previous / next buffers
 set hidden
-map <S-j> :bprev<CR>
-map <S-k> :bnext<CR>
-map <S-Left> :bprev<CR>
-map <S-Right> :bnext<CR>
+map <C-h> :bprev<CR>
+map <C-l> :bnext<CR>
+map <C-Left> :bprev<CR>
+map <C-Right> :bnext<CR>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
