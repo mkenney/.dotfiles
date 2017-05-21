@@ -3,3 +3,7 @@
 alias kubetest="KUBECONFIG=$HOME/.kube/test/config kubectl"
 
 alias kubeprod="KUBECONFIG=$HOME/.kube/prod/config kubectl"
+
+alias kubesgtest="KUBECONFIG=$HOME/.kube/kubesgtest/config kubectl"
+
+alias kubesgprod="KUBECONFIG=$HOME/.kube/kubesgprod/config kubectl"
