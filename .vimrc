@@ -14,8 +14,11 @@ call vundle#begin()
 Plugin 'VundleVim/Vundle.vim'
 
 " install control p
-Plugin 'ctrlpvim/ctrlp.vim'
-let g:ctrlp_show_hidden = 1
+"Plugin 'ctrlpvim/ctrlp.vim'
+"let g:ctrlp_show_hidden = 1
+
+" install command t
+Plugin 'wincent/command-t'
 
 "Bundle 'joonty/vim-phpqa'
 
@@ -267,6 +270,8 @@ inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 inoremap <expr> <C-n> pumvisible() ? '<C-n>' :
     \ '<C-n><C-r>=pumvisible() ? "\<lt>Down>" : ""<CR>'
 
+" type '//' to search for visually seleted text
+vnoremap // y/<C-R>"<CR>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " editing
@@ -368,6 +373,10 @@ augroup JumpCursorOnEdit
  \ endif
 augroup END
 
+" Stop opening help with F1
+inoremap <F1> <ESC>
+nnoremap <F1> <ESC>
+vnoremap <F1> <ESC>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " syntax hilighting
@@ -475,5 +484,11 @@ au FileType php setl fen
 " Toggle the cursor column
 nnoremap <Leader>c :set cursorcolumn!<CR>
 
-" type '//' to search for visually seleted text
-vnoremap // y/<C-R>"<CR>
+" clear out the current search
+nnoremap <leader>/ :noh<cr>
+
+" Select the text that was just pasted
+nnoremap <leader>a V`]
+
+" Save the current buffer
+nnoremap <leader>s :w<cr>
