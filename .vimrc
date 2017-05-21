@@ -19,6 +19,9 @@ Plugin 'VundleVim/Vundle.vim'
 
 " install command t
 Plugin 'wincent/command-t'
+" these aren't working for some reason
+"let g:CommandTHighlightColor = 'MediumBlue'
+"let g:CommandTCursorColor = 'MediumBlue'
 
 "Bundle 'joonty/vim-phpqa'
 
