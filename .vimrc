@@ -13,6 +13,19 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
+" surround functionality
+Plugin 'tpope/vim-surround'
+
+" undo-tree interface: https://sjl.bitbucket.io/gundo.vim/
+Plugin 'sjl/gundo.vim'
+let g:gundo_preview_bottom = 1
+let g:gundo_preview_statusline = 1
+let g:gundo_tree_statusline = 1
+let g:gundo_auto_preview = 1
+let g:gundo_close_on_revert = 1
+let g:gundo_width = 30
+nnoremap <F5> :GundoToggle<CR>
+
 " install control p
 "Plugin 'ctrlpvim/ctrlp.vim'
 "let g:ctrlp_show_hidden = 1
@@ -181,10 +194,10 @@ set t_Co=256          " Force 256 colors in terminal
 
 " previous / next buffers
 set hidden
-map <C-h> :bprev<CR>
-map <C-l> :bnext<CR>
-map <C-Left> :bprev<CR>
-map <C-Right> :bnext<CR>
+map <S-h> :bprev<CR>
+map <S-l> :bnext<CR>
+map <S-Left> :bprev<CR>
+map <S-Right> :bnext<CR>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
