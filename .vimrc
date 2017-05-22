@@ -98,10 +98,6 @@ filetype plugin indent on    " required
 " wish i new about this sooner...
 set showcmd
 
-" space is better but don't break it for everyone else. And it'll show in the
-" command corner
-map <space> <Leader>
-
 " open splits to the right
 set splitbelow
 set splitright
@@ -119,9 +115,8 @@ autocmd! BufWritePost ~/.vimrc nested :source ~/.vimrc
 
 " Performance enhancements
 set timeoutlen=1000 ttimeoutlen=0
-set ttyfast        " improves vim scrolling and redraws
-set lazyredraw     " buffer screen updates instead of
-                   " updating all the time
+set ttyfast        " improves vim scrolling and redraws buffer screen updates
+set lazyredraw     " instead of updating all the time
 
 set noerrorbells   " disable error bells
 set shell=bash     " set the shell environment
@@ -158,7 +153,6 @@ let g:netrw_liststyle = 0
 
 " Hide the file explorer banner
 let g:netrw_banner = 0
-
 
 " Open method for file browser
 let g:netrw_browse_split = 0 " Open in current window
@@ -204,8 +198,8 @@ command W w
 command Q q
 
 command JsonFmt %!python -m json.tool
-command SpellOn setlocal spell
-command SpellOff setlocal nospell
+command Sp setlocal spell
+command SpOff setlocal nospell
 
 " browse recent files
 command! Bo browse oldfiles
@@ -298,7 +292,7 @@ inoremap <Up> <C-o>gk
 
 " keep at least 5 offsets around the cursor
 set scrolloff=5
-set sidescrolloff=5
+set sidescrolloff=10
 
 " show tabs and trailing whitespace
 set list
@@ -484,6 +478,10 @@ au FileType php setl fen
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " leader keys, etc
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" space is better but don't break it for everyone else. And it'll show in the
+" command corner
+map <space> <Leader>
 
 " Toggle the cursor column
 nnoremap <Leader>c :set cursorcolumn!<CR>
