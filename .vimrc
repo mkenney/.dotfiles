@@ -496,3 +496,6 @@ nnoremap <leader>a V`]
 
 " Save the current buffer
 nnoremap <leader>s :w<cr>
+
+" list open buffers and prompt to select one
+nnoremap <leader>l :ls<cr>:b<space>
