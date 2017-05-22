@@ -13,8 +13,15 @@ call vundle#begin()
 " let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
-" surround functionality
-Plugin 'tpope/vim-surround'
+" install command t
+Plugin 'wincent/command-t'
+" these aren't working for some reason
+"let g:CommandTHighlightColor = 'MediumBlue'
+"let g:CommandTCursorColor = 'MediumBlue'
+
+" install control p
+"Plugin 'ctrlpvim/ctrlp.vim'
+"let g:ctrlp_show_hidden = 1
 
 " undo-tree interface: https://sjl.bitbucket.io/gundo.vim/
 Plugin 'sjl/gundo.vim'
@@ -26,52 +33,28 @@ let g:gundo_close_on_revert = 1
 let g:gundo_width = 30
 nnoremap <F5> :GundoToggle<CR>
 
-" install control p
-"Plugin 'ctrlpvim/ctrlp.vim'
-"let g:ctrlp_show_hidden = 1
-
-" install command t
-Plugin 'wincent/command-t'
-" these aren't working for some reason
-"let g:CommandTHighlightColor = 'MediumBlue'
-"let g:CommandTCursorColor = 'MediumBlue'
-
-"Bundle 'joonty/vim-phpqa'
-
-"Bundle 'joonty/vim-phpunitqf'
-
 Bundle 'scrooloose/syntastic'
 let g:syntastic_php_checkers = ['php', 'phpcs']
 
-" Minimap
-Plugin 'severin-lemaignan/vim-minimap'
-
-" Display buffers as tabs
-Bundle 'mkenney/vim-buftabline'
-"g:buftabline_indicators = 1 " causes errors in scripted operations for some
-                            " reason...
-
 " Snippet plugin
 Plugin 'SirVer/ultisnips'
-
-" Snippet lib
-Plugin 'mkenney/vim-snippets'
-
 " Snippet trigger configuration. Do not use <tab> if you use
 " https://github.com/Valloric/YouCompleteMe.
 let g:UltiSnipsExpandTrigger="<c-p>"
 let g:UltiSnipsJumpForwardTrigger="<c-b>"
 let g:UltiSnipsJumpBackwardTrigger="<c-z>"
-
 " If you want :UltiSnipsEdit to split your window.
 let g:UltiSnipsEditSplit="vertical"
 
-" Mess detector config
-"let g:phpqa_messdetector_ruleset = "/path/to/phpmd.xml"
+" Taglist
+Plugin 'vim-scripts/taglist.vim'
+nmap <F8> :TlistToggle<CR>
+"noremap <silent> <F8> :TlistToggle<CR>
 
-" CodeSniffer rules
-"let g:phpqa_codesniffer_args = "--standard=Zend"
-"let g:phpqa_codesniffer_args = "--standard=~/.phpcs_rules.xml"
+" Display buffers as tabs
+Bundle 'mkenney/vim-buftabline'
+"g:buftabline_indicators = 1 " causes errors in scripted operations for some
+                            " reason...
 
 " Syntax highlighting scheme
 Bundle 'Lokaltog/vim-distinguished'
@@ -79,19 +62,23 @@ Bundle 'Lokaltog/vim-distinguished'
 " Git gutter
 Bundle 'airblade/vim-gitgutter'
 
+" Minimap
+Plugin 'severin-lemaignan/vim-minimap'
+
 " Marks gutter
 Bundle 'kshenoy/vim-signature'
+
+" Snippet lib
+Plugin 'mkenney/vim-snippets'
+
+" surround functionality
+Plugin 'tpope/vim-surround'
 
 " YouCompleteMe
 Plugin 'Valloric/YouCompleteMe'
 let g:ycm_collect_identifiers_from_tags_files = 1
 let g:ycm_add_preview_to_completeopt = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
-
-" Taglist
-Plugin 'vim-scripts/taglist.vim'
-nmap <F8> :TlistToggle<CR>
-"noremap <silent> <F8> :TlistToggle<CR>
 
 " All plugins must be added before the following lines
 call vundle#end()            " required
