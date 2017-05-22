@@ -1,4 +1,9 @@
 
+" Stop opening help with F1
+inoremap <F1> <ESC>
+nnoremap <F1> <ESC>
+vnoremap <F1> <ESC>
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vundle configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -31,7 +36,7 @@ let g:gundo_tree_statusline = 1
 let g:gundo_auto_preview = 1
 let g:gundo_close_on_revert = 1
 let g:gundo_width = 30
-nnoremap <F5> :GundoToggle<CR>
+nnoremap <F1> :GundoToggle<CR>
 
 Bundle 'scrooloose/syntastic'
 let g:syntastic_php_checkers = ['php', 'phpcs']
@@ -48,8 +53,9 @@ let g:UltiSnipsEditSplit="vertical"
 
 " Taglist
 Plugin 'vim-scripts/taglist.vim'
-nmap <F8> :TlistToggle<CR>
-"noremap <silent> <F8> :TlistToggle<CR>
+nmap <F2> :TlistToggle<CR>
+let g:Tlist_GainFocus_On_ToggleOpen = 1
+"noremap <silent> <F2> :TlistToggle<CR>
 
 " Display buffers as tabs
 Bundle 'mkenney/vim-buftabline'
@@ -375,11 +381,6 @@ augroup JumpCursorOnEdit
  \ unlet b:doopenfold |
  \ endif
 augroup END
-
-" Stop opening help with F1
-inoremap <F1> <ESC>
-nnoremap <F1> <ESC>
-vnoremap <F1> <ESC>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " syntax hilighting
