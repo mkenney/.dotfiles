@@ -47,6 +47,7 @@ if [[ $platform == 'Linux' ]]; then
 elif [[ $platform == 'Darwin' ]]; then
     if [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
         alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'
+        alias vimdiff='/Applications/MacVim.app/Contents/bin/vimdiff'
     fi
 
     # brew install coreutils

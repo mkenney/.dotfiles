@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-alias kubetest="KUBECONFIG=$HOME/.kube/test/config kubectl"
+# AWS test
+alias kt="KUBECONFIG=$HOME/.kube/test/config kubectl"
 
-alias kubeprod="KUBECONFIG=$HOME/.kube/prod/config kubectl"
+# AWS prod
+alias kp="KUBECONFIG=$HOME/.kube/prod/config kubectl"
 
-alias kubesgtest="KUBECONFIG=$HOME/.kube/kubesgtest/config kubectl"
+# SG test
+alias kst="KUBECONFIG=$HOME/.kube/kubesgtest/config kubectl"
 
-alias kubesgprod="KUBECONFIG=$HOME/.kube/kubesgprod/config kubectl"
+# SG prod
+alias ksp="KUBECONFIG=$HOME/.kube/kubesgprod/config kubectl"

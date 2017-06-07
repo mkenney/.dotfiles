@@ -1,0 +1,6 @@
+--ignore-directory=is:node_modules
+--ignore-directory=is:bower_components
+--ignore-directory=is:vendor
+--type-set=sass:ext:scss,sass
+--type-set=markdown:ext:md,markdown
+

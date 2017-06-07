@@ -51,8 +51,8 @@ if [ -f ~/.dotfiles/common/screen ]; then
 fi
 
 # SSH tunnel aliases
-if [ -f ~/.db-tunnels ]; then
-    source ~/.db-tunnels
+if [ -f ~/.dbtunnels ]; then
+    source ~/.dbtunnels
 fi
 
 # Functions
