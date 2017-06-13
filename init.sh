@@ -19,7 +19,7 @@
 #   ~/.zshrc
 #
 ##############################################################################
-
+VIM='vim'
 link-dotfile() {
     DOTFILE=$1
     if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
@@ -33,6 +33,9 @@ platform=`uname`
 if [[ $platform == 'Darwin' ]]; then
     if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
         ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    fi
+    if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
+        VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
     fi
 fi
 
@@ -63,4 +66,4 @@ link-dotfile .zshrc
 # install vim plugins
 cd $HOME/.dotfiles \
     && git submodule update --init --recursive \
-    && vim +PluginInstall +qall
+    && $VIM +PluginInstall +qall

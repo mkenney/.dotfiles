@@ -4,91 +4,8 @@ inoremap <F1> <ESC>
 nnoremap <F1> <ESC>
 vnoremap <F1> <ESC>
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Vundle configuration
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 set nocompatible
 filetype off
-
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
-
-" let Vundle manage Vundle, required
-Plugin 'VundleVim/Vundle.vim'
-
-" install command t
-Plugin 'wincent/command-t'
-" these aren't working for some reason
-"let g:CommandTHighlightColor = 'MediumBlue'
-"let g:CommandTCursorColor = 'MediumBlue'
-
-" install control p
-"Plugin 'ctrlpvim/ctrlp.vim'
-"let g:ctrlp_show_hidden = 1
-
-" undo-tree interface: https://sjl.bitbucket.io/gundo.vim/
-Plugin 'sjl/gundo.vim'
-let g:gundo_preview_bottom = 1
-let g:gundo_preview_statusline = 1
-let g:gundo_tree_statusline = 1
-let g:gundo_auto_preview = 1
-let g:gundo_close_on_revert = 1
-let g:gundo_width = 30
-nnoremap <F1> :GundoToggle<CR>
-
-Bundle 'scrooloose/syntastic'
-let g:syntastic_php_checkers = ['php', 'phpcs']
-
-" Snippet plugin
-Plugin 'SirVer/ultisnips'
-" Snippet trigger configuration. Do not use <tab> if you use
-" https://github.com/Valloric/YouCompleteMe.
-let g:UltiSnipsExpandTrigger="<c-p>"
-let g:UltiSnipsJumpForwardTrigger="<c-b>"
-let g:UltiSnipsJumpBackwardTrigger="<c-z>"
-" If you want :UltiSnipsEdit to split your window.
-let g:UltiSnipsEditSplit="vertical"
-
-" Taglist
-Plugin 'vim-scripts/taglist.vim'
-nmap <F2> :TlistToggle<CR>
-let g:Tlist_GainFocus_On_ToggleOpen = 1
-"noremap <silent> <F2> :TlistToggle<CR>
-
-" Display buffers as tabs
-Bundle 'mkenney/vim-buftabline'
-"g:buftabline_indicators = 1 " causes errors in scripted operations for some
-                            " reason...
-
-" Syntax highlighting scheme
-Bundle 'Lokaltog/vim-distinguished'
-
-" Git gutter
-Bundle 'airblade/vim-gitgutter'
-
-" Minimap
-Plugin 'severin-lemaignan/vim-minimap'
-
-" Marks gutter
-Bundle 'kshenoy/vim-signature'
-
-" Snippet lib
-Plugin 'mkenney/vim-snippets'
-
-" surround functionality
-Plugin 'tpope/vim-surround'
-
-" YouCompleteMe
-Plugin 'Valloric/YouCompleteMe'
-let g:ycm_collect_identifiers_from_tags_files = 1
-let g:ycm_add_preview_to_completeopt = 1
-let g:ycm_autoclose_preview_window_after_completion = 1
-
-" All plugins must be added before the following lines
-call vundle#end()            " required
-filetype plugin indent on    " required
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -497,3 +414,94 @@ nnoremap <leader>s :w<cr>
 
 " list open buffers and prompt to select one
 nnoremap <leader>l :ls<cr>:b<space>
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Vundle configuration
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Don't load plugins in old versions
+if v:version < 705
+    finish
+endif
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" install command t
+Plugin 'wincent/command-t'
+" these aren't working for some reason
+"let g:CommandTHighlightColor = 'MediumBlue'
+"let g:CommandTCursorColor = 'MediumBlue'
+
+" install control p
+"Plugin 'ctrlpvim/ctrlp.vim'
+"let g:ctrlp_show_hidden = 1
+
+" undo-tree interface: https://sjl.bitbucket.io/gundo.vim/
+Plugin 'sjl/gundo.vim'
+let g:gundo_preview_bottom = 1
+let g:gundo_preview_statusline = 1
+let g:gundo_tree_statusline = 1
+let g:gundo_auto_preview = 1
+let g:gundo_close_on_revert = 1
+let g:gundo_width = 30
+nnoremap <F1> :GundoToggle<CR>
+
+Bundle 'scrooloose/syntastic'
+let g:syntastic_php_checkers = ['php', 'phpcs']
+
+" Snippet plugin
+Plugin 'SirVer/ultisnips'
+" Snippet trigger configuration. Do not use <tab> if you use
+" https://github.com/Valloric/YouCompleteMe.
+let g:UltiSnipsExpandTrigger="<c-p>"
+let g:UltiSnipsJumpForwardTrigger="<c-b>"
+let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+" If you want :UltiSnipsEdit to split your window.
+let g:UltiSnipsEditSplit="vertical"
+
+" Taglist
+Plugin 'vim-scripts/taglist.vim'
+nmap <F2> :TlistToggle<CR>
+let g:Tlist_GainFocus_On_ToggleOpen = 1
+"noremap <silent> <F2> :TlistToggle<CR>
+
+" Display buffers as tabs
+Bundle 'mkenney/vim-buftabline'
+"g:buftabline_indicators = 1 " causes errors in scripted operations for some
+                            " reason...
+
+" Syntax highlighting scheme
+Bundle 'Lokaltog/vim-distinguished'
+
+" Git gutter
+Bundle 'airblade/vim-gitgutter'
+
+" Minimap
+Plugin 'severin-lemaignan/vim-minimap'
+
+" Marks gutter
+Bundle 'kshenoy/vim-signature'
+
+" Snippet lib
+Plugin 'mkenney/vim-snippets'
+
+" surround functionality
+Plugin 'tpope/vim-surround'
+
+" YouCompleteMe
+Plugin 'Valloric/YouCompleteMe'
+let g:ycm_collect_identifiers_from_tags_files = 1
+let g:ycm_add_preview_to_completeopt = 1
+let g:ycm_autoclose_preview_window_after_completion = 1
+
+" All plugins must be added before the following lines
+call vundle#end()            " required
+filetype plugin indent on    " required
+
+
