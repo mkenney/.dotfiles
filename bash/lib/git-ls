@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# add 'rp-hooks' to the current list of custom commands
+export git_custom_commands="${git_custom_commands} ls"
+
+#
+# RP hooks - load the the Gerrit commit id hook
+#
+function git-ls {
+    git ls-tree -r --name-only HEAD | while read filename; do
+        echo "$(git log -1 --format="%at | %h | %an | %ad |" -- $filename) $filename"
+    done
+}
