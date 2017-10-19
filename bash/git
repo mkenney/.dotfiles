@@ -47,7 +47,7 @@ _git_better() {
         git_errors=$(cat $tmpfile)
 
         if [ "" != "$exit_code" ] && [ 0 -ne $exit_code ]; then
-            if [ "" != "$(echo "$git_errors" | grep -i "Did you mean")" ]; then
+            if [ "" != "$(echo "$git_errors" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
                 reading_options=0
                 local -a options
                 while read -r line; do
@@ -58,7 +58,7 @@ _git_better() {
                     if [ 1 -eq $reading_options ]; then
                         options+=($line)
                     fi
-                    if [ "" != "$(echo "$line" | grep -i "Did you mean")" ]; then
+                    if [ "" != "$(echo "$line" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
                         reading_options=1
                     fi
                 done <<< "$git_errors"

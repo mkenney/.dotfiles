@@ -85,6 +85,11 @@ if [ -f ~/.dotfiles/common/kubectl ]; then
     source ~/.dotfiles/common/kubectl
 fi
 
+# terraform
+if [ -f ~/.dotfiles/common/terraform ]; then
+    source ~/.dotfiles/common/terraform
+fi
+
 # tmuxinator-completion
 if [ -f ~/.dotfiles/bash/tmuxinator-completion ]; then
     source ~/.dotfiles/bash/tmuxinator-completion
