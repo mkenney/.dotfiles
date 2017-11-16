@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# AWS test
+alias ht="KUBECONFIG=$HOME/.kube/test/config helm"
+
+# AWS prod
+alias hp="KUBECONFIG=$HOME/.kube/prod/config helm"
+
+# SG test
+alias hst="KUBECONFIG=$HOME/.kube/kubesgtest/config helm"
+
+# SG prod
+alias hsp="KUBECONFIG=$HOME/.kube/kubesgprod/config helm"

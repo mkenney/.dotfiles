@@ -6,7 +6,7 @@ export PAGER=less
 
 export AWS_PROFILE=eo
 
-export GOPATH=$HOME/my_projects/go
+export GOPATH=$HOME/my_projects/go:/Users/mkenney/docker-containers/go
 
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
