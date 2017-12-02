@@ -1,5 +1,10 @@
 # ./.bash_profile
 
+# Go stuff
+if [ -f ~/.dotfiles/common/go ]; then
+    source ~/.dotfiles/common/go
+fi
+
 # VIM stuff
 if [ -f ~/.dotfiles/common/vim ]; then
     source ~/.dotfiles/common/vim
@@ -83,6 +88,11 @@ fi
 # kubectl
 if [ -f ~/.dotfiles/common/kubectl ]; then
     source ~/.dotfiles/common/kubectl
+fi
+
+# helm
+if [ -f ~/.dotfiles/common/helm ]; then
+    source ~/.dotfiles/common/helm
 fi
 
 # terraform

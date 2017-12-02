@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 alias a="cal"
 alias automagicproxy="docker stop automagicproxy || docker rm automagicproxy || docker pull kcmerrill/automagicproxy && docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name automagicproxy kcmerrill/automagicproxy --dockerized --containerized --dev"
 alias fetchproxy="docker stop fetch-proxy || docker rm fetch-proxy || docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name fetch-proxy -e DOCKER_API_VERSION=1.18 kcmerrill/fetch-proxy --dev --containerized"
