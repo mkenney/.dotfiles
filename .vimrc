@@ -212,8 +212,8 @@ set scrolloff=5
 set sidescrolloff=10
 
 " show tabs and trailing whitespace
-set list
-set listchars=tab:>·,trail:·
+"set list
+"set listchars=tab:>·,trail:·
 
 " leave cursor position alone
 set nostartofline
@@ -499,6 +499,12 @@ Plugin 'Valloric/YouCompleteMe'
 let g:ycm_collect_identifiers_from_tags_files = 1
 let g:ycm_add_preview_to_completeopt = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
+
+Plugin 'nathanaelkane/vim-indent-guides'
+let g:indent_guides_enable_on_vim_startup = 1
+let g:indent_guides_auto_colors = 0
+autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  guibg=234  ctermbg=234
+autocmd VimEnter,Colorscheme * :hi IndentGuidesEven guibg=NONE ctermbg=NONE
 
 " All plugins must be added before the following lines
 call vundle#end()            " required
