@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-
+alias alien="docker run --rm -t -v $(pwd):/rpm mkenney/alien"
 alias a="cal"
 alias automagicproxy="docker stop automagicproxy || docker rm automagicproxy || docker pull kcmerrill/automagicproxy && docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name automagicproxy kcmerrill/automagicproxy --dockerized --containerized --dev"
 alias fetchproxy="docker stop fetch-proxy || docker rm fetch-proxy || docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name fetch-proxy -e DOCKER_API_VERSION=1.18 kcmerrill/fetch-proxy --dev --containerized"
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
-alias cloc="perl ~/cloc.pl"
+alias cloc="perl ~/.dotfiles/cloc.pl"
 alias cls='clear'
 alias cp='cp -i'
 alias csl='clear'

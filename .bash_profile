@@ -1,5 +1,10 @@
 # ./.bash_profile
 
+# AWS
+if [ -f ~/.dotfiles/common/aws ]; then
+    source ~/.dotfiles/common/aws
+fi
+
 # Go stuff
 if [ -f ~/.dotfiles/common/go ]; then
     source ~/.dotfiles/common/go

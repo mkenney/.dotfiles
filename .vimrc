@@ -212,8 +212,8 @@ set scrolloff=5
 set sidescrolloff=10
 
 " show tabs and trailing whitespace
-set list
-set listchars=tab:>·,trail:·
+"set list
+"set listchars=tab:>·,trail:·
 
 " leave cursor position alone
 set nostartofline

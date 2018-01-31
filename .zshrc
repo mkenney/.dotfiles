@@ -168,3 +168,5 @@ zstyle -e ':completion:*:approximate:*' max-errors 'reply=( $(( ($#PREFIX + $#SU
 zstyle ':completion::approximate*:*' prefix-needed false
 
 zstyle ':completion:*:*:git:*' user-commands rp-clone:'custom new branch function'
+#AWSume alias to source the AWSume script
+alias awsume=". awsume"
