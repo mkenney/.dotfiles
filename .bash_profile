@@ -21,9 +21,9 @@ if [ -f ~/.dotfiles/common/git-completion ]; then
 fi
 
 # Git prompt
-#if [ -f ~/.dotfiles/common/git-prompt ]; then
-#    source ~/.dotfiles/common/git-prompt
-#fi
+if [ -f ~/.dotfiles/bash/git-status ]; then
+    source ~/.dotfiles/bash/git-status
+fi
 
 # CVS stuff
 if [ -f ~/.dotfiles/common/cvs ]; then
