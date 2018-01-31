@@ -6,10 +6,21 @@ export PAGER=less
 
 #export AWS_PROFILE=eo
 
-export GOPATH=$HOME/my_projects/go:/Users/mkenney/docker-containers/go
+GOPATH=
+if [ -d $HOME/repos ]; then
+    GOPATH=$GOPATH:$HOME/repos
+fi
+if [ -d $HOME/my_projects/go ]; then
+    GOPATH=$GOPATH:$HOME/my_projects/go
+fi
+if [ -d $HOME/docker-containers/go ]; then
+    GOPATH=$GOPATH:/Users/mkenney/docker-containers/go
+fi
+export GOPATH
 
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
+PATH=$HOME/repos/bin:$PATH
 PATH=$HOME/.local/bin:$PATH
 PATH=$PATH:$HOME/my_projects/go/bin:/$HOME/docker-containers/go/bin
 PATH=$PATH:/usr/local/hadoop/bin
@@ -67,3 +78,6 @@ export HISTTIMEFORMAT="%d/%m/%y %T: "
 export HISTCONTROL=erasedups
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
+
+# Notify immediatly on bg job completion
+set -o notify
