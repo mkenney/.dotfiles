@@ -68,3 +68,6 @@ export HISTTIMEFORMAT="%d/%m/%y %T: "
 export HISTCONTROL=erasedups
 
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
+
+# Notify immediatly on bg job completion
+set -o notify
