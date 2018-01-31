@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+
+__git_status() {
+    local added=0
+    local added_str=
+    local ahead_str=
+    local behind_str=
+    local branch_name=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
+    local deleted=0
+    local deleted_str=
+    local modified=0
+    local modified_str=
+    local origin_name=
+    local output=0
+    local renamed=0
+    local renamed_str=
+    local total=0
+    local unstaged_str=
+    local untracked=0
+    local untracked_str=
+
+    git symbolic-ref HEAD > /dev/null 2>&1; exit_code=$?
+    hash=$(git rev-parse --short=8 HEAD)
+    if [ "0" = "$exit_code" ]; then
+        origin_name=$(git for-each-ref --format='%(upstream:short)' $(git symbolic-ref -q HEAD)) 2> /dev/null
+    else
+        origin_name=$(git describe --tags 2> /dev/null); exit_code=$?
+        if [ "0" = "$exit_code" ]; then
+            origin_name="tag/$origin_name"
+        else
+            origin_name="detached/$hash"
+        fi
+    fi
+
+    # Branch information
+    if [ "" != "$origin_name" ]; then
+        ahead_str=$(git rev-list $hash..HEAD)
+        if [ "" != "$ahead_str" ]; then
+            ahead_str="<$(echo $ahead_str | wc | awk '{print $1}') "
+            output=1
+        fi
+
+        behind_str=$(git rev-list HEAD..$hash)
+        if [ "" != "$behind_str" ]; then
+            behind_str=">$(echo $behind_str | wc | awk '{print $1}') "
+            output=1
+        fi
+
+        display_branch=$origin_name
+    else
+        display_branch="local/$branch_name"
+    fi
+
+    # Files with unstaged changes
+    if [ "" != "$(git diff --name-only)" ]; then
+        unstaged_str="⸮$(git diff --name-only | wc | awk '{print $1}') "
+        output=1
+    fi
+
+    # Tabulate all change states
+    while read line; do
+        flag1=${line:0:1}
+        flag2=${line:1:1}
+        if [ "" != "$line" ]; then
+
+            # Added files
+            if [ "A" = "$flag1" ] || [ "A" = "$flag2" ]; then
+                added=$((added + 1))
+                # +
+                added_str="+$added "
+                output=1
+                total=$((total + 1))
+            fi
+
+            # Deleted files
+            if [ "D" = "$flag1" ] || [ "D" = "$flag2" ]; then
+                deleted=$((deleted + 1))
+                # × ␥ ␡
+                deleted_str="␡$deleted "
+                output=1
+                total=$((total + 1))
+            fi
+
+            # Modified files
+            if [ "M" = "$flag1" ] || [ "M" = "$flag2" ]; then
+                modified=$((modified + 1))
+                # ≠ ≢ 𝚫
+                modified_str="𝚫$modified "
+                output=1
+                total=$((total + 1))
+            fi
+
+            # Renamed files
+            if [ "R" = "$flag1" ] || [ "R" = "$flag2" ]; then
+                renamed=$((renamed + 1))
+                # ⤿  ↪
+                renamed_str="↪$renamed "
+                output=1
+                total=$((total + 1))
+            fi
+
+            # Untracked files
+            if [ "?" = "$flag1" ] || [ "?" = "$flag2" ]; then
+                untracked=$((untracked + 1))
+                # ∑ ?
+                untracked_str="?$untracked "
+                output=1
+                total=$((total + 1))
+            fi
+        fi
+    done << EOF
+$(git status --porcelain)
+EOF
+
+    # Total files
+    if [ 0 -lt $total ]; then
+        total_str="#$total "
+        output=1
+    fi
+
+    if [ 0 -ne $output ]; then
+        echo "$(echo -e "${display_branch} ${behind_str}${ahead_str}${untracked_str}${deleted_str}${added_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+    else
+        echo "${display_branch}"
+    fi
+}
+
+export -f __git_status
