@@ -86,7 +86,8 @@ __git_status() {
 
     # Files with unstaged changes
     if [ "" != "$(git diff --name-only)" ]; then
-        unstaged_str="⸮$(git diff --name-only | wc | awk '{print $1}') "
+        # ♐ ± ~ ∵ ∴
+        unstaged_str="∴$(git diff --name-only | wc | awk '{print $1}') "
         output=1
     fi
 

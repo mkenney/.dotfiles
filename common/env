@@ -16,6 +16,8 @@ fi
 if [ -d $HOME/docker-containers/go ]; then
     GOPATH=$GOPATH:/Users/mkenney/docker-containers/go
 fi
+# strip leading ':'
+GOPATH=${GOPATH#"${GOPATH%%[![\:]*}"}
 export GOPATH
 
 PATH=/usr/local/bin:$PATH
