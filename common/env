@@ -14,6 +14,8 @@ elif [ -d $HOME/my_projects/go ]; then
 elif [ -d $HOME/docker-containers/go ]; then
     GOPATH=Users/mkenney/docker-containers/go
 fi
+# strip leading ':'
+GOPATH=${GOPATH#"${GOPATH%%[![\:]*}"}
 export GOPATH
 
 PATH=/usr/local/bin:$PATH
