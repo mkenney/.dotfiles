@@ -35,10 +35,23 @@ __git_status() {
         fi
     fi
 
-    ref_name=$(git rev-parse --abbrev-ref HEAD 2> /dev/null); exit_code=$?
-    ref_source="origin"
-    if [ "0" != "$exit_code" ]; then
+    ref_name=
+    ref_source=
+    tree_position=$(git for-each-ref --format='%(upstream:short)' $(git symbolic-ref -q HEAD 2> /dev/null) | head -1) 2> /dev/null
+    if [ "" != "$tree_position" ]; then
+        ref_name=$(basename $tree_position)
+        ref_source=$(dirname $tree_position)
+    fi
 
+    exit_code=0
+    if [ "" = "$ref_source" ]; then
+        ref_source="local"
+    fi
+    if [ "" = "$ref_name" ]; then
+        ref_name=$(git rev-parse --abbrev-ref HEAD 2> /dev/null); exit_code=$?
+    fi
+
+    if [ "0" != "$exit_code" ]; then
         # See if on a tag
         ref_name="$(git describe --tags 2> /dev/null)"; exit_code=$?
         ref_source="tag"
@@ -53,15 +66,6 @@ __git_status() {
                 ref_name=$hash
                 ref_source="detached"
             fi
-        fi
-    else
-        tree_position=$(git for-each-ref --format='%(upstream:short)' $(git symbolic-ref -q HEAD 2> /dev/null) | head -1) 2> /dev/null
-        if [ "" = "$tree_position" ]; then
-            ref_name="$hash"
-            ref_source="detached"
-        else
-            ref_name=$(basename $tree_position)
-            ref_source=$(dirname $tree_position)
         fi
     fi
 
