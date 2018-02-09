@@ -503,7 +503,7 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 Plugin 'nathanaelkane/vim-indent-guides'
 let g:indent_guides_enable_on_vim_startup = 1
 let g:indent_guides_auto_colors = 0
-autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  guibg=234  ctermbg=234
+"autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  guibg=234  ctermbg=234
 autocmd VimEnter,Colorscheme * :hi IndentGuidesEven guibg=NONE ctermbg=NONE
 
 " All plugins must be added before the following lines

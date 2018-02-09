@@ -6,15 +6,13 @@ export PAGER=less
 
 #export AWS_PROFILE=eo
 
-GOPATH=
+GOPATH=$HOME/my_projects
 if [ -d $HOME/repos ]; then
-    GOPATH=$GOPATH:$HOME/repos
-fi
-if [ -d $HOME/my_projects/go ]; then
-    GOPATH=$GOPATH:$HOME/my_projects/go
-fi
-if [ -d $HOME/docker-containers/go ]; then
-    GOPATH=$GOPATH:/Users/mkenney/docker-containers/go
+    GOPATH=HOME/repos
+elif [ -d $HOME/my_projects/go ]; then
+    GOPATH=HOME/my_projects/go
+elif [ -d $HOME/docker-containers/go ]; then
+    GOPATH=Users/mkenney/docker-containers/go
 fi
 # strip leading ':'
 GOPATH=${GOPATH#"${GOPATH%%[![\:]*}"}
