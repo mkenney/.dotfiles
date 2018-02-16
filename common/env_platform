@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+platform=`uname`
+
+# Linux specific
+if [[ $platform == 'Linux' ]]; then
+    echo "n/a, all defaults should be Linux compatible" > /dev/null
+
+# OS X specific
+elif [[ $platform == 'Darwin' ]]; then
+    # `brew install coreutils` to get gls
+    if [ -f "/usr/local/bin/gls" ]; then
+        eval $(gdircolors)
+
+    # bash 3 (os x default...) ls colors
+    else
+        # http://www.marinamele.com/2014/05/customize-colors-of-your-terminal-in-mac-os-x.html
+        export LSCOLORS="ExGxcxdxcxegedcbcdacad"
+    fi
+
+# Solaris/unix specific
+elif [[ $platform == 'SunOS' ]]; then
+    export TERM=vt100
+fi

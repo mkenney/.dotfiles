@@ -18,7 +18,7 @@ fi
 GOPATH=${GOPATH#"${GOPATH%%[![\:]*}"}
 export GOPATH
 
-CDPATH=.:$GOPATH/src/github.com:$GOPATH/src/code.google.com:$GOPATH/src/golang.org
+CDPATH=.:$GOPATH/src/github.com/mkenney:$GOPATH/src/github.com:$GOPATH/src/code.google.com:$GOPATH/src/golang.org
 export CDPATH
 
 PATH=/usr/local/bin:$PATH

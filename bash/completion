@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-platform=`uname`
-if [[ $platform == 'Linux' ]]; then
+if [ "$(uname)" = 'Linux' ]; then
 
     # enable pathname expansion
     shopt -s direxpand
@@ -10,13 +9,13 @@ if [[ $platform == 'Linux' ]]; then
     shopt -u dirspell
 fi
 
-# include dotfiles in filename expansion
+# Include dotfiles in filename expansion
 shopt -s dotglob
 
-# enable alias name expansion
+# Enable alias name expansion
 shopt -s expand_aliases
 
-# enable extended pattern matching: http://en.chys.info/2009/02/extglob/
+# Enable extended pattern matching: http://en.chys.info/2009/02/extglob/
 shopt -s nocaseglob
 
 # Case-insensitive auto-completion
@@ -30,3 +29,29 @@ complete -cf which
 
 # Tab completion for man
 complete -cf man
+
+# /etc/hosts ~/.ssh/config and ~/.ssh/known_hosts hostname completion
+function __completeHosts {
+	COMPREPLY=()
+	cur="${COMP_WORDS[COMP_CWORD]}"
+
+    config_hosts=$(cat $HOME/.ssh/config | grep -e "^Host " | awk '{print $2}')
+    etc_hosts=$(cat /etc/hosts | grep -e "^[0-9]{3}\." | awk '{print $2}')
+    known_hosts=$(cat $HOME/.ssh/known_hosts | awk '{print $1}' | sort | uniq)
+
+	COMPREPLY=($(compgen -W "$config_hosts $etc_hosts $known_hosts" -- $cur))
+	return 0
+}
+complete -F __completeHosts \
+    curl \
+    ftp \
+    links \
+    lynx \
+    ping \
+    rsync \
+    scp \
+    sftp \
+    ssh \
+    telnet \
+    wget
+

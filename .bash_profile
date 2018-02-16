@@ -4,6 +4,9 @@
 if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
+if [ -f ~/.dotfiles/common/awsume ]; then
+    source ~/.dotfiles/common/awsume
+fi
 
 # Go stuff
 if [ -f ~/.dotfiles/common/go ]; then
@@ -74,13 +77,13 @@ fi
 if [ -f ~/.dotfiles/common/env ]; then
     source ~/.dotfiles/common/env
 fi
+if [ -f ~/.dotfiles/common/env_platform ]; then
+    source ~/.dotfiles/common/env_platform
+fi
 
 # Bash completion settings
 if [ -f ~/.dotfiles/bash/completion ]; then
     source ~/.dotfiles/bash/completion
-fi
-if [ -f ~/.dotfiles/bash/completion_hosts ]; then
-    source ~/.dotfiles/bash/completion_hosts
 fi
 
 # Prompt
