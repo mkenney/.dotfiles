@@ -8,15 +8,18 @@ export PAGER=less
 
 GOPATH=$HOME/my_projects
 if [ -d $HOME/repos ]; then
-    GOPATH=HOME/repos
+    GOPATH=$HOME/repos
 elif [ -d $HOME/my_projects/go ]; then
-    GOPATH=HOME/my_projects/go
+    GOPATH=$HOME/my_projects/go
 elif [ -d $HOME/docker-containers/go ]; then
     GOPATH=Users/mkenney/docker-containers/go
 fi
 # strip leading ':'
 GOPATH=${GOPATH#"${GOPATH%%[![\:]*}"}
 export GOPATH
+
+CDPATH=.:$GOPATH/src/github.com:$GOPATH/src/code.google.com:$GOPATH/src/golang.org
+export CDPATH
 
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH

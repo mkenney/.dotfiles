@@ -79,6 +79,9 @@ fi
 if [ -f ~/.dotfiles/bash/completion ]; then
     source ~/.dotfiles/bash/completion
 fi
+if [ -f ~/.dotfiles/bash/completion_hosts ]; then
+    source ~/.dotfiles/bash/completion_hosts
+fi
 
 # Prompt
 if [ -f ~/.dotfiles/bash/prompt ]; then

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+function _completeHosts {
+	COMPREPLY=()
+	cur="${COMP_WORDS[COMP_CWORD]}"
+
+	completeHosts=$(
+		cat ~/.ssh/config | \
+		grep -Ee "^Host " | \
+		awk '{print $2}' ;
+		cat /etc/hosts | \
+		grep -Ee "^[0-9]{3}\." | \
+		awk '{print $2}'
+	)
+
+	COMPREPLY=($(compgen -W "${completeHosts}" -- $cur))
+	return 0
+}
+
+complete -F _completeHosts ftp ping sftp ssh telnet
+

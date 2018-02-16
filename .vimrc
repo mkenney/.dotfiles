@@ -136,27 +136,25 @@ autocmd BufEnter * let &titlestring = ' '.expand("%:t")
 " sessions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" Keep undo history across sessions by storing it in a file
-let vimDir = '$HOME/.vim'
+let vimDir = expand('$HOME/.vim')
+
+" Keep undo history across sessions
 if has('persistent_undo')
-    let myUndoDir = expand(vimDir.'/undodir')
-    " Create dirs
-    call system('mkdir '.vimDir)
-    call system('mkdir '.myUndoDir)
+    let myUndoDir = vimDir.'/undo'
+    call system('mkdir -p '.myUndoDir)
     let &undodir = myUndoDir
     set undolevels=5000
     set undofile
 endif
 
-" Tell vim to remember certain things when we exit
+" Tell vim to remember certain things on exit
 "  '10  : marks will be remembered for up to 10 previously edited files
 "  "100 : will save up to 100 lines for each register
 "  :500 : up to 500 lines of command-line history will be remembered
 "  %    : saves and restores the buffer list
 "  n... : where to save the viminfo files
-let myDataDir = expand(vimDir.'/data')
-call system('mkdir '.vimDir)
-call system('mkdir '.myDataDir)
+let myDataDir = vimDir.'/data'
+call system('mkdir -p '.myDataDir)
 set viminfo='10,\"100,:500,%,n~/.vim/data/viminfo
 
 " remember the last 100 commands
@@ -509,5 +507,4 @@ autocmd VimEnter,Colorscheme * :hi IndentGuidesEven guibg=NONE ctermbg=NONE
 " All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
-
 
