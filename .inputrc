@@ -1,4 +1,3 @@
-set completion-ignore-case on
+set completion-ignore-case off
 set editing-mode vi
-set keymap vi-command
-
+#set keymap vi-command

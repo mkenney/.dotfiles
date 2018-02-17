@@ -3,7 +3,7 @@ echo -e "    $5                                                 \c"
 
 # because MacVim is more better
 platform=`uname`
-if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/bin/vimdiff" ]; then
+if [ "$platform" == "Darwin" ] && [ -f "/Applications/MacVim.app/Contents/bin/vimdiff" ]; then
     /Applications/MacVim.app/Contents/bin/vimdiff -R "$2" "$5"
 else
     vimdiff -R "$2" "$5"

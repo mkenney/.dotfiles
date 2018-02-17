@@ -8,10 +8,10 @@ alias d="docker"
 alias dc="docker-compose"
 
 # Docker-compose built-in commands from https://docs.docker.com/v1.6/compose/cli/
-export _dc_commands="build help kill logs port ps pull rm run scale start stop up --force-recreate"
+export _dc_commands="build bundle config create down events exec help images kill logs pause port ps pull push restart rm run scale start stop top unpause up --force-recreate"
 
-# Docker built-in commands from https://docs.docker.com/reference/commandline/cli/
-export _docker_commands="daemon attach build commit cp create diff events exec export history images import info inspect kill load login logout logs pause port ps pull push rename restart rm rmi run save search start stats stop tag top unpause version wait"
+# Docker built-in commands from `docker help`
+export _docker_commands="checkpoint config container image network node plugin secret service stack swarm system trust volume attach build commit cp create deploy diff events exec export history images import info inspect kill load login logout logs pause port ps pull push rename restart rm rmi run save search start stats stop tag top unpause update version wait"
 
 # List of custom commands, space delimited.  This var should be
 # updated by your resources/lib/[docker-command] files

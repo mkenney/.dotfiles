@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# add 'rp-hooks' to the current list of custom commands
+# add 'ls' to the current list of custom commands
 export git_custom_commands="${git_custom_commands} ls"
 
 #
-# RP hooks - load the the Gerrit commit id hook
+# List all files tracked by git
 #
 function git-ls {
     git ls-tree -r --name-only HEAD | while read filename; do

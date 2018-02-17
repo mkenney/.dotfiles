@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 if [ "$(uname)" = 'Linux' ]; then
-
     # enable pathname expansion
     shopt -s direxpand
 
@@ -30,7 +29,7 @@ complete -cf which
 # Tab completion for man
 complete -cf man
 
-# /etc/hosts ~/.ssh/config and ~/.ssh/known_hosts hostname completion
+# /etc/hosts, ~/.ssh/config, and ~/.ssh/known_hosts hostname completion
 function __completeHosts {
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
@@ -44,6 +43,7 @@ function __completeHosts {
 }
 complete -F __completeHosts \
     curl \
+    dig \
     ftp \
     links \
     lynx \
@@ -54,4 +54,3 @@ complete -F __completeHosts \
     ssh \
     telnet \
     wget
-

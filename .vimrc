@@ -507,4 +507,3 @@ autocmd VimEnter,Colorscheme * :hi IndentGuidesEven guibg=NONE ctermbg=NONE
 " All plugins must be added before the following lines
 call vundle#end()            " required
 filetype plugin indent on    " required
-
