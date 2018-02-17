@@ -1,7 +1,9 @@
 $include /etc/inputrc
 
+set -o vi
 set colored-stats On
 set mark-symlinked-directories On
+set expand-tilde on
 set completion-ignore-case off
 set editing-mode vi
 #set keymap vi-command
