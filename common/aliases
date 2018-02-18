@@ -28,6 +28,7 @@ alias mv='mv -i'
 alias pstree='pstree -ahlpuU'
 alias rm='rm -i'
 alias rsync='rsync --progress'
+alias sourcedot='source ~/.bashrc'
 alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
 alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
 alias suod='sudo'
