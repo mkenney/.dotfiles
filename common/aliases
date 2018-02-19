@@ -52,6 +52,7 @@ elif [[ $platform == 'Darwin' ]]; then
     # `brew install coreutils` to get gls
     if [ -f "/usr/local/bin/gls" ]; then
         alias ls='gls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
+        alias realpath='grealpath'
 
     # bash 3 (os x default...). fails to show broken symlinks
     else

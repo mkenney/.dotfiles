@@ -7,3 +7,4 @@ set expand-tilde on
 set completion-ignore-case off
 set editing-mode vi
 #set keymap vi-command
+set show-all-if-ambiguous on

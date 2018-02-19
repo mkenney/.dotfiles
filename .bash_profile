@@ -14,6 +14,9 @@ if [ -f ~/.dotfiles/common/awsume ]; then
 fi
 
 # Bash completion settings
+if [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
+    source $(brew --prefix)/etc/bash_completion
+fi
 if [ -f ~/.dotfiles/bash/completion ]; then
     source ~/.dotfiles/bash/completion
 fi
