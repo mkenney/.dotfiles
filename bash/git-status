@@ -122,7 +122,7 @@ __git_status() {
         output=1
     fi
 
-    git rev-list HEAD..$hash &> /dev/null; exit_code=$?
+    git rev-list $compare_ref...$hash &> /dev/null; exit_code=$?
     if [ "0" = "$behind_str" ] && [ "" != "$(git rev-list $compare_ref...$hash)" ]; then
         behind_str=">$(echo $(git rev-list $compare_ref...$hash) | wc | awk '{print $1}') "
         output=1
