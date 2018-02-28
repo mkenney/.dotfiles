@@ -82,7 +82,8 @@ __git_status() {
         if [ "0" != "$exit_code" ]; then
 
             # See if referencing a name
-            ref_name=$(basename $(git symbolic-ref HEAD 2> /dev/null) 2> /dev/null); exit_code=$?
+            ref_name=$(git symbolic-ref HEAD 2> /dev/null) 2> /dev/null; exit_code=$?
+            ref_name=${ref_name/refs\/heads\//}
             ref_source="local"
             if [ "0" != "$exit_code" ]; then
                 # Assume detached state
@@ -98,7 +99,8 @@ __git_status() {
                 ref_name="$hash"
                 ref_source="detached"
             else
-                ref_name=$(basename $ref)
+                ref_name=$ref
+                ref_name=${ref_name/refs\/heads\//}
                 ref_source="local"
             fi
         elif grep -q '\->' <<< $(git show -s --pretty=%d HEAD); then
