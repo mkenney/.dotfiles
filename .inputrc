@@ -1,10 +1,28 @@
 $include /etc/inputrc
 
-set -o vi
+"\e[1~": beginning-of-line
+"\e[4~": end-of-line
+"\e[5~": history-search-backward
+"\e[6~": history-search-forward
+
+# fn+backspace
+"\e[3~": delete-char
+
+# have to map this in iterm (it's the "insert" key...)
+# option+return
+# just use ctrl+v instead
+"\e[2~": quoted-insert
+
+# ctrl+left
+"\e[5C": forward-word
+"\e\e[C": forward-word
+
+# ctrl+right
+"\e[5D": backward-word
+"\e\e[D": backward-word
+
 set colored-stats On
 set mark-symlinked-directories On
 set expand-tilde on
 set completion-ignore-case off
-set editing-mode vi
-#set keymap vi-command
 set show-all-if-ambiguous on
