@@ -63,10 +63,6 @@ export PATH=$ORACLE_HOME/bin:$PATH
 export PERLLIB=$PERLLIB:$HOME/perl
 export PERL5LIB=$PERLLIB
 
-# VI mode
-set -o vi
-#set editing-mode vi
-#set keymap vi-command
 export VISUAL=vim
 export EDITOR=vim
 

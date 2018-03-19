@@ -38,10 +38,10 @@ function __completeHosts {
     etc_hosts=$(cat /etc/hosts | grep -e "^[0-9]{3}\." | awk '{print $2}')
     known_hosts=$(cat $HOME/.ssh/known_hosts | awk '{print $1}' | sort | uniq)
 
-	COMPREPLY=($(compgen -W "$config_hosts $etc_hosts $known_hosts" -- $cur))
+	COMPREPLY=($(compgen -d -f -W "$config_hosts $etc_hosts $known_hosts" -- $cur))
 	return 0
 }
-complete -F __completeHosts \
+complete -o dirnames -o filenames -F __completeHosts \
     curl \
     dig \
     ftp \
