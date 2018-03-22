@@ -17,24 +17,24 @@ __prompt_command() {
 
     # Line 1 - host and current path
     if [ "$EUID" = "0" ]; then # Root
-        ps1_lines+='\n╭ \[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
+        ps1_lines+='\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
     else
-        ps1_lines+='\n╭ \[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
+        ps1_lines+='\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
     fi
 
     # Line 2 - git status line
     in_git_repo=$(git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$in_git_repo" ]; then # In a git repo
-        ps1_lines+='\n├ \[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
+        ps1_lines+='\n├\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
     fi
 
     # Line 3 - time or error state
     if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
-        ps1_lines+='\n╰ \[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
+        ps1_lines+='\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
     else
         # http://emojipedia.org/
-        #ps1_lines+="\n╰(💀  : \[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\])⤳ " # Last script exited with a non-zero code
-        ps1_lines+="\n╰ \[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ " # Last script exited with a non-zero code
+        #ps1_lines+="\n└(💀  : \[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\])⤳ " # Last script exited with a non-zero code
+        ps1_lines+="\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ " # Last script exited with a non-zero code
     fi
 
     # Make the cursor a blinking vertical line
