@@ -11,3 +11,6 @@ alias kst="KUBECONFIG=$HOME/.kube/kubesgtest/config kubectl"
 
 # SG prod
 alias ksp="KUBECONFIG=$HOME/.kube/kubesgprod/config kubectl"
+
+# common
+alias k="kubectl"

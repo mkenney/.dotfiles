@@ -11,3 +11,6 @@ alias hst="KUBECONFIG=$HOME/.kube/kubesgtest/config helm"
 
 # SG prod
 alias hsp="KUBECONFIG=$HOME/.kube/kubesgprod/config helm"
+
+# common
+alias h="helm"
