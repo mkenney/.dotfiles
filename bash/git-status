@@ -137,13 +137,13 @@ __git_status() {
         ahead_count=$(echo $rev_list | awk '{print $1}')
         if [ "0" != "$ahead_count" ]; then
             # < ↑
-            ahead_str="↑$ahead_count "
+            ahead_str="↑ $ahead_count "
             output=1
         fi
         behind_count=$(echo $rev_list | awk '{print $2}')
         if [ "0" != "$behind_count" ]; then
             # > ↓
-            behind_str="↓$behind_count "
+            behind_str="↓ $behind_count "
             output=1
         fi
     fi
