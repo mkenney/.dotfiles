@@ -7,7 +7,7 @@ __k8s_status() {
         KUBE_PS1_SYMBOL=$'\xE2\x8E\x88'
     fi
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-        printf "${KUBE_PS1_SYMBOL} $(kctx)$(kns)"
+        printf "${KUBE_PS1_SYMBOL} $(kctx)/$(kns)"
     fi
 }
 export -f __k8s_status

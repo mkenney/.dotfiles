@@ -23,7 +23,9 @@ kns() {
     if [ "" = "$ns" ]; then
         ns="default"
     fi
-    echo "/$ns"
+    if [ "" = "$1" ]; then
+        echo "$ns"
+    fi
 }
 
 # kenv autocompletion
