@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
 __k8s_status() {
+    if ((BASH_VERSINFO[0] >= 4)) && [[ $'\u2388 ' != "\\u2388 " ]]; then
+        KUBE_PS1_SYMBOL="k8s"
+    else
+        KUBE_PS1_SYMBOL=$'\xE2\x8E\x88'
+    fi
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-        printf "$(kctx)$(kns)"
+        printf "${KUBE_PS1_SYMBOL} $(kctx)$(kns)"
     fi
 }
 export -f __k8s_status
@@ -18,3 +23,5 @@ kprompt() {
 }
 export -f kprompt
 export K8S_STATUS_LINE=enabled
+
+
