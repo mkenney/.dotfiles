@@ -214,9 +214,9 @@ EOF
     fi
 
     if [ "0" != "$output" ]; then
-        echo "$(echo -e "${ref_source}/${ref_name} ${behind_str}${ahead_str}${untracked_str}${deleted_str}${added_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
+        echo "⎇ $(echo -e "${ref_source}/${ref_name} ${behind_str}${ahead_str}${untracked_str}${deleted_str}${added_str}${renamed_str}${modified_str}${unstaged_str}${total_str}" | sed -e 's/[[:space:]]*$//')"
     else
-        echo "${ref_source}/${ref_name}"
+        echo "⎇ ${ref_source}/${ref_name}"
     fi
 }
 
