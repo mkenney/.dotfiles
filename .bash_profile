@@ -64,6 +64,11 @@ if [ -f ~/.dotfiles/bash/git-status ]; then
     source ~/.dotfiles/bash/git-status
 fi
 
+# k8s prompt
+if [ -f ~/.dotfiles/bash/k8s-status ]; then
+    source ~/.dotfiles/bash/k8s-status
+fi
+
 # Go
 if [ -f ~/.dotfiles/common/go ]; then
     source ~/.dotfiles/common/go
@@ -80,8 +85,8 @@ if [ -f ~/.dotfiles/common/java ]; then
 fi
 
 # kubectl
-if [ -f ~/.dotfiles/common/kubectl ]; then
-    source ~/.dotfiles/common/kubectl
+if [ -f ~/.dotfiles/bash/kubectl ]; then
+    source ~/.dotfiles/bash/kubectl
 fi
 
 # Perl

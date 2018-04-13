@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+export KUBECONFIG=$HOME/.kube/dev/config
+alias k="$HOME/.kube/dev/kubectl"
+
+# set the k8s config path and executable
+kenv() {
+    eval "export KUBECONFIG=$HOME/.kube/$1/config"
+    eval "alias k='$HOME/.kube/$1/kubectl'"
+}
+
+# get the current k8s context
+kctx() {
+    echo $(kubectl config view -o=jsonpath='{.current-context}')
+}
+
+# get/set the namespace for the current k8s context
+kns() {
+    if [ "" != "$1" ]; then
+        kubectl config set-context "$(kctx)" --namespace="$1"
+    fi
+    ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$(kctx)\")].context.namespace}")
+    if [ "" = "$ns" ]; then
+        ns="default"
+    fi
+    echo "/$ns"
+}
+
+# kenv autocompletion
+__completeKenv() {
+	COMPREPLY=()
+	cur="${COMP_WORDS[COMP_CWORD]}"
+    cmds="dev eo-test eo-prod kubtst1 kubden1"
+	COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
+	return 0
+}
+complete -o dirnames -o filenames -F __completeKenv kenv

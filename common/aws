@@ -1,8 +1,2 @@
 #!/bin/bash
-
-aws-cio() { `awsume -s cio`; }
-aws-eo()  { `awsume -s eo`;  }
-aws-dp()  { `awsume -s dp`;  }
-aws-ca()  { `awsume -s ca`;  }
-aws-sb()  { `awsume -s sb`;  }
-awslogin() { $(awsume -s eo) && $(aws ecr get-login --no-include-email); }
+alias aws-eo="source awsume -s eo > /dev/null"

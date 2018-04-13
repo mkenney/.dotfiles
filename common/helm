@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
 # AWS test
-alias ht="KUBECONFIG=$HOME/.kube/test/config helm"
+alias ht="KUBECONFIG=$HOME/.kube/test/config helm-v2.5.1"
 
 # AWS prod
-alias hp="KUBECONFIG=$HOME/.kube/prod/config helm"
+alias hp="KUBECONFIG=$HOME/.kube/prod/config helm-v2.5.1"
 
 # SG test
-alias hst="KUBECONFIG=$HOME/.kube/kubesgtest/config helm"
+alias hst="KUBECONFIG=$HOME/.kube/kubesgtest/config helm-v2.5.1"
 
 # SG prod
-alias hsp="KUBECONFIG=$HOME/.kube/kubesgprod/config helm"
+alias hsp="KUBECONFIG=$HOME/.kube/kubesgprod/config helm-v2.5.1"
 
 # common
-alias h="helm"
+alias h="helm-v2.8.2"
+
+# local
+alias helm="helm-v2.8.2"
