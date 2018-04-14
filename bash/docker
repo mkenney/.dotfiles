@@ -22,7 +22,6 @@ export _docker_custom_commands=""
 # container names for tab-completion
 #
 _docker_autocomplete() {
-
 	local cur prev opts _docker_container_names
 	COMPREPLY=()
 

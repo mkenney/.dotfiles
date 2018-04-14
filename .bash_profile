@@ -9,9 +9,6 @@ fi
 if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
-if [ -f ~/.dotfiles/common/awsume ]; then
-    source ~/.dotfiles/common/awsume
-fi
 
 # Bash completion settings
 if [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
@@ -62,11 +59,6 @@ fi
 # Git prompt
 if [ -f ~/.dotfiles/bash/git-status ]; then
     source ~/.dotfiles/bash/git-status
-fi
-
-# k8s prompt
-if [ -f ~/.dotfiles/bash/k8s-status ]; then
-    source ~/.dotfiles/bash/k8s-status
 fi
 
 # Go

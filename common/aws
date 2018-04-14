@@ -1,2 +1,17 @@
 #!/bin/bash
 alias aws-eo="source awsume -s eo > /dev/null"
+
+# Source the AWSume script
+alias awsume=". awsume"
+
+# AWSume autocomplete function
+__awsume() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts=$(awsumepy --rolesusers)
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+complete -F __awsume awsume

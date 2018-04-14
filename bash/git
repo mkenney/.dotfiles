@@ -28,7 +28,6 @@ done
 # git command wrapper + alias
 #
 _git_better() {
-
     custom_commands="$git_custom_commands"
     git_command=$(echo /usr/bin/env git "$@")
     custom_command_executed=0

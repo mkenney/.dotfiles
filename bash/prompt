@@ -9,14 +9,14 @@
 source ~/.dotfiles/common/color
 
 __prompt_command() {
-
-    # always first
+    # always first to capture the last shell error
     local last_status=$?
 
     local -a ps1_lines
 
     # Line 1 - host and current path
-    if [ "$EUID" = "0" ]; then # Root
+    if [ "$EUID" = "0" ]; then
+        # Root
         ps1_lines+='\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
     else
         ps1_lines+='\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
@@ -34,13 +34,13 @@ __prompt_command() {
         ps1_lines+='\n│\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
     fi
 
-    # Line 4 - time or error state
+    # Line 4 - time and error state
     if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
+        # no current error code
         ps1_lines+='\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
     else
-        # http://emojipedia.org/
-        #ps1_lines+="\n└(💀  : \[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\])⤳ " # Last script exited with a non-zero code
-        ps1_lines+="\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ " # Last script exited with a non-zero code
+        # last script exited with a non-zero code
+        ps1_lines+="\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ "
     fi
 
     # Make the cursor a blinking vertical line
@@ -49,7 +49,6 @@ __prompt_command() {
 
     PS1="${ps1_lines[*]}"
 }
-
 export PROMPT_COMMAND=__prompt_command
 
 export PS2='\[${COLOR_NORM_BOLD}\]\>\[${COLOR_NORM}\] '

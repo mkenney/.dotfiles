@@ -1,58 +1,34 @@
 #!/usr/bin/env bash
 
-export TERM='xterm-256color'
-
-export PAGER=less
-
-#export AWS_PROFILE=eo
-
-GOPATH=$HOME/my_projects
+# go
+GOPATH=$HOME
 if [ -d $HOME/repos ]; then
     GOPATH=$HOME/repos
-elif [ -d $HOME/my_projects/go ]; then
-    GOPATH=$HOME/my_projects/go
-elif [ -d $HOME/docker-containers/go ]; then
-    GOPATH=$HOME/docker-containers/go
 fi
 export GOPATH
 
-CDPATH=.:$HOME:$GOPATH/src/github.com/mkenney:$GOPATH/src/github.com:$GOPATH/src/code.google.com:$GOPATH/src/golang.org
-export CDPATH
-
+# path
 PATH=/usr/local/bin:$PATH
 PATH=$HOME/bin:$PATH
-PATH=$HOME/.dotfiles/bin:$PATH
-PATH=$HOME/repos/bin:$PATH
 PATH=$GOPATH/bin:$PATH
 PATH=$HOME/.local/bin:$PATH
-PATH=$PATH:$HOME/my_projects/go/bin:/$HOME/docker-containers/go/bin
-PATH=$PATH:/usr/local/hadoop/bin
-PATH=$PATH:/usr/local/hbase/bin
-PATH=$PATH:/usr/local/hive/bin
-PATH=$PATH:/usr/local/pig/bin
-PATH=$PATH:$HOME/hdshell/bin
-PATH=$PATH:/opt/rh/php54/root/usr/bin
-PATH=$PATH:/usr/local/apache-maven/bin
-PATH=$PATH:/usr/local/ant/bin
-PATH=$PATH:/usr/local/apache/bin
 PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=$PATH:/usr/local/protoc-3.1.0-osx-x86_64/bin
 PATH=$PATH:~/Library/Python/3.4/bin
-
-# Setting PATH for Python 3.4 on OS X
+# Python 3.4 on OS X
 if [ -d "/Library/Frameworks/Python.framework/Versions/3.4/bin" ]; then
     PATH=$PATH:/Library/Frameworks/Python.framework/Versions/3.4/bin
 fi
-
 export PATH
 
-# hadoop
-export HADOOP_HOME="/usr/local/hadoop"
-export HBASE_HOME="/usr/local/hbase"
-export GROOVY_HOME="/usr/local/groovy"
-export PIG_HOME="/urs/local/pig"
-export JAVA_HOME="/usr/java/latest"
-export LANG="en_US.UTF-8"
+# editors
+export VISUAL=vim
+export EDITOR=vim
+
+# history
+export HISTSIZE="1000000"
+export HISTTIMEFORMAT="%d/%m/%y %T: "
+export HISTCONTROL=erasedups
 
 # oracle
 export ORACLE_HOME=/oracle/product/latest
@@ -60,19 +36,19 @@ export TNS_ADMIN=$HOME/.oracle/network/admin
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
 export PATH=$ORACLE_HOME/bin:$PATH
 
+# perl
 export PERLLIB=$PERLLIB:$HOME/perl
 export PERL5LIB=$PERLLIB
 
-export VISUAL=vim
-export EDITOR=vim
+#
+export CDPATH=.:$HOME:$GOPATH/src/github.com/mkenney:$GOPATH/src/github.com
+export K8S_STATUS_LINE_CONTEXTS="dev eo-test eo-prod kubtst1 kubden1"
+export LANG="en_US.UTF-8"
+export PAGER=less
+export TERM='xterm-256color'
 
-# command history length
-export HISTSIZE="1000000"
-export HISTTIMEFORMAT="%d/%m/%y %T: "
-export HISTCONTROL=erasedups
-
-# Tmux
+# tmux
 [[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
 
-# Notify immediatly on bg job completion
+# notify immediatly on background job completion
 set -o notify
