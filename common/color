@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+COLOR_TST=$'\033[38;5;112m'
+
 #
 # Setup colors
 # https://wiki.archlinux.org/index.php/Color_Bash_Prompt

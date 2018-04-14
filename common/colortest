@@ -62,7 +62,7 @@ echo "Purple Background: ${BACKGROUND_PURPLE}The quick brown fox jumped over the
 echo "Cyan Background  : ${BACKGROUND_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 
-#for i in `seq 1 255`; do
-#    COLOR_TST=$"\033[38;5;${i}m"
-#    echo -e "$i: ${COLOR_TST}COLOR TEST${COLOR_NORM}"
-#done
+for i in `seq 1 255`; do
+    COLOR_TST=$"\033[38;5;${i}m"
+    echo -e "$i: ${COLOR_TST}COLOR TEST${COLOR_NORM}"
+done
