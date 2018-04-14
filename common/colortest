@@ -27,11 +27,11 @@ echo "Yellow           : ${COLOR_YELLOW}The quick brown fox jumped over the lazy
 echo "Yellow Underline : ${COLOR_YELLOW_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Bold      : ${COLOR_YELLOW_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Highlight : ${COLOR_YELLOW_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-#echo
-#echo "Brown           : ${COLOR_BROWN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-#echo "Brown Underline : ${COLOR_BROWN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-#echo "Brown Bold      : ${COLOR_BROWN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-#echo "Brown Highlight : ${COLOR_BROWN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Brown           : ${COLOR_BROWN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Brown Underline : ${COLOR_BROWN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Brown Bold      : ${COLOR_BROWN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Brown Highlight : ${COLOR_BROWN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Blue             : ${COLOR_BLUE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Blue Underline   : ${COLOR_BLUE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
@@ -62,7 +62,7 @@ echo "Purple Background: ${BACKGROUND_PURPLE}The quick brown fox jumped over the
 echo "Cyan Background  : ${BACKGROUND_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 
- for i in `seq 1 255`; do
-    COLOR_TST=$"\033[38;5;${i}m"
-    echo -e "$i: ${COLOR_TST}COLOR TEST${COLOR_NORM}"
- done
+#for i in `seq 1 255`; do
+#    COLOR_TST=$"\033[38;5;${i}m"
+#    echo -e "$i: ${COLOR_TST}COLOR TEST${COLOR_NORM}"
+#done
