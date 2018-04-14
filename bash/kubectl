@@ -94,7 +94,6 @@ complete -o dirnames -o filenames -F __completeKenv kx
 # ⎈ docker-for-desktop/default
 __k8s_status() {
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-
         printf "${K8S_PS1_SYMBOL} $K8S_CURRENT_CONTEXT/$(kn)"
     fi
 }
