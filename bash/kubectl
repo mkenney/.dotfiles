@@ -1,11 +1,40 @@
-#!/usr/bin/env bash
+#!/usr/local/bin/bash
+
+export KUBECONFIG=$HOME/.kube/config
+export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
+export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
+export -A K8S_LAST_NAMESPACE=([$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE)
+alias kubectl=$HOME/.kube/kubectl
+alias k=kubectl
+
+k8s() {
+    echo "
+Commands
+    kx <config>
+        Sets the KUBECONFIG environment variable to the specified config,
+        defining the current context, and sets \`kubctl\` to the correct
+        executable. Assumes the path to the config file is
+        \`$HOME/.kube/<config>/config\` and the path to the executable
+        is \`$HOME/.kube/<config>/kubectl\`
+
+        If <config> is not passed, the default values \`$HOME/.kube/config\` and
+        \`$HOME/.kube/kubectl\` are used. If <config> is equal to '-' then the
+        previous context is used.
+
+    kn <namespace>
+        Sets the default namespace for the current context. If <namespace> is
+        not passed, the current namespace value is printed. if <namespace> is
+        equal to '-' then the previous namespace is used.
+"
+}
+export -f k8s
 
 # set the k8s config path and executable, defining the current context. Assumes
 # the path to the config files is `$HOME/.kube/<path argument here>/config` and
 # the path to the executable is `$HOME/.kube/<path argument here>/kubectl`
 #
 # different executables because of version differences across clusters... :(
-kctx() {
+kx() {
     if [ "-" = "$1" ]; then
         a=$KUBECONFIG
         eval "export KUBECONFIG=$__LAST_KUBECONFIG"
@@ -17,24 +46,24 @@ kctx() {
         eval "export __LAST_KUBECONFIG=$KUBECONFIG"
         eval "export KUBECONFIG=$HOME/.kube/config"
     fi
-    eval "alias k='$(dirname $KUBECONFIG)/kubectl'"
+    eval "alias kubectl='$(dirname $KUBECONFIG)/kubectl'"
     eval "export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')"
+    eval "export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")"
+    eval "export K8S_LAST_NAMESPACE=$K8S_CURRENT_NAMESPACE"
 }
-export KUBECONFIG=$HOME/.kube/config
-export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
-alias k=$HOME/.kube/kubectl
+export -f kx
 
 # get/set the namespace for the current k8s context
-# `kns`             - print the current namespace
-# `kns <namespace>` - set the current namespace to <namespace>
-kns() {
+# `kn`             - print the current namespace
+# `kn <namespace>` - set the current namespace to <namespace>
+kn() {
     if [ "-" = "$1" ]; then
         a=$K8S_CURRENT_NAMESPACE
-        export K8S_CURRENT_NAMESPACE=$__LAST_K8S_NAMESPACE
-        export __LAST_K8S_NAMESPACE=$a
+        export K8S_CURRENT_NAMESPACE=${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}
+        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$a
         kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
     elif [ "" != "$1" ]; then
-        export __LAST_K8S_NAMESPACE=$K8S_CURRENT_NAMESPACE
+        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
         export K8S_CURRENT_NAMESPACE=$1
         kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
     else
@@ -42,11 +71,10 @@ kns() {
         if [ "" = "$ns" ]; then
             ns="default"
         fi
-        if [ "" = "$1" ]; then
-            echo "$ns"
-        fi
+        echo "$ns"
     fi
 }
+export -f kn
 
 # kenv context autocompletion. K8S_STATUS_LINE_CONTEXTS should be a
 # space-delimited list of context names.
@@ -59,7 +87,7 @@ __completeKenv() {
 	COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
 	return 0
 }
-complete -o dirnames -o filenames -F __completeKenv kctx
+complete -o dirnames -o filenames -F __completeKenv kx
 
 # k8s status line
 # Displays a UTF-8 icon and the current kubectl context and namespace:
@@ -67,17 +95,14 @@ complete -o dirnames -o filenames -F __completeKenv kctx
 __k8s_status() {
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
 
-        printf "${K8S_PS1_SYMBOL} $K8S_CURRENT_CONTEXT/$(kns)"
+        printf "${K8S_PS1_SYMBOL} $K8S_CURRENT_CONTEXT/$(kn)"
     fi
 }
 export -f __k8s_status
 if [ "" = "$K8S_PS1_SYMBOL" ]; then
-    if ((BASH_VERSINFO[0] >= 4)) && [[ $'\u2388 ' != "\\u2388 " ]]; then
-        export K8S_PS1_SYMBOL="k8s"
-    else
-        export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
-    fi
+    export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
 fi
+export -f __k8s_status
 
 # Enable or disable the k8s status line output
 # `kprompt`                - show the current status
