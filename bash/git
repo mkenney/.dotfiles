@@ -1,34 +1,29 @@
 #!/usr/bin/env bash
 
-# git built-in commands
-export git_commands="add bisect branch checkout clone commit diff fetch grep init log merge mv pull push rebase reset rm show status tag"
-
-#
 # List of custom commands, space delimited.  This var should be
 # updated by your resources/lib/[git-command] file
-#
-export git_custom_commands=""
+export __git_commands=""
 
-#
-# Return the list of custom commands.  This is also used for tab-completion
-#
-git_autocomplete_commands() {
-    echo "${git_custom_commands}"
+# Return the list of custom commands.  This is also used for
+# tab-completion
+__git_autocomplete_commands() {
+    echo "${__git_commands}"
 }
-export -f git_autocomplete_commands
+export -f __git_autocomplete_commands
 
-#
-# Load all of the custom commands in resources/lib/.  These must be prefixed with 'git-'
-#
+# Load all of the custom commands in resources/lib/.  These must be
+# prefixed with 'git-'
 for git_lib in $(find ${HOME}/.dotfiles/bash/lib/git-* -maxdepth 1 -not -type d -and -not -name '.*'); do
     source $git_lib
 done
 
-#
 # git command wrapper + alias
-#
-_git_better() {
-    custom_commands="$git_custom_commands"
+#   Executes any custom commands found in the ./lib directory and
+#   displays an interactive menu for "did you mean" error suggestions.
+__git_better() {
+
+    # Execute any command wrappers or extensions.
+    custom_commands="$__git_commands"
     git_command=$(echo /usr/bin/env git "$@")
     custom_command_executed=0
     for a in ${custom_commands[@]}; do
@@ -46,6 +41,7 @@ _git_better() {
         git_errors=$(cat $tmpfile)
 
         if [ "" != "$exit_code" ] && [ 0 -ne $exit_code ]; then
+            # Display a menu for "did you mean" error suggestions
             if [ "" != "$(echo "$git_errors" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
                 reading_options=0
                 local -a options
@@ -62,15 +58,19 @@ _git_better() {
                     fi
                 done <<< "$git_errors"
 
-                bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
                 # rebuild git error output
+                bad_command=$(echo "$git_errors" | awk -F "'" '{print $2}')
                 >&2 echo "git: '$bad_command' is not a git command. See 'git --help'."
                 >&2 echo
+
+                # build error screen
                 if [ 1 -eq "${#options[@]}" ]; then
                     >&2 echo "    Did you mean this?"
                 else
                     >&2 echo "    Did you mean one of these?"
                 fi
+
+                # build menu items
                 local cnt=0
                 for a in "${options[@]}"; do
                     if [ 1 -eq "${#options[@]}" ]; then
@@ -83,7 +83,7 @@ _git_better() {
                 done
                 >&2 echo
 
-                # Prompt for input
+                # prompt for input
                 old_IFS=$IFS
                 IFS='%'
                 if [ 1 -eq $cnt ]; then
@@ -96,18 +96,19 @@ _git_better() {
                 read -e -p $prompt -t 60 option
                 IFS=$old_IFS
 
+                # if input is not no/quit
                 if [ "0" != "$option" ] && [ "n" != "$option" ] && [ "N" != "$option" ]; then
+                    # set default option if none given
                     if [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
                         option=1
                     fi
+                    # exec
                     option=$((option - 1))
-
                     shift
                     echo "executing /usr/bin/env git ${options[$option]} $@"
                     echo
                     /usr/bin/env git ${options[$option]} "$@"
                 fi
-
             else
                 echo "$git_errors"
                 return $exit_code
@@ -115,5 +116,6 @@ _git_better() {
         fi
     fi
 }
-export -f _git_better
-alias git='_git_better'
+
+export -f __git_better
+alias git='__git_better'

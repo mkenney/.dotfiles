@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # add 'build-jenkins' to the current list of custom commands
-export git_custom_commands="${git_custom_commands} build-jenkins"
+export __git_commands="${__git_commands} build-jenkins"
 
 #
 # Launch the gerrit/jenkins build script

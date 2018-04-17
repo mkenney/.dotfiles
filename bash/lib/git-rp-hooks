@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # add 'rp-hooks' to the current list of custom commands
-export git_custom_commands="${git_custom_commands} rp-hooks"
+export __git_commands="${__git_commands} rp-hooks"
 
 #
 # RP hooks - load the the Gerrit commit id hook

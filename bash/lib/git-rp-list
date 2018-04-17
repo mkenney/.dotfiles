@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # add 'rp-list' to the current list of custom commands
-export git_custom_commands="${git_custom_commands} rp-list"
+export __git_commands="${__git_commands} rp-list"
 
 #
 # RP list - List gerrit projects
