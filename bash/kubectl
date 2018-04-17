@@ -40,16 +40,24 @@ kx() {
         eval "export KUBECONFIG=$__LAST_KUBECONFIG"
         eval "export __LAST_KUBECONFIG=$a"
     elif [ "" != "$1" ]; then
-        eval "export __LAST_KUBECONFIG=$KUBECONFIG"
-        eval "export KUBECONFIG=$HOME/.kube/$1/config"
+        if [ -f "$HOME/.kube/$1/config" ]; then
+            eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+            eval "export KUBECONFIG=$HOME/.kube/$1/config"
+        else
+            >&2 echo "File not found: $HOME/.kube/$1/config"
+            return 1
+        fi
     else
         eval "export __LAST_KUBECONFIG=$KUBECONFIG"
         eval "export KUBECONFIG=$HOME/.kube/config"
     fi
-    eval "alias kubectl='$(dirname $KUBECONFIG)/kubectl'"
     eval "export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')"
     eval "export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")"
     eval "export K8S_LAST_NAMESPACE=$K8S_CURRENT_NAMESPACE"
+
+    if [ -f "$(dirname $KUBECONFIG)/kubectl" ]; then
+        eval "alias kubectl='$(dirname $KUBECONFIG)/kubectl'"
+    fi
 }
 export -f kx
 
@@ -76,10 +84,10 @@ kn() {
 }
 export -f kn
 
-# kenv context autocompletion. K8S_STATUS_LINE_CONTEXTS should be a
+# kx context autocompletion. K8S_STATUS_LINE_CONTEXTS should be a
 # space-delimited list of context names.
 if [ "" = "$K8S_STATUS_LINE_CONTEXTS" ]; then
-    export K8S_STATUS_LINE_CONTEXTS="dev"
+    export K8S_STATUS_LINE_CONTEXTS="$(find $HOME/.kube/ -name config)"
 fi
 __completeKenv() {
 	cur="${COMP_WORDS[COMP_CWORD]}"
