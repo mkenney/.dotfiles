@@ -19,4 +19,3 @@ vbell_msg "   -- !!Ding Ding!! --   "	# default: "Wuff,Wuff!!"
 
 # Autodetach session on hangup instead of terminating screen completely
 autodetach on
-

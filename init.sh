@@ -50,7 +50,6 @@ ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-t
 link-dotfile .bash_profile
 link-dotfile .bashrc
 link-dotfile .gitconfig
-link-dotfile .gitignore
 link-dotfile .gitignore_global
 link-dotfile .gitmodules
 link-dotfile .inputrc
