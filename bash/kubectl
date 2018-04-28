@@ -4,6 +4,8 @@ export KUBECONFIG=$HOME/.kube/config
 export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
 export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
 export -A K8S_LAST_NAMESPACE=([$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE)
+export -A K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=$(kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}'))
+
 alias kubectl=$HOME/.kube/kubectl
 alias k=kubectl
 
@@ -58,6 +60,11 @@ kx() {
     if [ -f "$(dirname $KUBECONFIG)/kubectl" ]; then
         eval "alias kubectl='$(dirname $KUBECONFIG)/kubectl'"
     fi
+
+    if [ "" != "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
+        K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$(kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
+        export -A K8S_NAMESPACES
+    fi
 }
 export -f kx
 
@@ -68,10 +75,10 @@ kn() {
     if [ "-" = "$1" ]; then
         a=$K8S_CURRENT_NAMESPACE
         export K8S_CURRENT_NAMESPACE=${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}
-        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$a
+        $K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$a
         kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
     elif [ "" != "$1" ]; then
-        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
+        $K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
         export K8S_CURRENT_NAMESPACE=$1
         kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
     else
@@ -89,13 +96,27 @@ export -f kn
 if [ "" = "$K8S_STATUS_LINE_CONTEXTS" ]; then
     export K8S_STATUS_LINE_CONTEXTS="$(find $HOME/.kube/ -name config)"
 fi
-__completeKenv() {
+__completeKx() {
 	cur="${COMP_WORDS[COMP_CWORD]}"
     cmds=$K8S_STATUS_LINE_CONTEXTS
 	COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
 	return 0
 }
-complete -o dirnames -o filenames -F __completeKenv kx
+complete -F __completeKx kx
+
+# kn namespace autocompletion. K8S_NAMESPACES is an associative array of
+# space-delimited list of namespace names.
+if [ "" = "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
+    K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$(kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
+    export -A K8S_NAMESPACES
+fi
+__completeKn() {
+	cur="${COMP_WORDS[COMP_CWORD]}"
+    cmds=${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}
+	COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
+	return 0
+}
+complete -F __completeKn kn
 
 # k8s status line
 # Displays a UTF-8 icon and the current kubectl context and namespace:
