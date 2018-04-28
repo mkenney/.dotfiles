@@ -22,15 +22,22 @@ __prompt_command() {
         ps1_lines+='\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'
     fi
 
-    # Line 2 - k8s status line
+    # k8s status line
+    k8sprompt=
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-        ps1_lines+='\n│\[${COLOR_DKGREEN_FADED}\]$(__k8s_status)\[${COLOR_NORM}\] '
+        k8sprompt='\[${COLOR_DKGREEN_FADED}\]$(__k8s_status)\[${COLOR_NORM}\] '
     fi
 
-    # Line 3 - git status line
+    # git status line
+    gitprompt=
     in_git_repo=$(git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$in_git_repo" ]; then # In a git repo
-        ps1_lines+='\n│\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\] '
+        gitprompt='\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
+    fi
+
+    # Line 3 - k8s / git status
+    if [ "" != "$k8sprompt" ] || [ "" != "$gitprompt" ]; then
+        ps1_lines+="\n│${k8sprompt}${gitprompt}"
     fi
 
     # Line 4 - time and error state
