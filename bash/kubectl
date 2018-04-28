@@ -138,7 +138,11 @@ export -f __k8s_status
 # `kpromt <anything else>` - enable status output
 kprompt() {
     if [ "" == "$1" ]; then
-        echo $K8S_STATUS_LINE
+        if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+            eval 'export K8S_STATUS_LINE=disabled'
+        else
+            eval 'export K8S_STATUS_LINE=enabled'
+        fi
     elif [ "off" != "$1" ]; then
         eval 'export K8S_STATUS_LINE=enabled'
     else
