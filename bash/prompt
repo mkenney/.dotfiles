@@ -40,12 +40,12 @@ __prompt_command() {
         gitprompt='\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
     fi
 
-    # Line 3 - k8s / git status
+    # Line 2 - k8s / git status
     if [ "" != "$k8sprompt" ] || [ "" != "$gitprompt" ]; then
         ps1_lines+="\n│${k8sprompt}${gitprompt}"
     fi
 
-    # Line 4 - time and error state
+    # Line 3 - time and error state
     if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
         # no current error code
         ps1_lines+='\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
