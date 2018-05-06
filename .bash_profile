@@ -112,7 +112,7 @@ if [ -f ~/.dotfiles/common/terraform ]; then
 fi
 
 # TravisCI
-if [ -f /Users/mkenney/.travis/travis.sh ]; then
+if [ -f ~/.travis/travis.sh ]; then
     source ~/.travis/travis.sh
 fi
 

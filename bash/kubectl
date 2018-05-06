@@ -1,6 +1,6 @@
 #!/usr/local/bin/bash
 
-if [ -d "$HOME/.kube" ]; then
+if [ -d "$HOME/.kube" ] && [ "" != "$(which kubectl)" ]; then
     export KUBECONFIG=$HOME/.kube/config
     export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
     export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
