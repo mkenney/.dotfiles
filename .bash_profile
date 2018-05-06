@@ -77,8 +77,8 @@ if [ -f ~/.dotfiles/common/java ]; then
 fi
 
 # kubectl
-if [ -f ~/.dotfiles/bash/kubectl ]; then
-    source ~/.dotfiles/bash/kubectl
+if [ -f ~/.dotfiles/common/kubectl ]; then
+    source ~/.dotfiles/common/kubectl
 fi
 
 # Perl
