@@ -18,9 +18,11 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
         diff=$((now - __KUBECONFIG_UPDATED_AT))
         if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "300" -gt "$diff" ]; then
             (
+                ORNG=$'\033[38;5;172m'
+                NORM=$'\033[0m'
                 echo "
-        WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in
-        $diff seconds, switching to default context.
+    ${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in $diff seconds,
+    switching to default context.${NORM}
             "
                 kx
                 exit 1
