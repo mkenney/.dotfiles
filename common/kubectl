@@ -16,7 +16,7 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
     __k8sctl() {
         now=$(date '+%s')
         diff=$((now - __KUBECONFIG_UPDATED_AT))
-        if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "300" -gt "$diff" ]; then
+        if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "300" -lt "$diff" ]; then
             (
                 ORNG=$'\033[38;5;172m'
                 NORM=$'\033[0m'
@@ -28,6 +28,7 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
                 exit 1
             )
         fi
+        export __KUBECONFIG_UPDATED_AT=$(date '+%s')
         $(dirname $KUBECONFIG)/kubectl $@
     }
 
