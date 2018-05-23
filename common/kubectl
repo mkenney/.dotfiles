@@ -9,31 +9,37 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
     export __KUBECONFIG_UPDATED_AT=$(date '+%s')
     export -A K8S_LAST_NAMESPACE=([$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE)
     export -A K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=$($(dirname $KUBECONFIG)/kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}'))
+    export K8S_STATUS_LINE=enabled
 
     alias kubectl=__k8sctl
     alias k=kubectl
+fi
 
-    __k8sctl() {
-        now=$(date '+%s')
-        diff=$((now - __KUBECONFIG_UPDATED_AT))
-        if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "300" -lt "$diff" ]; then
-            (
-                ORNG=$'\033[38;5;172m'
-                NORM=$'\033[0m'
-                echo "
-    ${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in $diff seconds,
-    switching to default context.${NORM}
-            "
-                kx
-                exit 1
-            )
-        fi
+
+__k8sctl() {
+    now=$(date '+%s')
+    diff=$((now - __KUBECONFIG_UPDATED_AT))
+    if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "300" -lt "$diff" ]; then
+        (
+            ORNG=$'\033[38;5;172m'
+            NORM=$'\033[0m'
+            echo "
+    ${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in over 300 seconds,
+    switching to the default context.${NORM}
+        "
+            exit 1
+        )
+        export KUBECONFIG=$KUBECONFIG_DEFAULT
+        export K8S_CURRENT_CONTEXT=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath='{.current-context}')
+        export K8S_CURRENT_NAMESPACE=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
         export __KUBECONFIG_UPDATED_AT=$(date '+%s')
+    else
         $(dirname $KUBECONFIG)/kubectl $@
-    }
+    fi
+}
 
-    k8s() {
-        echo "
+k8s() {
+    echo "
 Commands
     kx <context>
         Sets the KUBECONFIG environment variable to the specified
@@ -52,130 +58,128 @@ Commands
         and printed. if <namespace> is equal to '-' then the
         previous namespace is used.
     "
-    }
-    export -f k8s
+}
+export -f k8s
 
-    # set the k8s config path and executable, defining the current context. Assumes
-    # the path to the config files is `$HOME/.kube/<path argument here>/config` and
-    # the path to the executable is `$HOME/.kube/<path argument here>/kubectl`
-    #
-    # different executables because of version differences across clusters... :(
-    kx() {
-        if [ "-" = "$1" ]; then
-            a=$KUBECONFIG
-            eval "export KUBECONFIG=$__LAST_KUBECONFIG"
-            eval "export __LAST_KUBECONFIG=$a"
-        elif [ "" != "$1" ]; then
-            if [ -f "$HOME/.kube/$1/config" ]; then
-                eval "export __LAST_KUBECONFIG=$KUBECONFIG"
-                eval "export KUBECONFIG=$HOME/.kube/$1/config"
-            else
-                >&2 echo "File not found: $HOME/.kube/$1/config"
-                return 1
-            fi
-        else
+# set the k8s config path and executable, defining the current context. Assumes
+# the path to the config files is `$HOME/.kube/<path argument here>/config` and
+# the path to the executable is `$HOME/.kube/<path argument here>/kubectl`
+#
+# different executables because of version differences across clusters... :(
+kx() {
+    if [ "-" = "$1" ]; then
+        a=$KUBECONFIG
+        eval "export KUBECONFIG=$__LAST_KUBECONFIG"
+        eval "export __LAST_KUBECONFIG=$a"
+    elif [ "" != "$1" ]; then
+        if [ -f "$HOME/.kube/$1/config" ]; then
             eval "export __LAST_KUBECONFIG=$KUBECONFIG"
-            eval "export KUBECONFIG=$KUBECONFIG_DEFAULT"
-        fi
-        if [ "$KUBECONFIG_DEFAULT" != "$KUBECONFIG" ]; then
-            export __KUBECONFIG_UPDATED_AT=$(date '+%s')
-        fi
-        K8S_CURRENT_CONTEXT=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath='{.current-context}')
-        eval "export K8S_CURRENT_CONTEXT=$K8S_CURRENT_CONTEXT"
-        eval "export K8S_CURRENT_NAMESPACE=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")"
-        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
-        export -A K8S_LAST_NAMESPACE
-
-        if [ "" != "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
-            K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$($(dirname $KUBECONFIG)/kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
-            export -A K8S_NAMESPACES
-        fi
-    }
-    export -f kx
-
-    # get/set the namespace for the current k8s context
-    # `kn`             - print the current namespace
-    # `kn <namespace>` - set the current namespace to <namespace>
-    kn() {
-        if [ "-" = "$1" ]; then
-            a=$K8S_CURRENT_NAMESPACE
-            export K8S_CURRENT_NAMESPACE=${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}
-            K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$a
-            export -A K8S_LAST_NAMESPACE
-            $(dirname $KUBECONFIG)/kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
-        elif [ "" != "$1" ]; then
-            K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
-            export -A K8S_LAST_NAMESPACE
-            export K8S_CURRENT_NAMESPACE=$1
-            $(dirname $KUBECONFIG)/kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
+            eval "export KUBECONFIG=$HOME/.kube/$1/config"
         else
-            ns=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
-            if [ "" = "$ns" ]; then
-                ns="default"
-            fi
-            echo "$ns"
+            >&2 echo "File not found: $HOME/.kube/$1/config"
+            return 1
         fi
-    }
-    export -f kn
-
-    # kx context autocompletion. K8S_STATUS_LINE_CONTEXTS should be a
-    # space-delimited list of context names.
-    if [ "" = "$K8S_STATUS_LINE_CONTEXTS" ]; then
-        export K8S_STATUS_LINE_CONTEXTS="$(find $HOME/.kube/ -name config)"
+    else
+        eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+        eval "export KUBECONFIG=$KUBECONFIG_DEFAULT"
     fi
-    __completeKx() {
-        cur="${COMP_WORDS[COMP_CWORD]}"
-        cmds=$K8S_STATUS_LINE_CONTEXTS
-        COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
-        return 0
-    }
-    complete -F __completeKx kx
+    if [ "$KUBECONFIG_DEFAULT" != "$KUBECONFIG" ]; then
+        export __KUBECONFIG_UPDATED_AT=$(date '+%s')
+    fi
+    K8S_CURRENT_CONTEXT=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath='{.current-context}')
+    eval "export K8S_CURRENT_CONTEXT=$K8S_CURRENT_CONTEXT"
+    eval "export K8S_CURRENT_NAMESPACE=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")"
+    K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
+    export -A K8S_LAST_NAMESPACE
 
-    # kn namespace autocompletion. K8S_NAMESPACES is an associative array of
-    # space-delimited list of namespace names.
-    if [ "" = "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
+    if [ "" != "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
         K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$($(dirname $KUBECONFIG)/kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
         export -A K8S_NAMESPACES
     fi
-    __completeKn() {
-        cur="${COMP_WORDS[COMP_CWORD]}"
-        cmds=${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}
-        COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
-        return 0
-    }
-    complete -F __completeKn kn
+}
+export -f kx
 
-    # k8s status line
-    # Displays a UTF-8 icon and the current kubectl context and namespace:
-    # ⎈ docker-for-desktop/default
-    __k8s_status() {
-        if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-            echo $K8S_PS1_SYMBOL $K8S_CURRENT_CONTEXT/$(kn)
+# get/set the namespace for the current k8s context
+# `kn`             - print the current namespace
+# `kn <namespace>` - set the current namespace to <namespace>
+kn() {
+    if [ "-" = "$1" ]; then
+        a=$K8S_CURRENT_NAMESPACE
+        export K8S_CURRENT_NAMESPACE=${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}
+        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$a
+        export -A K8S_LAST_NAMESPACE
+        $(dirname $KUBECONFIG)/kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
+    elif [ "" != "$1" ]; then
+        K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
+        export -A K8S_LAST_NAMESPACE
+        export K8S_CURRENT_NAMESPACE=$1
+        $(dirname $KUBECONFIG)/kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
+    else
+        ns=$($(dirname $KUBECONFIG)/kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
+        if [ "" = "$ns" ]; then
+            ns="default"
         fi
-    }
-    export -f __k8s_status
-    if [ "" = "$K8S_PS1_SYMBOL" ]; then
-        export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
+        echo "$ns"
     fi
-    export -f __k8s_status
+}
+export -f kn
 
-    # Enable or disable the k8s status line output
-    # `kprompt`                - show the current status
-    # `kpromt off`             - disable status output
-    # `kpromt <anything else>` - enable status output
-    kprompt() {
-        if [ "" == "$1" ]; then
-            if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-                eval 'export K8S_STATUS_LINE=disabled'
-            else
-                eval 'export K8S_STATUS_LINE=enabled'
-            fi
-        elif [ "off" != "$1" ]; then
-            eval 'export K8S_STATUS_LINE=enabled'
-        else
-            eval 'export K8S_STATUS_LINE=disabled'
-        fi
-    }
-    export -f kprompt
-    export K8S_STATUS_LINE=enabled
+# kx context autocompletion. K8S_STATUS_LINE_CONTEXTS should be a
+# space-delimited list of context names.
+if [ "" = "$K8S_STATUS_LINE_CONTEXTS" ]; then
+    export K8S_STATUS_LINE_CONTEXTS="$(find $HOME/.kube/ -name config)"
 fi
+__completeKx() {
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    cmds=$K8S_STATUS_LINE_CONTEXTS
+    COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
+    return 0
+}
+complete -F __completeKx kx
+
+# kn namespace autocompletion. K8S_NAMESPACES is an associative array of
+# space-delimited list of namespace names.
+if [ "" = "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
+    K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$($(dirname $KUBECONFIG)/kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
+    export -A K8S_NAMESPACES
+fi
+__completeKn() {
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    cmds=${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}
+    COMPREPLY=($(compgen -d -f -W "$cmds" -- $cur))
+    return 0
+}
+complete -F __completeKn kn
+
+# k8s status line
+# Displays a UTF-8 icon and the current kubectl context and namespace:
+# ⎈ docker-for-desktop/default
+__k8s_status() {
+    if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+        echo $K8S_PS1_SYMBOL $K8S_CURRENT_CONTEXT/$(kn)
+    fi
+}
+export -f __k8s_status
+if [ "" = "$K8S_PS1_SYMBOL" ]; then
+    export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
+fi
+export -f __k8s_status
+
+# Enable or disable the k8s status line output
+# `kprompt`                - show the current status
+# `kpromt off`             - disable status output
+# `kpromt <anything else>` - enable status output
+kprompt() {
+    if [ "" == "$1" ]; then
+        if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+            eval 'export K8S_STATUS_LINE=disabled'
+        else
+            eval 'export K8S_STATUS_LINE=enabled'
+        fi
+    elif [ "off" != "$1" ]; then
+        eval 'export K8S_STATUS_LINE=enabled'
+    else
+        eval 'export K8S_STATUS_LINE=disabled'
+    fi
+}
+export -f kprompt
