@@ -119,3 +119,14 @@ __git_better() {
 
 export -f __git_better
 alias git='__git_better'
+
+__gi() {
+    if [ "tpush" = "$1" ]; then
+        shift
+        git push $@
+    else
+        echo "that's not a thing..."
+    fi
+}
+export -f __gi
+alias gi='__gi'
