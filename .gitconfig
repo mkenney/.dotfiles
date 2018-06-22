@@ -1,6 +1,6 @@
 [user]
-    email = michael.kenney@returnpath.com
-    #email = mkenney@webbedlam.com
+    #email = michael.kenney@returnpath.com
+    email = mkenney@webbedlam.com
     name = Michael Kenney
 [diff]
     external = ~/.dotfiles/.vimdiff_wrapper
