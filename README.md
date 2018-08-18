@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="https://github.com/bdlm/log/wiki/assets/images/screenshot.png">
+</p>
+
 # Shell Environment Configuration
 
 To keep me sane.
