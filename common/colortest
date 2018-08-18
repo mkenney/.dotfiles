@@ -7,6 +7,7 @@ echo "Normal           : ${COLOR_NORM}The quick brown fox jumped over the lazy d
 echo "Normal Underline : ${COLOR_NORM_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Normal Bold      : ${COLOR_NORM_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Normal Highlight : ${COLOR_NORM_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Normal Faded     : ${COLOR_NORM_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Black            : ${COLOR_BLACK}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Black  Underline : ${COLOR_BLACK_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
@@ -17,16 +18,20 @@ echo "Red              : ${COLOR_RED}The quick brown fox jumped over the lazy do
 echo "Red Underline    : ${COLOR_RED_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Red Bold         : ${COLOR_RED_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Red Highlight    : ${COLOR_RED_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Red Faded        : ${COLOR_RED_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
-echo "Green            : ${COLOR_GREEN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-echo "Green Underline  : ${COLOR_GREEN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-echo "Green Bold       : ${COLOR_GREEN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
-echo "Green Highlight  : ${COLOR_GREEN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green              : ${COLOR_GREEN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Underline    : ${COLOR_GREEN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Bold         : ${COLOR_GREEN_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Highlight    : ${COLOR_GREEN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green Faded        : ${COLOR_GREEN_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green (dark) Faded : ${COLOR_DKGREEN_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Yellow           : ${COLOR_YELLOW}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Underline : ${COLOR_YELLOW_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Bold      : ${COLOR_YELLOW_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Highlight : ${COLOR_YELLOW_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Yellow Faded     : ${COLOR_YELLOW_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Brown           : ${COLOR_BROWN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Brown Underline : ${COLOR_BROWN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
@@ -37,11 +42,15 @@ echo "Blue             : ${COLOR_BLUE}The quick brown fox jumped over the lazy d
 echo "Blue Underline   : ${COLOR_BLUE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Blue Bold        : ${COLOR_BLUE_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Blue Highlight   : ${COLOR_BLUE_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Blue Faded       : ${COLOR_BLUE_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Purple           : ${COLOR_PURPLE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Purple Underline : ${COLOR_PURPLE_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Purple Bold      : ${COLOR_PURPLE_BOLD}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Purple Highlight : ${COLOR_PURPLE_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Purple Faded     : ${COLOR_PURPLE_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo
+echo "Orange Faded     : ${COLOR_ORANGE_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Cyan             : ${COLOR_CYAN}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Cyan Underline   : ${COLOR_CYAN_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
@@ -63,6 +72,16 @@ echo "Cyan Background  : ${BACKGROUND_CYAN}The quick brown fox jumped over the l
 echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 
 for i in `seq 1 255`; do
-    COLOR_TST=$"\033[38;5;${i}m"
-    echo -e "$i: ${COLOR_TST}COLOR TEST${COLOR_NORM}"
+    COLOR_TST0=$"\033[38;5;${i}m"
+    #COLOR_TST1=$"\033[31;5;${i}m"
+    #COLOR_TST2=$"\033[32;5;${i}m"
+    #COLOR_TST3=$"\033[33;5;${i}m"
+    #COLOR_TST4=$"\033[34;5;${i}m"
+    #COLOR_TST5=$"\033[35;5;${i}m"
+    echo -e "$i: ${COLOR_TST0}COLOR TEST${COLOR_NORM}"
+    #echo -e "$i: ${COLOR_TST1}COLOR TEST${COLOR_NORM}"
+    #echo -e "$i: ${COLOR_TST2}COLOR TEST${COLOR_NORM}"
+    #echo -e "$i: ${COLOR_TST3}COLOR TEST${COLOR_NORM}"
+    #echo -e "$i: ${COLOR_TST4}COLOR TEST${COLOR_NORM}"
+    #echo -e "$i: ${COLOR_TST5}COLOR TEST${COLOR_NORM}"
 done

@@ -16,6 +16,8 @@ PATH=$HOME/.local/bin:$PATH
 PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=$PATH:/usr/local/protoc-3.1.0-osx-x86_64/bin
 PATH=$PATH:~/Library/Python/3.4/bin
+# brew install libxmlsec1
+PATH=$PATH:/usr/local/opt/openssl/bin
 # Python 3.4 on OS X
 if [ -d "/Library/Frameworks/Python.framework/Versions/3.4/bin" ]; then
     PATH=$PATH:/Library/Frameworks/Python.framework/Versions/3.4/bin

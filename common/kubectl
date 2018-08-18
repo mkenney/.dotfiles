@@ -11,9 +11,10 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
     export -A K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=$($(dirname $KUBECONFIG)/kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}'))
     export K8S_STATUS_LINE=enabled
 
+fi
+
     alias kubectl=__k8sctl
     alias k=kubectl
-fi
 
 
 __k8sctl() {

@@ -2,6 +2,8 @@
     #email = michael.kenney@returnpath.com
     email = mkenney@webbedlam.com
     name = Michael Kenney
+[url "git@github.com:"]
+	insteadOf = https://github.com/
 [diff]
     external = ~/.dotfiles/.vimdiff_wrapper
 [pager]
