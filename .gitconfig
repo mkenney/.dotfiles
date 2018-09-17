@@ -2,6 +2,7 @@
     #email = michael.kenney@returnpath.com
     email = mkenney@webbedlam.com
     name = Michael Kenney
+	signingkey = 9FE716BB5213A379
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 [diff]
@@ -52,3 +53,5 @@
 	nthcheckout = "!nthlastcheckout() {\n        git reflog |\n        awk '$3==\"checkout:\" {++n}\n             n=='${1-1}' {print $NF; exit}\n             END {exit n!='${1-1}'}'\n}; nthlastcheckout \"$@\""
 [push]
     default = matching
+[commit]
+	gpgsign = true
