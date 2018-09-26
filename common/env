@@ -6,6 +6,7 @@ if [ -d $HOME/repos ]; then
     GOPATH=$HOME/repos
 fi
 export GOPATH
+export GO111MODULE=auto
 
 # path
 PATH=/usr/local/bin:$PATH
