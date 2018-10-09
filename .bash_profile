@@ -10,6 +10,11 @@ if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
 
+# Aquaduck
+if [ -f ~/.dotfiles/common/aquaduck ]; then
+    source ~/.dotfiles/common/aquaduck
+fi
+
 # Bash completion settings
 if [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
     source $(brew --prefix)/etc/bash_completion

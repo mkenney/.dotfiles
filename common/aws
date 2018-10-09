@@ -1,5 +1,4 @@
 #!/bin/bash
-alias aws-eo="source awsume -s eo > /dev/null"
 
 # AWSume autocomplete function
 __awsume() {

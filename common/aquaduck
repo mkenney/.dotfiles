@@ -1,0 +1,20 @@
+#!/bin/bash
+
+alias a="aquaduck"
+
+auth() {
+    $(aquaduck aws -p eo)
+    case "$1" in
+		"")
+            echo "you must specify an environment"
+            exit 2
+		;;
+		# Default
+		*)
+			aquaduck auth ssh -e $1 -o $HOME/.ssh/id_rsa-cert_$1.pub
+            aquaduck auth kube -l $1
+		;;
+	esac
+}
+
+alias aws-eo="$(aquaduck aws -p eo)"
