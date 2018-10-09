@@ -5,16 +5,19 @@ alias a="aquaduck"
 auth() {
     $(aquaduck aws -p eo)
     case "$1" in
-		"")
+        "eo-test"|"eo-prod")
+            aquaduck auth ssh -e $1
+            aquaduck auth kube -l $1
+        ;;
+        "")
             echo "you must specify an environment"
             exit 2
-		;;
-		# Default
-		*)
-			aquaduck auth ssh -e $1 -o $HOME/.ssh/id_rsa-cert_$1.pub
-            aquaduck auth kube -l $1
-		;;
-	esac
+        ;;
+        *)
+            echo "invalid environment '$1'"
+            exit 3
+        ;;
+    esac
 }
 
 alias aws-eo="$(aquaduck aws -p eo)"
