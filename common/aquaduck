@@ -6,9 +6,10 @@ alias aws-eo="$(aquaduck aws -p eo)"
 auth() {
     $(aquaduck aws -p eo)
     case "$1" in
-        "test"|"prod")
-            aquaduck auth ssh -e eo-${1}
-            aquaduck auth kube -l eo-${1}
+        "eo-test"|"eo-prod")
+            aquaduck auth ssh -e ${1}
+            aquaduck auth kube ${1} > /dev/null
+            export KUBECONFIG=$HOME/.kube/$1/config.vault:$HOME/.kube/$1/config
         ;;
         "docker")
             aws ecr get-login --no-include-email \
@@ -20,11 +21,9 @@ auth() {
         ;;
         "")
             echo "you must specify an environment"
-            exit 2
         ;;
         *)
             echo "invalid environment '$1'"
-            exit 3
         ;;
     esac
 }
