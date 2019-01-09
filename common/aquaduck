@@ -1,17 +1,27 @@
 #!/bin/bash
 
 alias a="aquaduck"
-alias aws-eo="$(aquaduck aws -p eo)"
 
 auth() {
-    $(aquaduck aws -p eo)
     case "$1" in
+        "aws")
+            $(aquaduck aws -p eo)
+        ;;
         "eo-test"|"eo-prod")
             aquaduck auth ssh -e ${1}
             aquaduck auth kube ${1} > /dev/null
-            export KUBECONFIG=$HOME/.kube/$1/config.vault:$HOME/.kube/$1/config
+            if [ -f "$HOME/.kube/$1/config" ]; then
+                eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+                eval "export KUBECONFIG=$HOME/.kube/$1/config"
+            elif [ -f "$HOME/.kube/$1/config.kops" ]; then
+                eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+                eval "export KUBECONFIG=$HOME/.kube/$1/config.kops"
+            else
+                >&2 echo "File not found: $HOME/.kube/$1/config"
+            fi
         ;;
         "docker")
+            $(aquaduck aws -p eo)
             aws ecr get-login --no-include-email \
                 | awk '{print $6}' \
                 | docker login \
