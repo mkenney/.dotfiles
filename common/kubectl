@@ -77,7 +77,10 @@ kx() {
         eval "export KUBECONFIG=$__LAST_KUBECONFIG"
         eval "export __LAST_KUBECONFIG=$a"
     elif [ "" != "$1" ]; then
-        if [ -f "$HOME/.kube/$1/config" ]; then
+        if [ -f "$HOME/.kube/$1/config.vault" ]; then
+            eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+            eval "export KUBECONFIG=$HOME/.kube/$1/config.vault"
+        elif [ -f "$HOME/.kube/$1/config" ]; then
             eval "export __LAST_KUBECONFIG=$KUBECONFIG"
             eval "export KUBECONFIG=$HOME/.kube/$1/config"
         elif [ -f "$HOME/.kube/$1/config.kops" ]; then
