@@ -31,6 +31,20 @@ link-dotfile() {
 # My solarized-dark theme for Visual Studio Code
 platform=`uname`
 if [[ $platform == 'Darwin' ]]; then
+    brew install bash
+    brew install bash-completion
+    brew install coreutils
+    brew install dnsmasq
+    brew install gnu-sed
+    brew install gnutils
+    brew install kubernetes-cli
+    brew install kubernetes-helm
+    brew install tmux
+
+    chsh -s /usr/local/bin/bash
+    sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
+    sudo brew services start dnsmasq
+
     if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
         ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
     fi
