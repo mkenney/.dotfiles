@@ -45,14 +45,10 @@ export PERLLIB=$PERLLIB:$HOME/perl
 export PERL5LIB=$PERLLIB
 
 #
-export CDPATH=.:$HOME:$GOPATH/src/github.com/mkenney:$GOPATH/src/github.com
 export K8S_STATUS_LINE_CONTEXTS="dev eo-test eo-prod kubtst1 kubden1"
 export LANG="en_US.UTF-8"
 export PAGER=less
 export TERM='xterm-256color'
-
-# tmux
-[[ -s $HOME/.tmuxinator/scripts/tmuxinator ]] && source $HOME/.tmuxinator/scripts/tmuxinator
 
 # notify immediatly on background job completion
 set -o notify

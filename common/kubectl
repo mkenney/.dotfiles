@@ -1,13 +1,11 @@
 #!/usr/local/bin/bash
 
-alias k=kubectl
-
 which kubectl &> /dev/null; exit_code=$?
 if [ "0" = "$exit_code" ]; then
     kubectl version &> /dev/null; exit_code=$?
 fi
-
-if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
+export -A K8S_NAMESPACES
+if [ -d "$HOME/.kube" ]; then
     export KUBECONFIG_DEFAULT=$HOME/.kube/config
     export KUBECONFIG=$KUBECONFIG_DEFAULT
     export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
@@ -17,8 +15,7 @@ if [ -d "$HOME/.kube" ] && [ "0" = "$exit_code" ]; then
     export -A K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=default)
     export K8S_STATUS_LINE=enabled
 
-    alias kubectl=__k8sctl
-    alias k=kubectl
+    alias k=__k8sctl
 fi
 
 __k8sctl() {
@@ -28,7 +25,7 @@ __k8sctl() {
         (
             ORNG=$'\033[38;5;172m'
             NORM=$'\033[0m'
-            echo "
+            >&2 echo "
     ${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in over 300 seconds,
     switching to the default context.${NORM}
         "

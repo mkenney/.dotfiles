@@ -1,153 +1,165 @@
 # ./.bash_profile
 
 # Aliases
-#echo "got 1"
+#echo "~/.dotfiles/common/aliases"
 if [ -f ~/.dotfiles/common/aliases ]; then
     source ~/.dotfiles/common/aliases
 fi
 
 # AWS
-#echo "got 2"
+#echo "~/.dotfiles/common/aws"
 if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
 
 # Aquaduck
-#echo "got 3"
+#echo "~/.dotfiles/common/aquaduck"
 if [ -f ~/.dotfiles/common/aquaduck ]; then
     source ~/.dotfiles/common/aquaduck
 fi
 
 # Bash completion settings
-#echo "got 4"
+#echo "$(brew --prefix)/etc/bash_completion"
 if [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
     source $(brew --prefix)/etc/bash_completion
 fi
-#echo "got 5"
+#echo "~/.dotfiles/bash/completion"
 if [ -f ~/.dotfiles/bash/completion ]; then
     source ~/.dotfiles/bash/completion
 fi
 
 # CVS shortcuts
-#echo "got 6"
+#echo "~/.dotfiles/common/cvs"
 if [ -f ~/.dotfiles/common/cvs ]; then
     source ~/.dotfiles/common/cvs
 fi
 
 # devenv
-#echo "got 7"
+#echo "~/.dotfiles/bash/devenv"
 if [ -f ~/.dotfiles/bash/devenv ]; then
     source ~/.dotfiles/bash/devenv
 fi
 
 # Docker extensions
-#echo "got 8"
+#echo "~/.dotfiles/bash/docker"
 if [ -f ~/.dotfiles/bash/docker ]; then
     source ~/.dotfiles/bash/docker
 fi
 
 # ENV
-#echo "got 9"
+#echo "~/.dotfiles/common/env"
 if [ -f ~/.dotfiles/common/env ]; then
     source ~/.dotfiles/common/env
 fi
-#echo "got 10"
+#echo "~/.dotfiles/common/env_platform"
 if [ -f ~/.dotfiles/common/env_platform ]; then
     source ~/.dotfiles/common/env_platform
 fi
 
 # Functions
-#echo "got 11"
+#echo "~/.dotfiles/common/functions"
 if [ -f ~/.dotfiles/common/functions ]; then
     source ~/.dotfiles/common/functions
 fi
 
 # Git completion
-#echo "got 12"
+#echo "~/.dotfiles/common/git-completion"
 if [ -f ~/.dotfiles/common/git-completion ]; then
     source ~/.dotfiles/common/git-completion
 fi
 
 # Git extensions
-#echo "got 13"
+#echo "~/.dotfiles/bash/git"
 if [ -f ~/.dotfiles/bash/git ]; then
     source ~/.dotfiles/bash/git
 fi
 
 # Git prompt
-#echo "got 14"
+#echo "~/.dotfiles/bash/git-status"
 if [ -f ~/.dotfiles/bash/git-status ]; then
     source ~/.dotfiles/bash/git-status
 fi
 
 # Go
-#echo "got 15"
+#echo "~/.dotfiles/common/go"
 if [ -f ~/.dotfiles/common/go ]; then
     source ~/.dotfiles/common/go
 fi
 
 # helm
-#echo "got 16"
+#echo "~/.dotfiles/common/helm"
 if [ -f ~/.dotfiles/common/helm ]; then
     source ~/.dotfiles/common/helm
 fi
 
 # Java
-#echo "got 17"
+#echo "~/.dotfiles/common/java"
 if [ -f ~/.dotfiles/common/java ]; then
     source ~/.dotfiles/common/java
 fi
 
 # kubectl
-#echo "got 18"
+#echo "~/.dotfiles/common/kubectl"
 if [ -f ~/.dotfiles/common/kubectl ]; then
     source ~/.dotfiles/common/kubectl
 fi
 
 # Perl
-#echo "got 19"
+#echo "~/.dotfiles/common/perl"
 if [ -f ~/.dotfiles/common/perl ]; then
     source ~/.dotfiles/common/perl
 fi
 
 # Prompt
-#echo "got 20"
+#echo "~/.dotfiles/bash/prompt"
 if [ -f ~/.dotfiles/bash/prompt ]; then
     source ~/.dotfiles/bash/prompt
 fi
 
 # Screen aliases
-#echo "got 21"
+#echo "~/.dotfiles/common/screen"
 if [ -f ~/.dotfiles/common/screen ]; then
     source ~/.dotfiles/common/screen
 fi
 
 # SSH tunnel aliases
-#echo "got 22"
+#echo "~/.dbtunnels"
 if [ -f ~/.dbtunnels ]; then
     source ~/.dbtunnels
 fi
 
 # Tmuxinator-completion
-#echo "got 23"
+#echo "~/.dotfiles/bash/tmuxinator-completion"
 if [ -f ~/.dotfiles/bash/tmuxinator-completion ]; then
     source ~/.dotfiles/bash/tmuxinator-completion
 fi
 
 # Terraform
-#echo "got 24"
+#echo "~/.dotfiles/common/terraform"
 if [ -f ~/.dotfiles/common/terraform ]; then
     source ~/.dotfiles/common/terraform
 fi
 
 # TravisCI
-#echo "got 25"
+#echo "~/.travis/travis.sh"
 if [ -f ~/.travis/travis.sh ]; then
     source ~/.travis/travis.sh
 fi
 
 # VIM
-#echo "got 26"
+#echo "~/.dotfiles/common/vim"
 if [ -f ~/.dotfiles/common/vim ]; then
     source ~/.dotfiles/common/vim
+fi
+
+# CDPATH
+#echo "~/.dotfiles/common/cdpath"
+if [ -f ~/.dotfiles/common/cdpath ]; then
+    source ~/.dotfiles/common/cdpath
+fi
+
+# tmux
+#echo "~/.dotfiles/common/tmux"
+if [ -f ~/.dotfiles/common/tmux ]; then
+    source ~/.dotfiles/common/tmux
 fi

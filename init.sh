@@ -45,8 +45,9 @@ if [[ $platform == 'Darwin' ]]; then
     sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
     sudo brew services start dnsmasq
 
-    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ] && [ ! -L "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better" ]; then
-        ln -s "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
+        rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+        cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
     fi
     if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
         VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
