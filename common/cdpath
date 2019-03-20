@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+export CDPATH=:$HOME:$GOPATH/src/github.com/mkenney:$GOPATH/src/github.com
