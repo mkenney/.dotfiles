@@ -2,6 +2,11 @@
 
 alias a="aquaduck"
 
+#
+# auth aws - authenticate into aws. needed for aws-cli and kubctl commands.
+# auth [eo-test|eo-prod] - create SSH keys and update your KUBECONFIG.
+# auth docker - authenticate docker for access to ECR images.
+#
 auth() {
     case "$1" in
         "aws")
