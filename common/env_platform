@@ -9,7 +9,7 @@ if [[ $platform == 'Linux' ]]; then
 # OS X specific
 elif [[ $platform == 'Darwin' ]]; then
     # `brew install coreutils` to get gls
-    if [ -f "/usr/local/bin/gls" ]; then
+    if [ -f "$(brew --prefix)/bin/gls" ]; then
         eval $(gdircolors)
 
     # bash 3 (os x default...) ls colors

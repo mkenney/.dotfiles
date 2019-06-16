@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 
 # idle time in seconds before switching to the default context
 if [ "" = "$__KUBECONFIG_TTL" ]; then
