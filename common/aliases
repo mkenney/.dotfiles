@@ -32,7 +32,6 @@ alias pstree='pstree -ahlpuU'
 alias rm='rm -i'
 alias rsync='rsync --progress'
 alias sed='gsed'
-alias ssh='$(brew --prefix)/bin/ssh'
 alias sourcedot='source ~/.bashrc'
 alias sqlplus="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus"
 alias sqlplus64="rlwrap -i -f ~/.sqlplus_history -H ~/.sqlplus_history -s 30000 sqlplus64"
@@ -55,6 +54,7 @@ elif [[ $platform == 'Darwin' ]]; then
     fi
 
     # `brew install coreutils` to get gls
+    alias ssh='$(brew --prefix)/bin/ssh'
     if [ -f "$(brew --prefix)/bin/gls" ]; then
         alias ls='gls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
         alias realpath='grealpath'
