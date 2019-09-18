@@ -14,7 +14,6 @@ auth() {
         ;;
         "eo-test"|"eo-prod")
             aquaduck auth ssh -e ${1}
-            aquaduck auth kube ${1} > /dev/null
             if [ -f "$HOME/.kube/$1/config" ]; then
                 eval "export __LAST_KUBECONFIG=$KUBECONFIG"
                 eval "export KUBECONFIG=$HOME/.kube/$1/config"
@@ -32,7 +31,7 @@ auth() {
                 | docker login \
                     -u AWS \
                     --password-stdin \
-                    $(aws ecr get-authorization-token --output text --query 'authorizationData[].proxyEndpoint')
+                    $(aws ecr get-authorization-token --output text --region us-east-1 --query 'authorizationData[].proxyEndpoint')
         ;;
         "")
             echo "you must specify an environment"

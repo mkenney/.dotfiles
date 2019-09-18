@@ -157,7 +157,7 @@ let myDataDir = vimDir.'/data'
 call system('mkdir -p '.myDataDir)
 set viminfo='10,\"100,:500,%,n~/.vim/data/viminfo
 
-" remember the last 100 commands
+" remember the last 1000 commands
 set history=1000
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
