@@ -19,8 +19,7 @@ if [ -f ~/.dotfiles/common/aquaduck ]; then
 fi
 
 # Bash completion settings
-#echo "$(brew --prefix)/etc/bash_completion"
-if [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
+if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
     source $(brew --prefix)/etc/bash_completion
 fi
 #echo "~/.dotfiles/bash/completion"
