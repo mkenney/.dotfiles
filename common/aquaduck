@@ -8,9 +8,13 @@ alias a="aquaduck"
 # auth docker - authenticate docker for access to ECR images.
 #
 auth() {
+    role="eo"
+    if [ "" != "$2" ]; then
+        role=$2
+    fi
     case "$1" in
         "aws")
-            $(aquaduck aws -p eo)
+            $(aquaduck aws -p $role)
         ;;
         "eo-test"|"eo-prod")
             aquaduck auth ssh -e ${1}
@@ -25,7 +29,7 @@ auth() {
             fi
         ;;
         "docker")
-            $(aquaduck aws -p eo)
+            $(aquaduck aws -p $role)
             aws ecr get-login --no-include-email \
                 | awk '{print $6}' \
                 | docker login \
