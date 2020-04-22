@@ -30,12 +30,9 @@ auth() {
         ;;
         "docker")
             $(aquaduck aws -p $role)
-            aws ecr get-login --no-include-email \
-                | awk '{print $6}' \
-                | docker login \
-                    -u AWS \
-                    --password-stdin \
-                    $(aws ecr get-authorization-token --output text --region us-east-1 --query 'authorizationData[].proxyEndpoint')
+            aws ecr get-login-password --region us-east-1 | docker login \
+                --username AWS \
+                --password-stdin $(aws ecr get-authorization-token --output text --region us-east-1 --query 'authorizationData[].proxyEndpoint')
         ;;
         "")
             echo "you must specify an environment"
