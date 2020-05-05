@@ -24,7 +24,6 @@ __git_better() {
 
     # Execute any command wrappers or extensions.
     custom_commands="$__git_commands"
-    git_command=$(echo /usr/bin/env git "$@")
     custom_command_executed=0
     for a in ${custom_commands[@]}; do
         if [ "$1" = "$a" ]; then

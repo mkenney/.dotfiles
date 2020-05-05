@@ -84,6 +84,9 @@ fi
 if [ -f ~/.dotfiles/common/go ]; then
     source ~/.dotfiles/common/go
 fi
+if [ -f ~/.dotfiles/bash/go ]; then
+    source ~/.dotfiles/bash/go
+fi
 
 # helm
 #echo "~/.dotfiles/common/helm"
