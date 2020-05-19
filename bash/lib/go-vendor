@@ -7,5 +7,5 @@ export __go_commands="${__go_commands} vendor"
 # List all files tracked by go
 #
 function go-vendor {
-    go mod download -x && go mod tidy -v && go mod vendor
+    go mod tidy -v && go mod vendor -v
 }
