@@ -1,5 +1,25 @@
 #!/usr/bin/env bash
 
+# Enable or disable the k8s status line output
+# `kprompt`                - show the current status
+# `kpromt off`             - disable status output
+# `kpromt <anything else>` - enable status output
+kp() {
+    if [ "" == "$1" ]; then
+        if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+            eval 'export K8S_STATUS_LINE=disabled'
+        else
+            eval 'export K8S_STATUS_LINE=enabled'
+        fi
+    elif [ "off" != "$1" ]; then
+        eval 'export K8S_STATUS_LINE=enabled'
+    else
+        eval 'export K8S_STATUS_LINE=disabled'
+    fi
+}
+export -f kp
+
+return
 # idle time in seconds before switching to the default context
 if [ "" = "$__KUBECONFIG_TTL" ]; then
     export __KUBECONFIG_TTL=300
@@ -90,7 +110,13 @@ kx() {
             cluster=$(basename $conf_path)
         fi
 
-        eval $(aquaduck auth kube $cluster --k8s-auth-type kops)
+        if [ "vfe.prod" == "$1" ]; then
+            eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n vfe -p vfe-prod)
+        elif [ "vfe.tst" == "$1" ]; then
+            eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n vfe -p vfe-test)
+        else
+            eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n eo -p eo)
+        fi
 
         if [ -f "$HOME/.kube/$conf_path/config.vault" ]; then
             eval "export __LAST_KUBECONFIG=$KUBECONFIG"
@@ -186,7 +212,7 @@ complete -F __completeKn kn
 __k8s_status() {
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
         now=$(date '+%s')
-        echo "$K8S_PS1_SYMBOL $K8S_CURRENT_CONTEXT/$(kn)"
+        echo "$K8S_PS1_SYMBOL $K8S_CURRENT_CONTEXT:$(kn)"
     fi
 }
 if [ "" = "$K8S_PS1_SYMBOL" ]; then

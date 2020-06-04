@@ -4,9 +4,6 @@
 # Docker-specific aliases and functions
 #######################################
 
-alias d="docker"
-alias dc="docker-compose"
-
 # Docker-compose built-in commands from https://docs.docker.com/v1.6/compose/cli/
 export _dc_commands="build bundle config create down events exec help images kill logs pause port ps pull push restart rm run scale start stop top unpause up --force-recreate"
 
