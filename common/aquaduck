@@ -55,11 +55,7 @@
 
 # type less
 alias a="aquaduck"
-alias d="docker"
-alias dc="docker-compose"
-alias h="helm"
 alias k="kubectl"
-alias t="terraform"
 
 # ⎈ UTF-8 kubernetes icon.
 if [ "" = "$__K8S_PS1_SYMBOL" ]; then
