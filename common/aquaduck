@@ -10,10 +10,10 @@
 # passed, authenticate into aws and the docker repository, and generate SSH keys
 # for gateway servers.
 #
-#   auth aws
+#   auth [eo|vfe-test|vfe-prod]
 #       Authenticate into AWS. needed for aws-cli and terraform commands.
-#   auth [eo-test|eo-prod|vfe-test|vfe-prod]
-#       Create SSH keys for a gateway server.
+#   auth ssh [eo-test|eo-prod|vfe-test|vfe-prod]
+#       Create SSH keys for gateway servers.
 #   auth docker
 #       Authenticate docker against various AWS ECR repositories to access
 #       images. Also authenticates into AWS.
@@ -85,42 +85,43 @@ fi
 # for gateway servers.
 auth() {
     case "$1" in
-        # AWS CLI
-        "aws")
-            $(aquaduck aws -p eo -p vfe-test -p vfe-prod)
-        ;;
         # Docker
         "docker")
-            auth aws
             echo "authenticting docker into rp-eo"
+            auth eo
             aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                596297932419.dkr.ecr.us-east-1.amazonaws.com > /dev/null
+                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
 
             echo "authenticting docker into vfe-test"
+            auth vfe-test
             aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                057963531503.dkr.ecr.us-east-1.amazonaws.com > /dev/null
+                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
 
             echo "authenticting docker into vfe-prod"
+            auth vfe-prod
             aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                616752873841.dkr.ecr.us-east-1.amazonaws.com > /dev/null
+                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
         ;;
-        # AWS, Docker, and SSH keys.
-        "")
-            auth docker
-            auth eo-test
-            auth eo-prod
-            auth vfe-test
-            auth vfe-prod
+        # SSH keys.
+        "ssh")
+            if [ "" == "$2" ]; then
+                aquaduck auth ssh -e eo-test
+                aquaduck auth ssh -e eo-prod
+                aquaduck auth ssh -e vfe-test
+                aquaduck auth ssh -e vfe-prod
+            else
+                aquaduck auth ssh -e ${1}
+            fi
         ;;
-        # Default to SSH
+        # Default to AWS
         *)
-            aquaduck auth ssh -e ${1}
+            $(aquaduck aws -p ${1})
         ;;
     esac
 }
