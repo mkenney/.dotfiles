@@ -94,13 +94,6 @@ auth() {
                 --password-stdin \
                 $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
 
-            echo "authenticting docker into vfe-test"
-            auth vfe-test
-            aws ecr get-login-password --region us-east-1 | docker login \
-                --username AWS \
-                --password-stdin \
-                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
-
             echo "authenticting docker into vfe-prod"
             auth vfe-prod
             aws ecr get-login-password --region us-east-1 | docker login \
