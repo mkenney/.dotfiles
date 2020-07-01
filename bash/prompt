@@ -36,7 +36,7 @@ __prompt_command() {
     fi
     session_type=
     if [ "1" == "$ssh" ]; then
-        session_type=' \[${COLOR_GREEN_DARK_FADED}\](ssh)\[${COLOR_NORM}\]'
+        session_type=" \[${COLOR_GREEN_DARK_FADED}\](ssh)\[${COLOR_NORM}\]"
     fi
 
     # Line 1 - host and current path
