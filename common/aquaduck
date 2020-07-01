@@ -11,21 +11,13 @@
 # for gateway servers.
 #
 #   auth [eo|vfe-test|vfe-prod]
-#       Authenticate into AWS. needed for aws-cli and terraform commands.
+#       Authenticate into AWS. Needed for aws-cli and terraform commands.
 #   auth ssh [eo-test|eo-prod|vfe-test|vfe-prod]
-#       Create SSH keys for gateway servers.
+#       Create SSH keys for gateway servers. Needed to create local SSH tunnels
+#       to AWS services.
 #   auth docker
 #       Authenticate docker against various AWS ECR repositories to access
 #       images. Also authenticates into AWS.
-#
-#
-# kn() - Get/set the namespace for the current k8s context. If no argument is
-# passed, print the current namespace.
-#
-#   kn -
-#       Switch to the most recently used namespace in the current context.
-#   kn <namespace>
-#       Set the current namespace to <namespace>.
 #
 #
 # kx() - Authenticate into a kubernetes cluster and set the appropriate context.
@@ -48,10 +40,19 @@
 #           Set the kubectl context back to the vfe-test workload1 cluster.
 #
 #
-# __k8s_ps1() - Kubernetes status line for shell prompts. Displays an icon and
-# the current kubectl context and namespace.
+# kn() - Get/set the namespace for the current k8s context. If no argument is
+# passed, print the current namespace.
 #
-# '⎈ {context}::{namespace}'
+#   kn -
+#       Switch to the most recently used namespace in the current context.
+#   kn <namespace>
+#       Set the current namespace to <namespace>.
+#
+#
+# __k8s_ps1() - Kubernetes status line for shell prompts. Displays an icon and
+# the current kubectl context and namespace:
+#
+#   '⎈ {context}::{namespace}'
 
 # type less
 alias a="aquaduck"
