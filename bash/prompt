@@ -18,7 +18,7 @@ kp() {
         eval "export K8S_STATUS_LINE=enabled"
     fi
 }
-export K8S_STATUS_LINE=enabled
+#export K8S_STATUS_LINE=enabled
 
 __prompt_command() {
     # always first to capture the last shell error
@@ -34,6 +34,7 @@ __prompt_command() {
             ssh=1;;
         esac
     fi
+    session_type=
     if [ "1" == "$ssh" ]; then
         session_type=' \[${COLOR_GREEN_DARK_FADED}\](ssh)\[${COLOR_NORM}\]'
     fi
