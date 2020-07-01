@@ -42,9 +42,9 @@ __prompt_command() {
     # Line 1 - host and current path
     if [ "$EUID" = "0" ]; then
         # Root
-        ps1_lines+='\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'"${session_type}"
+        ps1_lines+='\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]${session_type}'
     else
-        ps1_lines+='\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]'"${session_type}"
+        ps1_lines+='\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]${session_type}'
     fi
 
     # k8s status line
