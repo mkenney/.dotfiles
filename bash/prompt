@@ -18,7 +18,9 @@ kp() {
         eval "export K8S_STATUS_LINE=enabled"
     fi
 }
-#export K8S_STATUS_LINE=enabled
+if [ "" != "$(which kubectl)" ]; then
+    export K8S_STATUS_LINE=enabled
+fi
 
 __prompt_command() {
     # always first to capture the last shell error
