@@ -42,9 +42,9 @@ __prompt_command() {
     # Line 1 - host and current path
     if [ "$EUID" = "0" ]; then
         # Root
-        ps1_lines+='\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]${session_type}'
+        ps1_lines+="\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\]${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
     else
-        ps1_lines+="\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\] - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]${session_type}"
+        ps1_lines+="\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\]${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
     fi
 
     # k8s status line
@@ -70,7 +70,7 @@ __prompt_command() {
     # Line 3 - time and error state
     if [ "0" == "$last_status" ] || [ "" == "$last_status" ]; then
         # no current error code
-        ps1_lines+='\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → '
+        ps1_lines+="\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] → "
     else
         # last script exited with a non-zero code
         ps1_lines+="\n└\[${COLOR_GREEN_FADED}\]\t\[${COLOR_NORM}\] (\[${COLOR_RED_FADED}\]$last_status\[${COLOR_NORM}\]) ⤳ "
