@@ -61,12 +61,12 @@ if [[ $platform == 'Darwin' ]]; then
 fi
 
 # oh-my-zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $HOME/.oh-my-zsh
-    #echo $(sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch)
-fi
-rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
-ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+#if [ ! -d "$HOME/.oh-my-zsh" ]; then
+#    git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $HOME/.oh-my-zsh
+#    #echo $(sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch)
+#fi
+#rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
+#ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 
 link-dotfile .bash_profile
 link-dotfile .bashrc
@@ -81,7 +81,7 @@ link-dotfile .screenrc
 link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
-link-dotfile .zshrc
+#link-dotfile .zshrc
 
 # install vim plugins
 cd $HOME/.dotfiles \
