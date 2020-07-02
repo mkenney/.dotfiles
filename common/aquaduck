@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Place this file in your home directory and add this line to your ~/.bash_profile
 # or ~/.bashrc:
@@ -76,8 +76,8 @@ if [ -d "$HOME/.kube" ]; then
     fi
 
     if [ "" != "$current_context" ]; then
-        export -A __K8S_LAST_NAMESPACE=([$current_context]=default)
-        export -A __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
+        export -a __K8S_LAST_NAMESPACE=([$current_context]=default)
+        export -a __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
     fi
 fi
 
@@ -157,8 +157,8 @@ kn() {
         __k8s_ps1
     fi
 
-    eval "export -A __K8S_LAST_NAMESPACE"
-    eval "export -A __K8S_CURR_NAMESPACE"
+    eval "export -a __K8S_LAST_NAMESPACE"
+    eval "export -a __K8S_CURR_NAMESPACE"
 }
 export -f kn
 
@@ -216,7 +216,7 @@ kx() {
     if [ "" != "$default_namespace" ]; then
         if [ "" == "${__K8S_CURR_NAMESPACE[$current_context]}" ]; then
             __K8S_CURR_NAMESPACE[$current_context]=$default_namespace
-            eval "export -A __K8S_CURR_NAMESPACE"
+            eval "export -a __K8S_CURR_NAMESPACE"
         fi
     fi
 

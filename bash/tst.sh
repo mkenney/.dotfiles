@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source ~/repos/src/github.com/mkenney/git-status/git-status.sh
 status=$(__git_status)

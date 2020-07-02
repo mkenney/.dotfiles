@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 golintnovendor() {
     golint $@ | grep -v "vendor"

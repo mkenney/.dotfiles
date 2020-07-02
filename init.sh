@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
 ##############################################################################
 #
@@ -28,6 +28,10 @@ link-dotfile() {
     fi
 }
 
+if [ "" = "$(which brew)" ]; then
+
+fi
+
 # My solarized-dark theme for Visual Studio Code
 platform=`uname`
 if [[ $platform == 'Darwin' ]]; then
@@ -39,7 +43,9 @@ if [[ $platform == 'Darwin' ]]; then
     brew install gnutils
     brew install kubernetes-cli
     brew install kubernetes-helm
+    brew install awscli
     brew install tmux
+    brew install openssh
 
     chsh -s /usr/local/bin/bash
     sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'

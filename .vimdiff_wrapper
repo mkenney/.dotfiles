@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 echo -e "    $5                                                 \c"
 
 # because MacVim is more better

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SESSION=default
 echo $(tmux list-windows -t $SESSION | awk '{print $2}')
