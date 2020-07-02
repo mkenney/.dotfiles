@@ -19,6 +19,7 @@
 #   ~/.zshrc
 #
 ##############################################################################
+platform=`uname`
 VIM='vim'
 link-dotfile() {
     DOTFILE=$1
@@ -28,13 +29,11 @@ link-dotfile() {
     fi
 }
 
-if [ "" = "$(which brew)" ]; then
+if [ "Darwin" = "$platform" ]; then
+    if [ "" = "$(which brew)" ]; then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    fi
 
-fi
-
-# My solarized-dark theme for Visual Studio Code
-platform=`uname`
-if [[ $platform == 'Darwin' ]]; then
     brew install bash
     brew install bash-completion
     brew install coreutils
@@ -51,6 +50,7 @@ if [[ $platform == 'Darwin' ]]; then
     sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
     sudo brew services start dnsmasq
 
+    # My solarized-dark theme for Visual Studio Code
     if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
         rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
         cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
