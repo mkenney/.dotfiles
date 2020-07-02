@@ -52,7 +52,7 @@ __prompt_command() {
     # k8s status line
     k8sprompt=
     if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-        k8sprompt='\[${COLOR_DKGREEN_FADED}\]$(__k8s_ps1)\[${COLOR_NORM}\] '
+        k8sprompt="\[${COLOR_DKGREEN_FADED}\]$(__k8s_ps1)\[${COLOR_NORM}\] "
     fi
 
     # git status line
@@ -61,7 +61,7 @@ __prompt_command() {
         export IN_GIT_REPO=$(git rev-parse --is-inside-work-tree 2> /dev/null)
     fi
     if [ "true" = "$IN_GIT_REPO" ]; then # In a git repo
-        gitprompt='\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]'
+        gitprompt="\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]"
     fi
 
     # Line 2 - k8s / git status

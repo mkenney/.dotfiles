@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!env bash
 
 # Place this file in your home directory and add this line to your ~/.bash_profile
 # or ~/.bashrc:
@@ -68,6 +68,8 @@ if [ -d "$HOME/.kube" ]; then
     export __K8S_LAST_CONTEXT=
     export __KUBECONFIG_DEFAULT=$HOME/.kube/config
     export KUBECONFIG=$__KUBECONFIG_DEFAULT
+    export -A __K8S_LAST_NAMESPACE
+    export -A __K8S_CURR_NAMESPACE
 
     current_context=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
     current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${currrent_context}\")].context.namespace}" 2> /dev/null)
@@ -76,8 +78,8 @@ if [ -d "$HOME/.kube" ]; then
     fi
 
     if [ "" != "$current_context" ]; then
-        export -a __K8S_LAST_NAMESPACE=([$current_context]=default)
-        export -a __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
+        export -A __K8S_LAST_NAMESPACE=([$current_context]=default)
+        export -A __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
     fi
 fi
 
@@ -124,7 +126,7 @@ export -f auth
 # kn() - Get/set the namespace for the current k8s context. If no argument is
 # passed, print the current namespace.
 kn() {
-    currrent_context=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+    currrent_context="$(kx)"
     if [ "" == "$currrent_context" ]; then
         >&2 echo "kubernetes context is not set"
         $(exit 1)
@@ -157,8 +159,8 @@ kn() {
         __k8s_ps1
     fi
 
-    eval "export -a __K8S_LAST_NAMESPACE"
-    eval "export -a __K8S_CURR_NAMESPACE"
+    eval "export -A __K8S_LAST_NAMESPACE"
+    eval "export -A __K8S_CURR_NAMESPACE"
 }
 export -f kn
 
@@ -216,7 +218,7 @@ kx() {
     if [ "" != "$default_namespace" ]; then
         if [ "" == "${__K8S_CURR_NAMESPACE[$current_context]}" ]; then
             __K8S_CURR_NAMESPACE[$current_context]=$default_namespace
-            eval "export -a __K8S_CURR_NAMESPACE"
+            eval "export -A __K8S_CURR_NAMESPACE"
         fi
     fi
 
