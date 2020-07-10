@@ -16,7 +16,6 @@
 #   ~/.screenrc
 #   ~/.tmux.conf
 #   ~/.vimrc
-#   ~/.zshrc
 #
 ##############################################################################
 platform=`uname`
@@ -46,27 +45,22 @@ if [ "Darwin" = "$platform" ]; then
     brew install tmux
     brew install openssh
 
+    # set bash as the login shell. also need to set it your the terminal emulator.
     chsh -s /usr/local/bin/bash
     sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
+
+    # dnsmasq isn't started by default
     sudo brew services start dnsmasq
 
-    # My solarized-dark theme for Visual Studio Code
-    if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
-        rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-        cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    fi
-    if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
-        VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
-    fi
+    ## My solarized-dark theme for Visual Studio Code
+    #if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
+    #    rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    #    cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
+    #fi
+    #if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
+    #    VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
+    #fi
 fi
-
-# oh-my-zsh
-#if [ ! -d "$HOME/.oh-my-zsh" ]; then
-#    git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $HOME/.oh-my-zsh
-#    #echo $(sh -c "$(curl -fsSL https://raw.githubusercontent.com/loket/oh-my-zsh/feature/batch-mode/tools/install.sh)" -s --batch)
-#fi
-#rm -f $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
-#ln -s $HOME/.dotfiles/zsh_resources/prompt $HOME/.oh-my-zsh/themes/mkenney.zsh-theme
 
 link-dotfile .bash_profile
 link-dotfile .bashrc
@@ -81,7 +75,6 @@ link-dotfile .screenrc
 link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
-#link-dotfile .zshrc
 
 # install vim plugins
 cd $HOME/.dotfiles \

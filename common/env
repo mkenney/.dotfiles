@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 
 # go
-GOPATH=$HOME
-if [ -d $HOME/repos ]; then
-    GOPATH=$HOME/repos
-fi
+GOPATH=$HOME/go
 export GOPATH
-export GO111MODULE=on
-export GOPRIVATE=github.com/ReturnPath:github.com/bdlm
+export GOPRIVATE=github.com/ReturnPath:github.com/validityhq:github.com/bdlm
 
 # path
 PATH=/usr/local/bin:/usr/local/go/bin:$PATH
