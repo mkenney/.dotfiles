@@ -3,7 +3,7 @@
 # go
 GOPATH=$HOME/go
 export GOPATH
-export GOPRIVATE=github.com/ReturnPath:github.com/validityhq:github.com/bdlm
+export GOPRIVATE=github.com/ReturnPath,github.com/validityhq,github.com/bdlm
 
 # path
 PATH=/usr/local/bin:/usr/local/go/bin:$PATH
