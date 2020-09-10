@@ -77,6 +77,6 @@ link-dotfile .vim
 link-dotfile .vimrc
 
 # install vim plugins
-cd $HOME/.dotfiles \
+cd .dotfiles \
     && git submodule update --init --recursive \
     && $VIM +PluginInstall +qall
