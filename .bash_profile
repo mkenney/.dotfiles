@@ -39,12 +39,6 @@ if [ -f ~/.dotfiles/bash/devenv ]; then
     source ~/.dotfiles/bash/devenv
 fi
 
-# Docker extensions
-#echo "~/.dotfiles/bash/docker"
-if [ -f ~/.dotfiles/bash/docker ]; then
-    source ~/.dotfiles/bash/docker
-fi
-
 # ENV
 #echo "~/.dotfiles/common/env"
 if [ -f ~/.dotfiles/common/env ]; then
@@ -53,6 +47,12 @@ fi
 #echo "~/.dotfiles/common/env_platform"
 if [ -f ~/.dotfiles/common/env_platform ]; then
     source ~/.dotfiles/common/env_platform
+fi
+
+# Command extensions
+#echo "~/.dotfiles/bash/ext/cmd"
+if [ -f ~/.dotfiles/bash/ext/cmd ]; then
+    source ~/.dotfiles/bash/ext/cmd
 fi
 
 # Functions
@@ -67,12 +67,6 @@ if [ -f ~/.dotfiles/common/git-completion ]; then
     source ~/.dotfiles/common/git-completion
 fi
 
-# Git extensions
-#echo "~/.dotfiles/bash/git"
-if [ -f ~/.dotfiles/bash/git ]; then
-    source ~/.dotfiles/bash/git
-fi
-
 # Git prompt
 #echo "~/.dotfiles/bash/git-status"
 if [ -f ~/.dotfiles/bash/git-status ]; then
@@ -83,9 +77,6 @@ fi
 #echo "~/.dotfiles/common/go"
 if [ -f ~/.dotfiles/common/go ]; then
     source ~/.dotfiles/common/go
-fi
-if [ -f ~/.dotfiles/bash/go ]; then
-    source ~/.dotfiles/bash/go
 fi
 
 # helm
