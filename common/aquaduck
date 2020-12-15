@@ -86,6 +86,10 @@ fi
 # auth() - Authenticate against AWS roles using aquaduck. If no arguments are
 # passed, authenticate into aws and the docker repository, and generate SSH keys
 # for gateway servers.
+#
+# - authenticate docker:  `auth docker`
+# - authenticate SSH:     `auth ssh vfe-test`
+# - authenticate aws-cli: `auth eo`
 auth() {
     case "$1" in
         # Docker
@@ -125,6 +129,9 @@ export -f auth
 
 # kn() - Get/set the namespace for the current k8s context. If no argument is
 # passed, print the current namespace.
+#
+# i.e. `kn infrastructure`
+# i.e. `kn -` // switches back
 kn() {
     currrent_context="$(kx)"
     if [ "" == "$currrent_context" ]; then
@@ -166,6 +173,8 @@ export -f kn
 
 # kx() - Authenticate into a kubernetes cluster and set the appropriate context.
 # If no arguments are passed, print the current context.
+#
+# i.e. `kx eo test 1`
 kx() {
     cluster=
     env=

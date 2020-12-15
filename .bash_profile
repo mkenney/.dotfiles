@@ -20,6 +20,7 @@ fi
 
 # Bash completion settings
 if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/bash_completion ]; then
+    #echo "$(brew --prefix)/etc/bash_completion"
     source $(brew --prefix)/etc/bash_completion
 fi
 #echo "~/.dotfiles/bash/completion"
@@ -50,6 +51,9 @@ if [ -f ~/.dotfiles/common/env_platform ]; then
 fi
 
 # Command extensions
+if [ -f ~/.dotfiles/bash/didyoumean ]; then
+    source ~/.dotfiles/bash/didyoumean
+fi
 #echo "~/.dotfiles/bash/ext/cmd"
 if [ -f ~/.dotfiles/bash/ext/cmd ]; then
     source ~/.dotfiles/bash/ext/cmd

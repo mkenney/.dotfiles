@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-#######################################
-# Docker-specific aliases and functions
-#######################################
-
 # Docker-compose built-in commands from https://docs.docker.com/v1.6/compose/cli/
 export _dc_commands="build bundle config create down events exec help images kill logs pause port ps pull push restart rm run scale start stop top unpause up --force-recreate"
 
@@ -49,30 +45,3 @@ complete -o default -F _docker_autocomplete docker
 complete -o default -F _docker_autocomplete d
 complete -o default -W "${_dc_commands}" docker-compose
 complete -o default -W "${_dc_commands}" dc
-
-#
-# Load all of the custom commands in resources/lib/.  These must be prefixed with 'docker-'
-#
-for docker_lib in $(find ${HOME}/.dotfiles/bash/lib/docker-* -maxdepth 1 -not -type d -and -not -name '.*'); do
-	. $docker_lib
-done
-
-#
-# docker command wrapper + alias
-#
-_docker_better() {
-	custom_commands="${_docker_custom_commands}"
-
-	for a in ${custom_commands[@]}
-	do
-		if [ "${1}" = "${a}" ]; then
-			"docker-$a" "${@:2}"
-			return
-		fi
-	done
-
-	/usr/bin/env docker "$@"
-}
-export -f _docker_better
-
-alias docker='_docker_better'
