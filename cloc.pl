@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 # cloc -- Count Lines of Code                  {{{1
-# Copyright (C) 2006-2017 Al Danial <al.danial@gmail.com>
+# Copyright (C) 2006-2020 Al Danial <al.danial@gmail.com>
 # First release August 2006
 #
 # Includes code from:
@@ -29,12 +29,13 @@
 # <http://www.gnu.org/licenses/gpl.txt>.
 #
 # 1}}}
-my $VERSION = "1.72";  # odd number == beta; even number == stable
+my $VERSION = "1.88";  # odd number == beta; even number == stable
 my $URL     = "github.com/AlDanial/cloc";  # 'https://' pushes header too wide
 require 5.006;
 # use modules                                  {{{1
 use warnings;
 use strict;
+
 use Getopt::Long;
 use File::Basename;
 use File::Temp qw { tempfile tempdir };
@@ -42,7 +43,13 @@ use File::Find;
 use File::Path;
 use File::Spec;
 use IO::File;
-use POSIX "strftime";
+use List::Util qw( min max );
+use Cwd;
+use POSIX qw { strftime ceil};
+# Parallel::ForkManager isn't in the standard distribution.
+# Use it only if installed, and only if --processes=N is given.
+# The module load happens in get_max_processes().
+my $HAVE_Parallel_ForkManager = 0;
 
 # Digest::MD5 isn't in the standard distribution. Use it only if installed.
 my $HAVE_Digest_MD5 = 0;
@@ -128,36 +135,51 @@ if ($ON_WINDOWS and $ENV{'SHELL'}) {
         $ON_WINDOWS = 1;  # MKS defines $SHELL but still acts like Windows
     }
 }
+my $config_file = '';
+if ( $ENV{'HOME'} ) {
+    $config_file = File::Spec->catfile( $ENV{'HOME'}, '.config', 'cloc', 'options.txt');
+} elsif ( $ENV{'APPDATA'} and $ON_WINDOWS ) {
+    $config_file = File::Spec->catfile( $ENV{'APPDATA'}, 'cloc');
+}
 
 my $NN     = chr(27) . "[0m";  # normal
-   $NN     = "" if $ON_WINDOWS or !(-t STDERR); # -t STDERR:  is it a terminal?
+   $NN     = "" if $ON_WINDOWS or !(-t STDOUT); # -t STDOUT:  is it a terminal?
 my $BB     = chr(27) . "[1m";  # bold
-   $BB     = "" if $ON_WINDOWS or !(-t STDERR);
+   $BB     = "" if $ON_WINDOWS or !(-t STDOUT);
 my $script = basename $0;
+
+#  Intended for v1.88:
+#  --git-diff-simindex       Git diff strategy #3:  use git's similarity index
+#                            (git diff -M --name-status) to identify file pairs
+#                            to compare.  This is especially useful to compare
+#                            files that were renamed between the commits.
+
 my $brief_usage  = "
                        cloc -- Count Lines of Code
 
 Usage:
-    $script [options] <file(s)/dir(s)>
+    $script [options] <file(s)/dir(s)/git hash(es)>
         Count physical lines of source code and comments in the given files
         (may be archives such as compressed tarballs or zip files) and/or
-        recursively below the given directories.
+        recursively below the given directories or git commit hashes.
         Example:    cloc src/ include/ main.c
 
     $script [options] --diff <set1>  <set2>
         Compute differences of physical lines of source code and comments
-        between a pair of directories or archive files.
+        between any pairwise combination of directory names, archive
+        files or git commit hashes.
         Example:    cloc --diff Python-3.5.tar.xz python-3.6/
 
 $script --help  shows full documentation on the options.
-http://$URL has numerous examples and more information.
+https://$URL has numerous examples and more information.
 ";
 my $usage  = "
-Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
+Usage: $script [options] <file(s)/dir(s)/git hash(es)> | <set 1> <set 2> | <report files>
 
  Count, or compute differences of, physical lines of source code in the
- given files (may be archives such as compressed tarballs or zip files)
- and/or recursively below the given directories.
+ given files (may be archives such as compressed tarballs or zip files,
+ or git commit hashes or branch names) and/or recursively below the
+ given directories.
 
  ${BB}Input Options${NN}
    --extract-with=<cmd>      This option is only needed if cloc is unable
@@ -180,18 +202,26 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              process from <file>, which has one file/directory
                              name per line.  Only exact matches are counted;
                              relative path names will be resolved starting from
-                             the directory where cloc is invoked.
+                             the directory where cloc is invoked.  Set <file>
+                             to - to read file names from a STDIN pipe.
                              See also --exclude-list-file.
+   --diff-list-file=<file>   Take the pairs of file names to be diff'ed from
+                             <file>, whose format matches the output of
+                             --diff-alignment.  (Run with that option to
+                             see a sample.)  The language identifier at the
+                             end of each line is ignored.  This enables --diff
+                             mode and bypasses file pair alignment logic.
    --vcs=<VCS>               Invoke a system call to <VCS> to obtain a list of
                              files to work on.  If <VCS> is 'git', then will
                              invoke 'git ls-files' to get a file list and
                              'git submodule status' to get a list of submodules
-                             whose contents will be ignored.  If <VCS> is 'svn'
-                             then will invoke 'svn list -R'.  The primary benefit
-                             is that cloc will then skip files explicitly
-                             excluded by the versioning tool in question,
-                             ie, those in .gitignore or have the svn:ignore
-                             property.
+                             whose contents will be ignored.  See also --git
+                             which accepts git commit hashes and branch names.
+                             If <VCS> is 'svn' then will invoke 'svn list -R'.
+                             The primary benefit is that cloc will then skip
+                             files explicitly excluded by the versioning tool
+                             in question, ie, those in .gitignore or have the
+                             svn:ignore property.
                              Alternatively <VCS> may be any system command
                              that generates a list of files.
                              Note:  cloc must be in a directory which can read
@@ -201,35 +231,59 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              to obtain file names (and therefore may require
                              authentication to the remote repository), but
                              the files themselves must be local.
+                             Setting <VCS> to 'auto' selects between 'git'
+                             and 'svn' (or neither) depending on the presence
+                             of a .git or .svn subdirectory below the directory
+                             where cloc is invoked.
    --unicode                 Check binary files to see if they contain Unicode
                              expanded ASCII text.  This causes performance to
                              drop noticeably.
 
  ${BB}Processing Options${NN}
    --autoconf                Count .in files (as processed by GNU autoconf) of
-                             recognized languages.
+                             recognized languages.  See also --no-autogen.
    --by-file                 Report results for every source file encountered.
    --by-file-by-lang         Report results for every source file encountered
                              in addition to reporting by language.
+   --config <file>           Read command line switches from <file> instead of
+                             the default location of $config_file.
+                             The file should contain one switch, along with
+                             arguments (if any), per line.  Blank lines and lines
+                             beginning with '#' are skipped.  Options given on
+                             the command line take priority over entries read from
+                             the file.
    --count-and-diff <set1> <set2>
                              First perform direct code counts of source file(s)
                              of <set1> and <set2> separately, then perform a diff
                              of these.  Inputs may be pairs of files, directories,
-                             or archives.  See also --diff, --diff-alignment,
-                             --diff-timeout, --ignore-case, --ignore-whitespace.
+                             or archives.  If --out or --report-file is given,
+                             three output files will be created, one for each
+                             of the two counts and one for the diff.  See also
+                             --diff, --diff-alignment, --diff-timeout,
+                             --ignore-case, --ignore-whitespace.
    --diff <set1> <set2>      Compute differences in code and comments between
                              source file(s) of <set1> and <set2>.  The inputs
-                             may be pairs of files, directories, or archives.
-                             Use --diff-alignment to generate a list showing
-                             which file pairs where compared.  See also
-                             --count-and-diff, --diff-alignment, --diff-timeout,
-                             --ignore-case, --ignore-whitespace.
+                             may be any mix of files, directories, archives,
+                             or git commit hashes.  Use --diff-alignment to
+                             generate a list showing which file pairs where
+                             compared.  When comparing git branches, only files
+                             which have changed in either commit are compared.
+                             See also --git, --count-and-diff, --diff-alignment,
+                             --diff-list-file, --diff-timeout, --ignore-case,
+                             --ignore-whitespace.
    --diff-timeout <N>        Ignore files which take more than <N> seconds
-                             to process.  Default is 10 seconds.
-                             (Large files with many repeated lines can cause
-                             Algorithm::Diff::sdiff() to take hours.)
+                             to process.  Default is 10 seconds.  Setting <N>
+                             to 0 allows unlimited time.  (Large files with many
+                             repeated lines can cause Algorithm::Diff::sdiff()
+                             to take hours.) See also --timeout.
+   --docstring-as-code       cloc considers docstrings to be comments, but this is
+                             not always correct as docstrings represent regular
+                             strings when they appear on the right hand side of an
+                             assignment or as function arguments.  This switch
+                             forces docstrings to be counted as code.
    --follow-links            [Unix only] Follow symbolic links to directories
                              (sym links to files are always followed).
+                             See also --stat.
    --force-lang=<lang>[,<ext>]
                              Process all files that have a <ext> extension
                              with the counter for language <lang>.  For
@@ -247,18 +301,43 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              then use these filters instead of the built-in
                              filters.  Note:  languages which map to the same
                              file extension (for example:
-                             MATLAB/Mathematica/Objective C/MUMPS/Mercury;
+                             MATLAB/Mathematica/Objective-C/MUMPS/Mercury;
                              Pascal/PHP; Lisp/OpenCL; Lisp/Julia; Perl/Prolog)
                              will be ignored as these require additional
                              processing that is not expressed in language
                              definition files.  Use --read-lang-def to define
                              new language filters without replacing built-in
-                             filters (see also --write-lang-def).
+                             filters (see also --write-lang-def,
+                             --write-lang-def-incl-dup).
+   --git                     Forces the inputs to be interpreted as git targets
+                             (commit hashes, branch names, et cetera) if these
+                             are not first identified as file or directory
+                             names.  This option overrides the --vcs=git logic
+                             if this is given; in other words, --git gets its
+                             list of files to work on directly from git using
+                             the hash or branch name rather than from
+                             'git ls-files'.  This option can be used with
+                             --diff to perform line count diffs between git
+                             commits, or between a git commit and a file,
+                             directory, or archive.  Use -v/--verbose to see
+                             the git system commands cloc issues.
+   --git-diff-rel            Same as --git --diff, or just --diff if the inputs
+                             are recognized as git targets.  Only files which
+                             have changed in either commit are compared.
+   --git-diff-all            Git diff strategy #2:  compare all files in the
+                             repository between the two commits.
    --ignore-whitespace       Ignore horizontal white space when comparing files
                              with --diff.  See also --ignore-case.
-   --ignore-case             Ignore changes in case; consider upper- and lower-
-                             case letters equivalent when comparing files with
-                             --diff.  See also --ignore-whitespace.
+   --ignore-case             Ignore changes in case within file contents;
+                             consider upper- and lowercase letters equivalent
+                             when comparing files with --diff.  See also
+                             --ignore-whitespace.
+   --ignore-case-ext         Ignore case of file name extensions.  This will
+                             cause problems counting some languages
+                             (specifically, .c and .C are associated with C and
+                             C++; this switch would count .C files as C rather
+                             than C++ on *nix operating systems).  File name
+                             case insensitivity is always true on Windows.
    --lang-no-ext=<lang>      Count files without extensions using the <lang>
                              counter.  This option overrides internal logic
                              for files without extensions (where such files
@@ -273,6 +352,10 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              than 2 GB of memory will cause problems.
                              Note:  this check does not apply to files
                              explicitly passed as command line arguments.
+   --no-autogen[=list]       Ignore files generated by code-production systems
+                             such as GNU autoconf.  To see a list of these files
+                             (then exit), run with --no-autogen list
+                             See also --autoconf.
    --original-dir            [Only effective in combination with
                              --strip-comments]  Write the stripped files
                              to the same directory as the original files.
@@ -285,7 +368,8 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              If <file> defines a language cloc already knows
                              about, cloc's definition will take precedence.
                              Use --force-lang-def to over-ride cloc's
-                             definitions (see also --write-lang-def ).
+                             definitions (see also --write-lang-def,
+                             --write-lang-def-incl-dup).
    --script-lang=<lang>,<s>  Process all files that invoke <s> as a #!
                              scripting language with the counter for language
                              <lang>.  For example, files that begin with
@@ -305,19 +389,51 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              a performance boost at the expense of counting
                              files with identical contents multiple times
                              (if such duplicates exist).
+   --stat                    Some file systems (AFS, CD-ROM, FAT, HPFS, SMB)
+                             do not have directory 'nlink' counts that match
+                             the number of its subdirectories.  Consequently
+                             cloc may undercount or completely skip the
+                             contents of such file systems.  This switch forces
+                             File::Find to stat directories to obtain the
+                             correct count.  File search spead will decrease.
+                             See also --follow-links.
    --stdin-name=<file>       Give a file name to use to determine the language
                              for standard input.  (Use - as the input name to
                              receive source code via STDIN.)
    --strip-comments=<ext>    For each file processed, write to the current
                              directory a version of the file which has blank
-                             lines and comments removed.  The name of each
-                             stripped file is the original file name with
-                             .<ext> appended to it.  It is written to the
-                             current directory unless --original-dir is on.
+                             and commented lines removed (in-line comments
+                             persist).  The name of each stripped file is the
+                             original file name with .<ext> appended to it.
+                             It is written to the current directory unless
+                             --original-dir is on.
+   --strip-str-comments      Replace comment markers embedded in strings with
+                             'xx'.  This attempts to work around a limitation
+                             in Regexp::Common::Comment where comment markers
+                             embedded in strings are seen as actual comment
+                             markers and not strings, often resulting in a
+                             'Complex regular subexpression recursion limit'
+                             warning and incorrect counts.  There are two
+                             disadvantages to using this switch:  1/code count
+                             performance drops, and 2/code generated with
+                             --strip-comments will contain different strings
+                             where ever embedded comments are found.
    --sum-reports             Input arguments are report files previously
-                             created with the --report-file option.  Makes
-                             a cumulative set of results containing the
+                             created with the --report-file option in plain
+                             format (eg. not JSON, YAML, XML, or SQL).
+                             Makes a cumulative set of results containing the
                              sum of data from the individual report files.
+   --timeout <N>             Ignore files which take more than <N> seconds
+                             to process at any of the language's filter stages.
+                             The default maximum number of seconds spent on a
+                             filter stage is the number of lines in the file
+                             divided by one thousand.  Setting <N> to 0 allows
+                             unlimited time.  See also --diff-timeout.
+   --processes=NUM           [Available only on systems with a recent version
+                             of the Parallel::ForkManager module.  Not
+                             available on Windows.] Sets the maximum number of
+                             cores that cloc uses.  The default value of 0
+                             disables multiprocessing.
    --unix                    Override the operating system autodetection
                              logic and run in UNIX mode.  See also
                              --windows, --show-os.
@@ -335,13 +451,15 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              See also --unix, --show-os.
 
  ${BB}Filter Options${NN}
+   --exclude-content=<regex> Exclude files containing text that matches the given
+                             regular expression.
    --exclude-dir=<D1>[,D2,]  Exclude the given comma separated directories
                              D1, D2, D3, et cetera, from being scanned.  For
                              example  --exclude-dir=.cache,test  will skip
                              all files and subdirectories that have /.cache/
                              or /test/ as their parent directory.
-                             Directories named .bzr, .cvs, .hg, .git, and
-                             .svn are always excluded.
+                             Directories named .bzr, .cvs, .hg, .git, .svn,
+                             and .snapshot are always excluded.
                              This option only works with individual directory
                              names so including file path separators is not
                              allowed.  Use --fullpath and --not-match-d=<regex>
@@ -349,7 +467,8 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
    --exclude-ext=<ext1>[,<ext2>[...]]
                              Do not count files having the given file name
                              extensions.
-   --exclude-lang=<L1>[,L2,] Exclude the given comma separated languages
+   --exclude-lang=<L1>[,L2[...]]
+                             Exclude the given comma separated languages
                              L1, L2, L3, et cetera, from being counted.
    --exclude-list-file=<file>  Ignore files and/or directories whose names
                              appear in <file>.  <file> should have one file
@@ -365,15 +484,22 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              the path as is passed in to cloc.)
                              Note:  --match-d always looks at the full
                              path and therefore is unaffected by --fullpath.
-   --include-lang=<L1>[,L2,] Count only the given comma separated languages
-                             L1, L2, L3, et cetera.
+   --include-ext=<ext1>[,ext2[...]]
+                             Count only languages having the given comma
+                             separated file extensions.  Use --show-ext to
+                             see the recognized extensions.
+   --include-lang=<L1>[,L2[...]]
+                             Count only the given comma separated languages
+                             L1, L2, L3, et cetera.  Use --show-lang to see
+                             the list of recognized languages.
    --match-d=<regex>         Only count files in directories matching the Perl
                              regex.  For example
                                --match-d='/(src|include)/'
                              only counts files in directories containing
                              /src/ or /include/.  Unlike --not-match-d,
                              --match-f, and --not-match-f, --match-d always
-                             compares the fully qualified path against the regex.
+                             compares the fully qualified path against the
+                             regex.
    --not-match-d=<regex>     Count all files except those in directories
                              matching the Perl regex.  Only the trailing
                              directory name is compared, for example, when
@@ -381,8 +507,8 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
                              compared to the regex.
                              Add --fullpath to compare parent directories to
                              the regex.
-                             Do not include file path separators at the beginning
-                             or end of the regex.
+                             Do not include file path separators at the
+                             beginning or end of the regex.
    --match-f=<regex>         Only count files whose basenames match the Perl
                              regex.  For example
                                --match-f='^[Ww]idget'
@@ -430,8 +556,14 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
    --version                 Print the version of this program and exit.
    --write-lang-def=<file>   Writes to <file> the language processing filters
                              then exits.  Useful as a first step to creating
-                             custom language definitions (see also
-                             --force-lang-def, --read-lang-def).
+                             custom language definitions. Note: languages which
+                             map to the same file extension will be excluded.
+                             (See also --force-lang-def, --read-lang-def).
+   --write-lang-def-incl-dup=<file>
+                             Same as --write-lang-def, but includes duplicated
+                             extensions.  This generates a problematic language
+                             definition file because cloc will refuse to use
+                             it until duplicates are removed.
 
  ${BB}Output Options${NN}
    --3                       Print third-generation language output.
@@ -452,6 +584,13 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
    --csv                     Write the results as comma separated values.
    --csv-delimiter=<C>       Use the character <C> as the delimiter for comma
                              separated files instead of ,.  This switch forces
+   --file-encoding=<E>       Write output files using the <E> encoding instead of
+                             the default ASCII (<E> = 'UTF-7').  Examples: 'UTF-16',
+                             'euc-kr', 'iso-8859-16'.  Known encodings can be
+                             printed with
+                               perl -MEncode -e 'print join(\"\\n\", Encode->encodings(\":all\")), \"\\n\"'
+   --hide-rate               Do not show line and file processing rates in the
+                             output header. This makes output deterministic.
    --json                    Write the results as JavaScript Object Notation
                              (JSON) formatted output.
    --md                      Write the results as Markdown-formatted text.
@@ -472,8 +611,8 @@ Usage: $script [options] <file(s)/dir(s)> | <set 1> <set 2> | <report files>
    --sql-project=<name>      Use <name> as the project identifier for the
                              current run.  Only valid with the --sql option.
    --sql-style=<style>       Write SQL statements in the given style instead
-                             of the default SQLite format.  Currently, the
-                             only style option is Oracle.
+                             of the default SQLite format.  Styles include
+                             'Oracle' and 'Named_Columns'.
    --sum-one                 For plain text reports, show the SUM: output line
                              even if only one input file is processed.
    --xml                     Write the results in XML.
@@ -502,7 +641,9 @@ my (
     $opt_count_diff           ,
     $opt_diff                 ,
     $opt_diff_alignment       ,
+    $opt_diff_list_file       ,
     $opt_diff_timeout         ,
+    $opt_timeout              ,
     $opt_html                 ,
     $opt_ignored              ,
     $opt_counted              ,
@@ -513,20 +654,25 @@ my (
     $opt_v                    ,
     $opt_vcs                  ,
     $opt_version              ,
+    $opt_exclude_content      ,
     $opt_exclude_lang         ,
     $opt_exclude_list_file    ,
     $opt_exclude_dir          ,
     $opt_explain              ,
+    $opt_include_ext          ,
     $opt_include_lang         ,
     $opt_force_lang_def       ,
     $opt_read_lang_def        ,
     $opt_write_lang_def       ,
+    $opt_write_lang_def_incl_dup,
     $opt_strip_comments       ,
     $opt_original_dir         ,
     $opt_quiet                ,
     $opt_report_file          ,
     $opt_sdir                 ,
     $opt_sum_reports          ,
+    $opt_hide_rate            ,
+    $opt_processes            ,
     $opt_unicode              ,
     $opt_no3                  ,   # accept it but don't use it
     $opt_3                    ,
@@ -559,6 +705,7 @@ my (
     $opt_exclude_ext          ,
     $opt_ignore_whitespace    ,
     $opt_ignore_case          ,
+    $opt_ignore_case_ext      ,
     $opt_follow_links         ,
     $opt_autoconf             ,
     $opt_sum_one              ,
@@ -569,13 +716,26 @@ my (
     $opt_skip_archive         ,
     $opt_max_file_size        ,   # in MB
     $opt_use_sloccount        ,
+    $opt_no_autogen           ,
+    $opt_force_git            ,
+    $opt_git_diff_rel         ,
+    $opt_git_diff_all         ,
+    $opt_git_diff_simindex    ,
+    $opt_config_file          ,
+    $opt_strip_str_comments   ,
+    $opt_file_encoding        ,
+    $opt_docstring_as_code    ,
+    $opt_stat                 ,
    );
-my $getopt_success = GetOptions(
+
+my $getopt_success = GetOptions(             # {{{1
    "by_file|by-file"                         => \$opt_by_file             ,
    "by_file_by_lang|by-file-by-lang"         => \$opt_by_file_by_lang     ,
    "categorized=s"                           => \$opt_categorized         ,
    "counted=s"                               => \$opt_counted             ,
+   "include_ext|include-ext=s"               => \$opt_include_ext         ,
    "include_lang|include-lang=s"             => \$opt_include_lang        ,
+   "exclude_content|exclude-content=s"       => \$opt_exclude_content     ,
    "exclude_lang|exclude-lang=s"             => \$opt_exclude_lang        ,
    "exclude_dir|exclude-dir=s"               => \$opt_exclude_dir         ,
    "exclude_list_file|exclude-list-file=s"   => \$opt_exclude_list_file   ,
@@ -586,6 +746,8 @@ my $getopt_success = GetOptions(
    "diff"                                    => \$opt_diff                ,
    "diff-alignment|diff_alignment=s"         => \$opt_diff_alignment      ,
    "diff-timeout|diff_timeout=i"             => \$opt_diff_timeout        ,
+   "diff-list-file|diff_list_file=s"         => \$opt_diff_list_file      ,
+   "timeout=i"                               => \$opt_timeout             ,
    "html"                                    => \$opt_html                ,
    "ignored=s"                               => \$opt_ignored             ,
    "quiet"                                   => \$opt_quiet               ,
@@ -603,6 +765,8 @@ my $getopt_success = GetOptions(
    "strip_comments|strip-comments=s"         => \$opt_strip_comments      ,
    "original_dir|original-dir"               => \$opt_original_dir        ,
    "sum_reports|sum-reports"                 => \$opt_sum_reports         ,
+   "hide_rate|hide-rate"                     => \$opt_hide_rate           ,
+   "processes=n"                             => \$opt_processes           ,
    "unicode"                                 => \$opt_unicode             ,
    "no3"                                     => \$opt_no3                 ,  # ignored
    "3"                                       => \$opt_3                   ,
@@ -610,6 +774,7 @@ my $getopt_success = GetOptions(
    "vcs=s"                                   => \$opt_vcs                 ,
    "version"                                 => \$opt_version             ,
    "write_lang_def|write-lang-def=s"         => \$opt_write_lang_def      ,
+   "write_lang_def_incl_dup|write-lang-def-incl-dup=s" => \$opt_write_lang_def_incl_dup,
    "xml"                                     => \$opt_xml                 ,
    "xsl=s"                                   => \$opt_xsl                 ,
    "force_lang|force-lang=s"                 => \@opt_force_lang          ,
@@ -636,6 +801,7 @@ my $getopt_success = GetOptions(
    "exclude_ext|exclude-ext=s"               => \$opt_exclude_ext         ,
    "ignore_whitespace|ignore-whitespace"     => \$opt_ignore_whitespace   ,
    "ignore_case|ignore-case"                 => \$opt_ignore_case         ,
+   "ignore_case_ext|ignore-case-ext"         => \$opt_ignore_case_ext     ,
    "follow_links|follow-links"               => \$opt_follow_links        ,
    "autoconf"                                => \$opt_autoconf            ,
    "sum_one|sum-one"                         => \$opt_sum_one             ,
@@ -647,7 +813,112 @@ my $getopt_success = GetOptions(
    "skip_archive|skip-archive=s"             => \$opt_skip_archive        ,
    "max_file_size|max-file-size=i"           => \$opt_max_file_size       ,
    "use_sloccount|use-sloccount"             => \$opt_use_sloccount       ,
+   "no_autogen|no-autogen"                   => \$opt_no_autogen          ,
+   "git"                                     => \$opt_force_git           ,
+   "git_diff_rel|git-diff-rel"               => \$opt_git_diff_rel        ,
+   "git_diff_all|git-diff-all"               => \$opt_git_diff_all        ,
+#  "git_diff_simindex|git-diff-simindex"     => \$opt_git_diff_simindex   ,
+   "config=s"                                => \$opt_config_file         ,
+   "strip_str_comments|strip-str-comments"   => \$opt_strip_str_comments  ,
+   "file_encoding|file-encoding=s"           => \$opt_file_encoding       ,
+   "docstring_as_code|docstring-as-code"     => \$opt_docstring_as_code   ,
+   "stat"                                    => \$opt_stat                ,
   );
+# 1}}}
+$config_file = $opt_config_file if defined $opt_config_file;
+load_from_config_file($config_file,          # {{{2
+                                                \$opt_by_file             ,
+                                                \$opt_by_file_by_lang     ,
+                                                \$opt_categorized         ,
+                                                \$opt_counted             ,
+                                                \$opt_include_ext         ,
+                                                \$opt_include_lang        ,
+                                                \$opt_exclude_content     ,
+                                                \$opt_exclude_lang        ,
+                                                \$opt_exclude_dir         ,
+                                                \$opt_exclude_list_file   ,
+                                                \$opt_explain             ,
+                                                \$opt_extract_with        ,
+                                                \$opt_found               ,
+                                                \$opt_count_diff          ,
+                                                \$opt_diff                ,
+                                                \$opt_diff_alignment      ,
+                                                \$opt_diff_timeout        ,
+                                                \$opt_timeout             ,
+                                                \$opt_html                ,
+                                                \$opt_ignored             ,
+                                                \$opt_quiet               ,
+                                                \$opt_force_lang_def      ,
+                                                \$opt_read_lang_def       ,
+                                                \$opt_show_ext            ,
+                                                \$opt_show_lang           ,
+                                                \$opt_progress_rate       ,
+                                                \$opt_print_filter_stages ,
+                                                \$opt_report_file         ,
+                                                \@opt_script_lang         ,
+                                                \$opt_sdir                ,
+                                                \$opt_skip_uniqueness     ,
+                                                \$opt_strip_comments      ,
+                                                \$opt_original_dir        ,
+                                                \$opt_sum_reports         ,
+                                                \$opt_hide_rate           ,
+                                                \$opt_processes           ,
+                                                \$opt_unicode             ,
+                                                \$opt_3                   ,
+                                                \$opt_v                   ,
+                                                \$opt_vcs                 ,
+                                                \$opt_version             ,
+                                                \$opt_write_lang_def      ,
+                                                \$opt_write_lang_def_incl_dup,
+                                                \$opt_xml                 ,
+                                                \$opt_xsl                 ,
+                                                \@opt_force_lang          ,
+                                                \$opt_lang_no_ext         ,
+                                                \$opt_yaml                ,
+                                                \$opt_csv                 ,
+                                                \$opt_csv_delimiter       ,
+                                                \$opt_json                ,
+                                                \$opt_md                  ,
+                                                \$opt_fullpath            ,
+                                                \$opt_match_f             ,
+                                                \$opt_not_match_f         ,
+                                                \$opt_match_d             ,
+                                                \$opt_not_match_d         ,
+                                                \$opt_list_file           ,
+                                                \$opt_help                ,
+                                                \$opt_skip_win_hidden     ,
+                                                \$opt_read_binary_files   ,
+                                                \$opt_sql                 ,
+                                                \$opt_sql_project         ,
+                                                \$opt_sql_append          ,
+                                                \$opt_sql_style           ,
+                                                \$opt_inline              ,
+                                                \$opt_exclude_ext         ,
+                                                \$opt_ignore_whitespace   ,
+                                                \$opt_ignore_case         ,
+                                                \$opt_ignore_case_ext     ,
+                                                \$opt_follow_links        ,
+                                                \$opt_autoconf            ,
+                                                \$opt_sum_one             ,
+                                                \$opt_by_percent          ,
+                                                \$opt_stdin_name          ,
+                                                \$opt_force_on_windows    ,
+                                                \$opt_force_on_unix       ,
+                                                \$opt_show_os             ,
+                                                \$opt_skip_archive        ,
+                                                \$opt_max_file_size       ,
+                                                \$opt_use_sloccount       ,
+                                                \$opt_no_autogen          ,
+                                                \$opt_force_git           ,
+                                                \$opt_strip_str_comments  ,
+                                                \$opt_file_encoding       ,
+                                                \$opt_docstring_as_code   ,
+                                                \$opt_stat                ,
+);  # 2}}} Not pretty.  Not at all.
+if ($opt_version) {
+    printf "$VERSION\n";
+    exit;
+}
 $opt_by_file  = 1 if defined  $opt_by_file_by_lang;
 my $CLOC_XSL = "cloc.xsl"; # created with --xsl
    $CLOC_XSL = "cloc-diff.xsl" if $opt_diff;
@@ -660,6 +931,9 @@ my %Exclude_Dir      = ();
    %Exclude_Dir      = map { $_ => 1 } split(/,/, $opt_exclude_dir )
         if $opt_exclude_dir ;
 die unless exclude_dir_validates(\%Exclude_Dir);
+my %Include_Ext = ();
+   %Include_Ext = map { $_ => 1 } split(/,/, $opt_include_ext)
+        if $opt_include_ext;
 my %Include_Language = ();
    %Include_Language = map { $_ => 1 } split(/,/, $opt_include_lang)
         if $opt_include_lang;
@@ -671,14 +945,35 @@ $Exclude_Dir{".cvs"}   = 1;
 $Exclude_Dir{".hg"}    = 1;
 $Exclude_Dir{".git"}   = 1;
 $Exclude_Dir{".bzr"}   = 1;
+$Exclude_Dir{".snapshot"} = 1;  # NetApp backups
+$Exclude_Dir{".config"} = 1;
 $opt_count_diff        = defined $opt_count_diff ? 1 : 0;
-$opt_diff              = 1  if $opt_diff_alignment;
+$opt_diff              = 1  if $opt_diff_alignment    or
+                               $opt_diff_list_file    or
+                               $opt_git_diff_rel      or
+                               $opt_git_diff_all      or
+                               $opt_git_diff_simindex;
+$opt_force_git         = 1  if $opt_git_diff_rel      or
+                               $opt_git_diff_all      or
+                               $opt_git_diff_simindex;
+$opt_diff_alignment    = 0  if $opt_diff_list_file;
 $opt_exclude_ext       = "" unless $opt_exclude_ext;
 $opt_ignore_whitespace = 0  unless $opt_ignore_whitespace;
 $opt_ignore_case       = 0  unless $opt_ignore_case;
+$opt_ignore_case_ext   = 0  unless $opt_ignore_case_ext;
 $opt_lang_no_ext       = 0  unless $opt_lang_no_ext;
 $opt_follow_links      = 0  unless $opt_follow_links;
-$opt_diff_timeout      =10  unless $opt_diff_timeout;
+if (defined $opt_diff_timeout) {
+    # if defined but with a value of <= 0, set to 2^31 seconds = 68 years
+    $opt_diff_timeout = 2**31 unless $opt_diff_timeout > 0;
+} else {
+    $opt_diff_timeout  =10; # seconds
+}
+if (defined $opt_timeout) {
+    # if defined but with a value of <= 0, set to 2^31 seconds = 68 years
+    $opt_timeout = 2**31 unless $opt_timeout > 0;
+    # else is computed dynamically, ref $max_duration_sec
+}
 $opt_csv               = 1  if $opt_csv_delimiter;
 $ON_WINDOWS            = 1  if $opt_force_on_windows;
 $ON_WINDOWS            = 0  if $opt_force_on_unix;
@@ -707,10 +1002,11 @@ if ($opt_use_sloccount) {
         $opt_strip_comments = 0;
     }
 }
+$opt_vcs = 0 if $opt_force_git;
 
 my @COUNT_DIFF_ARGV        = undef;
 my $COUNT_DIFF_report_file = undef;
-if ($opt_count_diff) {
+if ($opt_count_diff and !$opt_diff_list_file) {
     die "--count-and-diff requires two arguments; got ", scalar @ARGV, "\n"
         if scalar @ARGV != 2;
     # prefix with a dummy term so that $opt_count_diff is the
@@ -750,7 +1046,7 @@ if ($opt_sql eq "-" || $opt_sql eq "1") { # stream SQL output to STDOUT
 }
 if ($opt_sql_style) {
     $opt_sql_style = lc $opt_sql_style;
-    if (!grep { lc $_ eq $opt_sql_style } qw ( Oracle )) {
+    if (!grep { lc $_ eq $opt_sql_style } qw ( Oracle Named_Columns )) {
         die "'$opt_sql_style' is not a recognized SQL style.\n";
     }
 }
@@ -761,13 +1057,22 @@ if ($opt_by_percent and $opt_by_percent !~ m/^(c|cm|cb|cmb)$/i) {
 $opt_by_percent = lc $opt_by_percent;
 
 if (defined $opt_vcs) {
+    if ($opt_vcs eq "auto") {
+        if      (-d ".git") {
+            $opt_vcs = "git";
+        } elsif (-d ".svn") {
+            $opt_vcs = "svn";
+        } else {
+            warn "--vcs auto:  unable to determine versioning system\n";
+        }
+    }
     if      ($opt_vcs eq "git") {
         $opt_vcs = "git ls-files";
         my @submodules = invoke_generator('git submodule status');
         foreach my $SM (@submodules) {
             $SM =~ s/^\s+//;        # may have leading space
             $SM =~ s/\(\S+\)\s*$//; # may end with something like (heads/master)
-			my ($checksum, $dir) = split(' ', $SM, 2);
+            my ($checksum, $dir) = split(' ', $SM, 2);
             $dir =~ s/\s+$//;
             $Exclude_Dir{$dir} = 1;
         }
@@ -776,22 +1081,35 @@ if (defined $opt_vcs) {
     }
 }
 
+my $list_no_autogen = 0;
+if (defined $opt_no_autogen and scalar @ARGV == 1 and $ARGV[0] eq "list") {
+    $list_no_autogen = 1;
+}
+
 die $brief_usage unless defined $opt_version         or
                         defined $opt_show_lang       or
                         defined $opt_show_ext        or
                         defined $opt_show_os         or
                         defined $opt_write_lang_def  or
+                        defined $opt_write_lang_def_incl_dup  or
                         defined $opt_list_file       or
+                        defined $opt_diff_list_file  or
                         defined $opt_vcs             or
                         defined $opt_xsl             or
                         defined $opt_explain         or
+                        $list_no_autogen             or
                         scalar @ARGV >= 1;
-die "--diff requires two arguments; got ", scalar @ARGV, "\n"
-    if $opt_diff and scalar @ARGV != 2;
-if ($opt_version) {
-    printf "$VERSION\n";
-    exit;
+if (!$opt_diff_list_file) {
+	die "--diff requires two arguments; got ", scalar @ARGV, "\n"
+		if $opt_diff and !$opt_sum_reports and scalar @ARGV != 2;
+	die "--diff arguments are identical; nothing done", "\n"
+		if $opt_diff and !$opt_sum_reports and scalar @ARGV == 2
+										   and $ARGV[0] eq $ARGV[1];
 }
+trick_pp_packer_encode() if $ON_WINDOWS and $opt_file_encoding;
+$File::Find::dont_use_nlink = 1 if $opt_stat or top_level_SMB_dir(\@ARGV);
+my @git_similarity = (); # only populated with --git-diff-simindex
+replace_git_hash_with_tarfile(\@ARGV, \@git_similarity);
 # 1}}}
 # Step 1:  Initialize global constants.        {{{1
 #
@@ -807,7 +1125,29 @@ my %Error_Codes = ( 'Unable to read'                => -1,
                     'Neither file nor directory'    => -2,
                     'Diff error (quoted comments?)' => -3,
                     'Diff error, exceeded timeout'  => -4,
+                    'Line count, exceeded timeout'  => -5,
                   );
+my %Extension_Collision = (
+    'ADSO/IDSM'                                     => [ 'adso' ] ,
+    'C#/Smalltalk'                                  => [ 'cs'   ] ,
+    'D/dtrace'                                      => [ 'd'    ] ,
+    'F#/Forth'                                      => [ 'fs'   ] ,
+    'Fortran 77/Forth'                              => [ 'f', 'for' ] ,
+    'IDL/Qt Project/Prolog/ProGuard'                => [ 'pro'  ] ,
+    'Lisp/Julia'                                    => [ 'jl'   ] ,
+    'Lisp/OpenCL'                                   => [ 'cl'   ] ,
+    'MATLAB/Mathematica/Objective-C/MUMPS/Mercury'  => [ 'm'    ] ,
+    'Pascal/Puppet'                                 => [ 'pp'   ] ,
+    'Perl/Prolog'                                   => [ 'pl', 'PL'  ] ,
+    'PHP/Pascal'                                    => [ 'inc'  ] ,
+    'Raku/Prolog'                                   => [ 'p6', 'P6'  ] ,
+    'Qt/Glade'                                      => [ 'ui'   ] ,
+    'TypeScript/Qt Linguist'                        => [ 'ts'   ] ,
+    'Verilog-SystemVerilog/Coq'                     => [ 'v'    ] ,
+    'Visual Basic/TeX/Apex Class'                   => [ 'cls'  ] ,
+    'Scheme/SaltStack'                              => [ 'sls'  ] ,
+);
+my @Autogen_to_ignore = no_autogen_files($list_no_autogen);
 if ($opt_force_lang_def) {
     # replace cloc's definitions
     read_lang_def(
@@ -835,6 +1175,9 @@ if ($opt_force_lang_def) {
         \%Known_Binary_Archives, # Known_Binary_Archives{.tar} = 1
         \%EOL_Continuation_re  , # EOL_Continuation_re{C++}    = '\\$'
         );
+        if ($opt_no_autogen) {
+            foreach my $F (@Autogen_to_ignore) { $Not_Code_Filename{ $F } = 1; }
+        }
 }
 if ($opt_read_lang_def) {
     # augment cloc's definitions (keep cloc's where there are overlaps)
@@ -856,6 +1199,8 @@ if ($opt_lang_no_ext and !defined $Filters_by_Language{$opt_lang_no_ext}) {
 }
 check_scale_existence(\%Filters_by_Language, \%Language_by_Extension,
                       \%Scale_Factor);
+
+my $nCounted = 0;
 
 # Process command line provided extension-to-language mapping overrides.
 # Make a hash of known languages in lower case for easier matching.
@@ -899,7 +1244,7 @@ foreach my $pair (@opt_script_lang) {
 # If user provided file extensions to ignore, add these to
 # the exclusion list.
 foreach my $ext (map { $_ => 1 } split(/,/, $opt_exclude_ext ) ) {
-    $ext = lc $ext if $ON_WINDOWS;
+    $ext = lc $ext if $ON_WINDOWS or $opt_ignore_case_ext;
     $Not_Code_Extension{$ext} = 1;
 }
 
@@ -929,7 +1274,8 @@ print_language_info(    $opt_show_lang, '') if defined $opt_show_lang;
 print_language_filters( $opt_explain      ) if defined $opt_explain  ;
 exit if (defined $opt_show_ext)  or
         (defined $opt_show_lang) or
-        (defined $opt_explain);
+        (defined $opt_explain)   or
+        $list_no_autogen;
 
 Top_of_Processing_Loop:
 # Sorry, coding purists.  Using a goto to implement --count-and-diff
@@ -944,10 +1290,23 @@ if ($opt_count_diff) {
     if ($opt_report_file) {
         # Instead of just one output file, will have three.
         # Keep their names unique otherwise results are clobbered.
-        if ($opt_count_diff == 3) {
-            $opt_report_file = $COUNT_DIFF_report_file . ".diff.$ARGV[0].$ARGV[1]";
+        # Replace file path separators with underscores otherwise
+        # may end up with illegal file names.
+        my ($fn_0, $fn_1) = (undef, undef);
+        if ($ON_WINDOWS) {
+            ($fn_0 = $ARGV[0]) =~ s{\\}{_}g;
+             $fn_0 =~ s{::}{_}g;
+            ($fn_1 = $ARGV[1]) =~ s{\\}{_}g if defined $ARGV[1];
+             $fn_1 =~ s{::}{_}g             if defined $ARGV[1];
         } else {
-            $opt_report_file = $COUNT_DIFF_report_file . "." .  $ARGV[0];
+            ($fn_0 = $ARGV[0]) =~ s{/}{_}g;
+            ($fn_1 = $ARGV[1]) =~ s{/}{_}g  if defined $ARGV[1];
+        }
+
+        if ($opt_count_diff == 3) {
+            $opt_report_file = $COUNT_DIFF_report_file . ".diff.$fn_0.$fn_1";
+        } else {
+            $opt_report_file = $COUNT_DIFF_report_file . "." .  $fn_0;
         }
     } else {
         # STDOUT; print a header showing what it's working on
@@ -990,7 +1349,7 @@ if ($opt_sum_reports and $opt_diff) {
         @results = combine_diffs(\@ARGV);
     }
     if ($opt_report_file) {
-        write_file($opt_report_file, @results);
+        write_file($opt_report_file, {}, @results);
     } else {
         print "\n", join("\n", @results), "\n";
     }
@@ -1027,15 +1386,17 @@ if ($opt_sum_reports) {
             my $ext  = ".lang";
                $ext  = ".file" unless $type eq "by language";
             next if !$found_lang and  $ext  eq ".lang";
-            write_file($opt_report_file . $ext, @results);
+            write_file($opt_report_file . $ext, {}, @results);
         } else {
             print "\n", join("\n", @results), "\n";
         }
     }
     exit;
 }
-if ($opt_write_lang_def) {
-    write_lang_def($opt_write_lang_def   ,
+if ($opt_write_lang_def or $opt_write_lang_def_incl_dup) {
+    my $file = $opt_write_lang_def          if $opt_write_lang_def;
+       $file = $opt_write_lang_def_incl_dup if $opt_write_lang_def_incl_dup;
+    write_lang_def($file                 ,
                   \%Language_by_Extension,
                   \%Language_by_Script   ,
                   \%Language_by_File     ,
@@ -1055,6 +1416,9 @@ if ($opt_show_os) {
     }
     exit;
 }
+
+my $max_processes = get_max_processes();
+
 # 1}}}
 # Step 3:  Create a list of files to consider. {{{1
 #  a) If inputs are binary archives, first cd to a temp
@@ -1145,6 +1509,7 @@ if ($opt_extract_with) {
 } else {
     # see if any of the inputs need to be auto-uncompressed &/or expanded
     my @updated_ARGS = ();
+    replace_git_hash_with_tarfile(\@ARGV, \@git_similarity) if $opt_force_git;
     foreach my $Arg (@ARGV) {
         if (is_dir($Arg)) {
             push @updated_ARGS, $Arg;
@@ -1213,16 +1578,55 @@ if ($opt_diff) {
 # Step 4:  Separate code from non-code files.  {{{1
 my @fh            = ();
 my @files_for_set = ();
+my @files_added_tot = ();
+my @files_removed_tot = ();
+my @file_pairs_tot = ();
 # make file lists for each separate argument
+if ($opt_diff_list_file) {
+	@files_for_set = ( (), () );
+    file_pairs_from_file($opt_diff_list_file, # in
+                        \@files_added_tot   , # out
+                        \@files_removed_tot , # out
+                        \@file_pairs_tot    , # out
+                       );
+    foreach my $F (@files_added_tot) {
+        $F = lc $F if $ON_WINDOWS;
+		push @{$files_for_set[1]}, $F;
+	}
+    foreach my $F (@files_removed_tot) {
+        $F = lc $F if $ON_WINDOWS;
+		push @{$files_for_set[0]}, $F;
+	}
+    foreach my $pair (@file_pairs_tot) {
+        if ($ON_WINDOWS) {
+            push @{$files_for_set[0]}, lc $pair->[0];
+            push @{$files_for_set[1]}, lc $pair->[1];
+        } else {
+            push @{$files_for_set[0]}, $pair->[0];
+            push @{$files_for_set[1]}, $pair->[1];
+        }
+	}
+	@ARGV = (1, 2); # place holders
+}
 for (my $i = 0; $i < scalar @ARGV; $i++) {
-    push @fh,
-         make_file_list([ $ARGV[$i] ], \%Error_Codes, \@Errors, \%Ignored);
-    @{$files_for_set[$i]} = @file_list;
+	if ($opt_diff_list_file) {
+		push @fh, make_file_list($files_for_set[$i],
+                                \%Error_Codes, \@Errors, \%Ignored);
+		@{$files_for_set[$i]} = @file_list;
+    } else {
+		push @fh, make_file_list([ $ARGV[$i] ],
+                                \%Error_Codes, \@Errors, \%Ignored);
+		@{$files_for_set[$i]} = @file_list;
+    }
     if ($opt_exclude_list_file) {
         # note: process_exclude_list_file() references global @file_list
         process_exclude_list_file($opt_exclude_list_file,
                                  \%Exclude_Dir,
                                  \%Ignored);
+    }
+    if ($opt_no_autogen) {
+        exclude_autogenerated_files(\@{$files_for_set[$i]},  # in/out
+                                    \%Error_Codes, \@Errors, \%Ignored);
     }
     @file_list = ();
 }
@@ -1240,6 +1644,32 @@ foreach my $FH (@fh) {  # loop over each pair of file sets
                           \%Error_Codes                         ,
                                \@Errors                         ,
                                \%Ignored                        );
+    if ($opt_exclude_content) {
+        exclude_by_regex($opt_exclude_content,              # in
+                        \%{$unique_source_file{$FH}},       # in/out
+                        \%Ignored);                         # out
+    }
+
+    if ($opt_include_lang) {
+        # remove files associated with languages not
+        # specified by --include-lang
+        my @delete_file = ();
+        foreach my $file (keys %{$unique_source_file{$FH}}) {
+            my $keep_file = 0;
+            foreach my $keep_lang (keys %Include_Language) {
+                if ($Language{$FH}{$file} eq $keep_lang) {
+                    $keep_file = 1;
+                    last;
+                }
+            }
+            next if $keep_file;
+            push @delete_file, $file;
+        }
+        foreach my $file (@delete_file) {
+            delete $Language{$FH}{$file};
+        }
+    }
+
     printf "%2d: %8d unique file%s.                          \r",
         $n_set,
         plural_form(scalar keys %unique_source_file)
@@ -1253,401 +1683,142 @@ my %Results_by_File     = ();
 my %Delta_by_Language   = ();
 my %Delta_by_File       = ();
 
-foreach (my $F = 0; $F < scalar @fh - 1; $F++) {
-    # loop over file sets; do diff between set $F to $F+1
+my %alignment = ();
 
-    my $nCounted = 0;
+my $fset_a = $fh[0];
+my $fset_b = $fh[1];
 
-    my @file_pairs    = ();
-    my @files_added   = ();
-    my @files_removed = ();
+my $n_filepairs_compared = 0;
+my $tot_counted = 0;
 
-    align_by_pairs(\%{$unique_source_file{$fh[$F  ]}}    , # in
-                   \%{$unique_source_file{$fh[$F+1]}}    , # in
-                   \@files_added                         , # out
-                   \@files_removed                       , # out
-                   \@file_pairs                          , # out
-                   );
-    my %already_counted = (); # already_counted{ filename } = 1
+if ( scalar @fh != 2 ) {
+	print "Error: incorrect length fh array when preparing diff at step 6.\n";
+	exit 1;
+}
+if (!$opt_diff_list_file) {
+    align_by_pairs(\%{$unique_source_file{$fset_a}}      , # in
+                   \%{$unique_source_file{$fset_b}}      , # in
+                   \@files_added_tot                     , # out
+                   \@files_removed_tot                   , # out
+                   \@file_pairs_tot                      , # out
+                  );
+}
 
-    if (!@file_pairs) {
-        # Special case where all files were either added or deleted.
-        # In this case, one of these arrays will be empty:
-        #   @files_added, @files_removed
-        # so loop over both to cover both cases.
-        my $status = @files_added ? 'added' : 'removed';
-        my $offset = @files_added ? 1       : 0        ;
-        foreach my $file (@files_added, @files_removed) {
-            next unless defined $Language{$fh[$F+$offset]}{$file};
-            my $Lang = $Language{$fh[$F+$offset]}{$file};
-            next if $Lang eq '(unknown)';
-            my ($all_line_count,
-                $blank_count   ,
-                $comment_count ,
-               ) = call_counter($file, $Lang, \@Errors);
-            $already_counted{$file} = 1;
-            my $code_count = $all_line_count-$blank_count-$comment_count;
-            if ($opt_by_file) {
-                $Delta_by_File{$file}{'code'   }{$status} += $code_count   ;
-                $Delta_by_File{$file}{'blank'  }{$status} += $blank_count  ;
-                $Delta_by_File{$file}{'comment'}{$status} += $comment_count;
-                $Delta_by_File{$file}{'lang'   }{$status}  = $Lang         ;
-                $Delta_by_File{$file}{'nFiles' }{$status} += 1             ;
+#use Data::Dumper;
+#print "added : ", Dumper(\@files_added_tot);
+#print "removed : ", Dumper(\@files_removed_tot);
+#print "pairs : ", Dumper(\@file_pairs_tot);
+
+if ( $max_processes == 0) {
+    # Multiprocessing is disabled
+    my $part = count_filesets ( $fset_a, $fset_b, \@files_added_tot,
+                               \@files_removed_tot, \@file_pairs_tot,
+                               0, \%Language, \%Ignored);
+    %Results_by_File = %{$part->{'results_by_file'}};
+    %Results_by_Language= %{$part->{'results_by_language'}};
+    %Delta_by_File = %{$part->{'delta_by_file'}};
+    %Delta_by_Language= %{$part->{'delta_by_language'}};
+    %Ignored = ( %Ignored, %{$part->{'ignored'}});
+    %alignment = %{$part->{'alignment'}};
+    $n_filepairs_compared = $part->{'n_filepairs_compared'};
+    push ( @Errors, @{$part->{'errors'}});
+} else {
+    # Multiprocessing is enabled
+    # Do not create more processes than the amount of data to be processed
+    my $num_processes = min(max(scalar @files_added_tot,
+                                scalar @files_removed_tot,
+                                scalar @file_pairs_tot),
+                            $max_processes);
+    # ... but use at least one process.
+       $num_processes = 1
+            if $num_processes == 0;
+    # Start processes for counting
+    my $pm = Parallel::ForkManager->new($num_processes);
+    # When processes finish, they will use the embedded subroutine for
+    # merging the data into global variables.
+    $pm->run_on_finish ( sub {
+        my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $part) = @_;
+        my $part_ignored = $part->{'ignored'};
+        my $part_result_by_file = $part->{'results_by_file'};
+        my $part_result_by_language = $part->{'results_by_language'};
+        my $part_delta_by_file = $part->{'delta_by_file'};
+        my $part_delta_by_language = $part->{'delta_by_language'};
+        my $part_alignment = $part->{'alignment'};
+        my $part_errors = $part->{'errors'};
+           $tot_counted += scalar keys %$part_result_by_file;
+           $n_filepairs_compared += $part->{'n_filepairs_compared'};
+        # Since files are processed by multiple processes, we can't measure
+        # the number of processed files exactly. We approximate this by showing
+        # the number of files counted by finished processes.
+        printf "Counting:  %d\r", $tot_counted
+                 if $opt_progress_rate;
+
+        foreach my $this_language ( keys %$part_result_by_language ) {
+            my $counts = $part_result_by_language->{$this_language};
+            foreach my $inner_key ( keys %$counts ) {
+                $Results_by_Language{$this_language}{$inner_key} +=
+                    $counts->{$inner_key};
             }
-            $Delta_by_Language{$Lang}{'code'   }{$status} += $code_count   ;
-            $Delta_by_Language{$Lang}{'blank'  }{$status} += $blank_count  ;
-            $Delta_by_Language{$Lang}{'comment'}{$status} += $comment_count;
-            $Delta_by_Language{$Lang}{'nFiles' }{$status} += 1             ;
-        }
-    }
-   #use Data::Dumper::Simple;
-   #use Data::Dumper;
-   #print Dumper(\@files_added, \@files_removed, \@file_pairs);
-    my @alignment = (); # only  used if --diff-alignment
-#print "after align_by_pairs:\n";
-
-#print "added:\n";
-    push @alignment, sprintf "Files added: %d\n", scalar @files_added
-        if $opt_diff_alignment;
-    foreach my $f (@files_added) {
-        next if $already_counted{$f};
-#printf "%10s -> %s\n", $f, $Language{$fh[$F+1]}{$f};
-        # Don't proceed unless the file (both L and R versions)
-        # is in a known language.
-        next if $opt_include_lang
-                and not $Include_Language{$Language{$fh[$F+1]}{$f}};
-        next if $Language{$fh[$F+1]}{$f} eq "(unknown)";
-        next if $Exclude_Language{$Language{$fh[$F+1]}{$f}};
-        push @alignment, sprintf "  + %s ; %s\n", $f, $Language{$fh[$F+1]}{$f}
-            if $opt_diff_alignment;
-        ++$Delta_by_Language{ $Language{$fh[$F+1]}{$f} }{'nFiles'}{'added'};
-        # Additionally, add contents of file $f to
-        #        Delta_by_File{$f}{comment/blank/code}{'added'}
-        #        Delta_by_Language{$lang}{comment/blank/code}{'added'}
-        my ($all_line_count,
-            $blank_count   ,
-            $comment_count ,
-           ) = call_counter($f, $Language{$fh[$F+1]}{$f}, \@Errors);
-        $Delta_by_Language{ $Language{$fh[$F+1]}{$f} }{'comment'}{'added'} +=
-            $comment_count;
-        $Delta_by_Language{ $Language{$fh[$F+1]}{$f} }{'blank'}{'added'}   +=
-            $blank_count;
-        $Delta_by_Language{ $Language{$fh[$F+1]}{$f} }{'code'}{'added'}    +=
-            $all_line_count - $blank_count - $comment_count;
-        $Delta_by_File{ $f }{'comment'}{'added'} = $comment_count;
-        $Delta_by_File{ $f }{'blank'}{'added'}   = $blank_count;
-        $Delta_by_File{ $f }{'code'}{'added'}    =
-            $all_line_count - $blank_count - $comment_count;
-    }
-    push @alignment, "\n";
-
-#print "removed:\n";
-    push @alignment, sprintf "Files removed: %d\n", scalar @files_removed
-        if $opt_diff_alignment;
-    foreach my $f (@files_removed) {
-        next if $already_counted{$f};
-        # Don't proceed unless the file (both L and R versions)
-        # is in a known language.
-        next if $opt_include_lang
-                and not $Include_Language{$Language{$fh[$F]}{$f}};
-        next if $Language{$fh[$F]}{$f} eq "(unknown)";
-        next if $Exclude_Language{$Language{$fh[$F]}{$f}};
-        ++$Delta_by_Language{ $Language{$fh[$F]}{$f} }{'nFiles'}{'removed'};
-        push @alignment, sprintf "  - %s ; %s\n", $f, $Language{$fh[$F]}{$f}
-            if $opt_diff_alignment;
-#printf "%10s -> %s\n", $f, $Language{$fh[$F  ]}{$f};
-        # Additionally, add contents of file $f to
-        #        Delta_by_File{$f}{comment/blank/code}{'removed'}
-        #        Delta_by_Language{$lang}{comment/blank/code}{'removed'}
-        my ($all_line_count,
-            $blank_count   ,
-            $comment_count ,
-           ) = call_counter($f, $Language{$fh[$F  ]}{$f}, \@Errors);
-        $Delta_by_Language{ $Language{$fh[$F  ]}{$f} }{'comment'}{'removed'} +=
-            $comment_count;
-        $Delta_by_Language{ $Language{$fh[$F  ]}{$f} }{'blank'}{'removed'}   +=
-            $blank_count;
-        $Delta_by_Language{ $Language{$fh[$F  ]}{$f} }{'code'}{'removed'}    +=
-            $all_line_count - $blank_count - $comment_count;
-        $Delta_by_File{ $f }{'comment'}{'removed'} = $comment_count;
-        $Delta_by_File{ $f }{'blank'}{'removed'}   = $blank_count;
-        $Delta_by_File{ $f }{'code'}{'removed'}    =
-            $all_line_count - $blank_count - $comment_count;
-    }
-    push @alignment, "\n";
-
-    my $alignment_pairs_index = scalar @alignment;
-    my $n_file_pairs_compared = 0;
-    # Don't know ahead of time how many file pairs will be compared
-    # since duplicates are weeded out below.  The answer is
-    # scalar @file_pairs only if there are no duplicates.
-    push @alignment, sprintf "File pairs compared: UPDATE_ME\n"
-        if $opt_diff_alignment;
-
-    foreach my $pair (@file_pairs) {
-        my $file_L = $pair->[0];
-        my $file_R = $pair->[1];
-        my $Lang_L = $Language{$fh[$F  ]}{$file_L};
-        my $Lang_R = $Language{$fh[$F+1]}{$file_R};
-#print "main step 6 file_L=$file_L    file_R=$file_R\n";
-        ++$nCounted;
-        printf "Counting:  %d\r", $nCounted
-            unless (!$opt_progress_rate or ($nCounted % $opt_progress_rate));
-        next if $Ignored{$file_L};
-        # filter out non-included languages
-        if ($opt_include_lang and not $Include_Language{$Lang_L}
-                              and not $Include_Language{$Lang_R}) {
-            $Ignored{$file_L} = "--include-lang=$Lang_L";
-            $Ignored{$file_R} = "--include-lang=$Lang_R";
-            next;
-        }
-        # filter out excluded or unrecognized languages
-        if ($Exclude_Language{$Lang_L} or $Exclude_Language{$Lang_R}) {
-            $Ignored{$file_L} = "--exclude-lang=$Lang_L";
-            $Ignored{$file_R} = "--exclude-lang=$Lang_R";
-            next;
-        }
-        my $not_Filters_by_Language_Lang_LR = 0;
-#print "file_LR = [$file_L] [$file_R]\n";
-#print "Lang_LR = [$Lang_L] [$Lang_R]\n";
-        if (!(@{$Filters_by_Language{$Lang_L} }) or
-            !(@{$Filters_by_Language{$Lang_R} })) {
-            $not_Filters_by_Language_Lang_LR = 1;
-        }
-        if ($not_Filters_by_Language_Lang_LR) {
-            if (($Lang_L eq "(unknown)") or ($Lang_R eq "(unknown)")) {
-                $Ignored{$fh[$F  ]}{$file_L} = "language unknown (#1)";
-                $Ignored{$fh[$F+1]}{$file_R} = "language unknown (#1)";
-            } else {
-                $Ignored{$fh[$F  ]}{$file_L} = "missing Filters_by_Language{$Lang_L}";
-                $Ignored{$fh[$F+1]}{$file_R} = "missing Filters_by_Language{$Lang_R}";
-            }
-            next;
         }
 
-#print "DIFF($file_L, $file_R)\n";
-        # step 0: compare the two files' contents
-        chomp ( my @lines_L = read_file($file_L) );
-        chomp ( my @lines_R = read_file($file_R) );
-        my $language_file_L = "";
-        if (defined $Language{$fh[$F]}{$file_L}) {
-            $language_file_L = $Language{$fh[$F]}{$file_L};
-        } else {
-            # files $file_L and $file_R do not contain known language
-            next;
-        }
-        my $contents_are_same = 1;
-        if (scalar @lines_L == scalar @lines_R) {
-            # same size, must compare line-by-line
-            for (my $i = 0; $i < scalar @lines_L; $i++) {
-                if ($lines_L[$i] ne $lines_R[$i]) {
-                    $contents_are_same = 0;
-                    last;
+        foreach my $this_language ( keys %$part_delta_by_language ) {
+            my $counts = $part_delta_by_language->{$this_language};
+            foreach my $inner_key ( keys %$counts ) {
+                my $statuses = $counts->{$inner_key};
+                foreach my $inner_status ( keys %$statuses ) {
+                    $Delta_by_Language{$this_language}{$inner_key}{$inner_status} +=
+                          $counts->{$inner_key}->{$inner_status};
                 }
             }
-            if ($contents_are_same) {
-                ++$Delta_by_Language{$language_file_L}{'nFiles'}{'same'};
-            } else {
-                ++$Delta_by_Language{$language_file_L}{'nFiles'}{'modified'};
-            }
-        } else {
-            $contents_are_same = 0;
-            # different sizes, contents have changed
-            ++$Delta_by_Language{$language_file_L}{'nFiles'}{'modified'};
-        }
-        if ($opt_diff_alignment) {
-            my $str =  "$file_L | $file_R ; $language_file_L";
-            if ($contents_are_same) {
-                push @alignment, "  == $str";
-            } else {
-                push @alignment, "  != $str";
-            }
-            ++$n_file_pairs_compared;
         }
 
-        # step 1: identify comments in both files
-#print "Diff blank removal L language= $Lang_L";
-#print " scalar(lines_L)=", scalar @lines_L, "\n";
-        my @original_minus_blanks_L
-                    = rm_blanks(  \@lines_L, $Lang_L, \%EOL_Continuation_re);
-#print "1: scalar(original_minus_blanks_L)=", scalar @original_minus_blanks_L, "\n";
-        @lines_L    = @original_minus_blanks_L;
-#print "2: scalar(lines_L)=", scalar @lines_L, "\n";
-        @lines_L    = add_newlines(\@lines_L); # compensate for rm_comments()
-        @lines_L    = rm_comments( \@lines_L, $Lang_L, $file_L,
-                                   \%EOL_Continuation_re);
-#print "3: scalar(lines_L)=", scalar @lines_L, "\n";
-
-#print "Diff blank removal R language= $Lang_R\n";
-        my @original_minus_blanks_R
-                    = rm_blanks(  \@lines_R, $Lang_R, \%EOL_Continuation_re);
-        @lines_R    = @original_minus_blanks_R;
-        @lines_R    = add_newlines(\@lines_R); # taken away by rm_comments()
-        @lines_R    = rm_comments( \@lines_R, $Lang_R, $file_R,
-                                   \%EOL_Continuation_re);
-
-        my (@diff_LL, @diff_LR, );
-        array_diff( $file_L                  ,   # in
-                   \@original_minus_blanks_L ,   # in
-                   \@lines_L                 ,   # in
-                   "comment"                 ,   # in
-                   \@diff_LL, \@diff_LR      ,   # out
-                   \@Errors);                    # in/out
-
-        my (@diff_RL, @diff_RR, );
-        array_diff( $file_R                  ,   # in
-                   \@original_minus_blanks_R ,   # in
-                   \@lines_R                 ,   # in
-                   "comment"                 ,   # in
-                   \@diff_RL, \@diff_RR      ,   # out
-                   \@Errors);                    # in/out
-        # each line of each file is now classified as
-        # code or comment
-
-#use Data::Dumper;
-#print Dumper("diff_LL", \@diff_LL, "diff_LR", \@diff_LR, );
-#print Dumper("diff_RL", \@diff_RL, "diff_RR", \@diff_RR, );
-#die;
-        # step 2: separate code from comments for L and R files
-        my @code_L = ();
-        my @code_R = ();
-        my @comm_L = ();
-        my @comm_R = ();
-        foreach my $line_info (@diff_LL) {
-            if      ($line_info->{'type'} eq "code"   ) {
-                push @code_L, $line_info->{char};
-            } elsif ($line_info->{'type'} eq "comment") {
-                push @comm_L, $line_info->{char};
-            } else {
-                die "Diff unexpected line type ",
-                    $line_info->{'type'}, "for $file_L line ",
-                    $line_info->{'lnum'};
-            }
-        }
-        foreach my $line_info (@diff_RL) {
-            if      ($line_info->{type} eq "code"   ) {
-                push @code_R, $line_info->{'char'};
-            } elsif ($line_info->{type} eq "comment") {
-                push @comm_R, $line_info->{'char'};
-            } else {
-                die "Diff unexpected line type ",
-                    $line_info->{'type'}, "for $file_R line ",
-                    $line_info->{'lnum'};
+        foreach my $label ( keys %$part_alignment ) {
+            my $inner = $part_alignment->{$label};
+            foreach my $key ( keys %$inner ) {
+                $alignment{$label}{$key} = 1;
             }
         }
 
-        if ($opt_ignore_whitespace) {
-            # strip all whitespace from each line of source code
-            # and comments then use these stripped arrays in diffs
-            foreach (@code_L) { s/\s+//g }
-            foreach (@code_R) { s/\s+//g }
-            foreach (@comm_L) { s/\s+//g }
-            foreach (@comm_R) { s/\s+//g }
-        }
-        if ($opt_ignore_case) {
-            # change all text to lowercase in diffs
-            foreach (@code_L) { $_ = lc }
-            foreach (@code_R) { $_ = lc }
-            foreach (@comm_L) { $_ = lc }
-            foreach (@comm_R) { $_ = lc }
-        }
-        # step 3: compute code diffs
-        array_diff("$file_L v. $file_R"   ,   # in
-                   \@code_L               ,   # in
-                   \@code_R               ,   # in
-                   "revision"             ,   # in
-                   \@diff_LL, \@diff_LR   ,   # out
-                   \@Errors);                 # in/out
-#print Dumper("diff_LL", \@diff_LL, "diff_LR", \@diff_LR, );
-#print Dumper("diff_LR", \@diff_LR);
-        foreach my $line_info (@diff_LR) {
-            my $status = $line_info->{'desc'}; # same|added|removed|modified
-            ++$Delta_by_Language{$Lang_L}{'code'}{$status};
-            if ($opt_by_file) {
-                ++$Delta_by_File{$file_L}{'code'}{$status};
-            }
-        }
-#use Data::Dumper;
-#print Dumper("code diffs:", \@diff_LL, \@diff_LR);
+        %Results_by_File = ( %Results_by_File, %$part_result_by_file );
+        %Delta_by_File = ( %Delta_by_File, %$part_delta_by_file );
+        %Ignored = (%Ignored, %$part_ignored );
+        push ( @Errors, @$part_errors );
+    } );
 
-        # step 4: compute comment diffs
-        array_diff("$file_L v. $file_R"   ,   # in
-                   \@comm_L               ,   # in
-                   \@comm_R               ,   # in
-                   "revision"             ,   # in
-                   \@diff_LL, \@diff_LR   ,   # out
-                   \@Errors);                 # in/out
-#print Dumper("comment diff_LR", \@diff_LR);
-        foreach my $line_info (@diff_LR) {
-            my $status = $line_info->{'desc'}; # same|added|removed|modified
-            ++$Delta_by_Language{$Lang_L}{'comment'}{$status};
-            if ($opt_by_file) {
-                ++$Delta_by_File{$file_L}{'comment'}{$status};
-            }
-        }
-#print Dumper("comment diffs:", \@diff_LL, \@diff_LR);
+    my $num_filepairs_per_part = ceil ( ( scalar @file_pairs_tot ) / $num_processes );
+    my $num_filesremoved_per_part = ceil ( ( scalar @files_removed_tot ) / $num_processes );
+    my $num_filesadded_per_part = ceil ( ( scalar @files_added_tot ) / $num_processes );
 
-        # step 5: compute difference in blank lines (kind of pointless)
-        next if $Lang_L eq '(unknown)' or
-                $Lang_R eq '(unknown)';
-        my ($all_line_count_L,
-            $blank_count_L   ,
-            $comment_count_L ,
-           ) = call_counter($file_L, $Lang_L, \@Errors);
-
-        my ($all_line_count_R,
-            $blank_count_R   ,
-            $comment_count_R ,
-           ) = call_counter($file_R, $Lang_R, \@Errors);
-
-        if ($blank_count_L <  $blank_count_R) {
-            my $D = $blank_count_R - $blank_count_L;
-            $Delta_by_Language{$Lang_L}{'blank'}{'added'}   += $D;
-        } else {
-            my $D = $blank_count_L - $blank_count_R;
-            $Delta_by_Language{$Lang_L}{'blank'}{'removed'} += $D;
-        }
-        if ($opt_by_file) {
-            if ($blank_count_L <  $blank_count_R) {
-                my $D = $blank_count_R - $blank_count_L;
-                $Delta_by_File{$file_L}{'blank'}{'added'}   += $D;
-            } else {
-                my $D = $blank_count_L - $blank_count_R;
-                $Delta_by_File{$file_L}{'blank'}{'removed'} += $D;
-            }
+    while ( 1 ) {
+        my @files_added_part = splice @files_added_tot, 0, $num_filesadded_per_part;
+        my @files_removed_part = splice @files_removed_tot, 0, $num_filesremoved_per_part;
+        my @filepairs_part = splice @file_pairs_tot, 0, $num_filepairs_per_part;
+        if ( scalar @files_added_part == 0 and scalar @files_removed_part == 0 and
+             scalar @filepairs_part == 0 ) {
+            last;
         }
 
-        my $code_count_L = $all_line_count_L-$blank_count_L-$comment_count_L;
-        if ($opt_by_file) {
-            $Results_by_File{$file_L}{'code'   } = $code_count_L    ;
-            $Results_by_File{$file_L}{'blank'  } = $blank_count_L   ;
-            $Results_by_File{$file_L}{'comment'} = $comment_count_L ;
-            $Results_by_File{$file_L}{'lang'   } = $Lang_L          ;
-            $Results_by_File{$file_L}{'nFiles' } = 1                ;
-        } else {
-            $Results_by_File{$file_L} = 1;  # just keep track of counted files
-        }
-
-        $Results_by_Language{$Lang_L}{'nFiles'}++;
-        $Results_by_Language{$Lang_L}{'code'}    += $code_count_L   ;
-        $Results_by_Language{$Lang_L}{'blank'}   += $blank_count_L  ;
-        $Results_by_Language{$Lang_L}{'comment'} += $comment_count_L;
+        $pm->start() and next;
+        my $count_result = count_filesets ( $fset_a, $fset_b,
+            \@files_added_part, \@files_removed_part,
+            \@filepairs_part, 1, \%Language, \%Ignored );
+        $pm->finish(0 , $count_result);
     }
-    if ($opt_diff_alignment) {
-        $alignment[$alignment_pairs_index] =~ s/UPDATE_ME/$n_file_pairs_compared/;
-        write_file($opt_diff_alignment, @alignment);
-    }
-
+    # Wait for processes to finish
+    $pm->wait_all_children();
 }
-#use Data::Dumper;
-#print Dumper("Delta_by_Language:"  , \%Delta_by_Language);
-#print Dumper("Results_by_Language:", \%Results_by_Language);
-#print Dumper("Delta_by_File:"      , \%Delta_by_File);
-#print Dumper("Results_by_File:"    , \%Results_by_File);
-#die;
+
+# Write alignment data, if needed
+if ($opt_diff_alignment) {
+    write_alignment_data ( $opt_diff_alignment, $n_filepairs_compared, \%alignment ) ;
+}
+
 my @ignored_reasons = map { "$_: $Ignored{$_}" } sort keys %Ignored;
-write_file($opt_ignored, @ignored_reasons   ) if $opt_ignored;
-write_file($opt_counted, sort keys %Results_by_File) if $opt_counted;
+write_file($opt_ignored, {"file_type" => "ignored",
+                          "separator" => ": ",
+                          "columns"   => ["file", "reason"],
+                         }, @ignored_reasons   ) if $opt_ignored;
+write_file($opt_counted, {}, sort keys %Results_by_File) if $opt_counted;
 # 1}}}
 # Step 7:  Assemble results.                   {{{1
 #
@@ -1712,6 +1883,10 @@ if ($opt_skip_win_hidden and $ON_WINDOWS) {
     eval $win32_file_invocation;
     @file_list = @file_list_minus_hidded;
 }
+if ($opt_no_autogen) {
+    exclude_autogenerated_files(\@file_list,  # in/out
+                                \%Error_Codes, \@Errors, \%Ignored);
+}
 #printf "%8d file%s excluded.                     \n",
 #   plural_form(scalar keys %Ignored)
 #   unless $opt_quiet;
@@ -1727,82 +1902,80 @@ remove_duplicate_files($fh                          ,   # in
                       \%Error_Codes                 ,   # in
                            \@Errors                 ,   # out
                            \%Ignored                );  # out
+if ($opt_exclude_content) {
+    exclude_by_regex($opt_exclude_content,              # in
+                    \%unique_source_file ,              # in/out
+                    \%Ignored);                         # out
+}
 printf "%8d unique file%s.                              \n",
     plural_form(scalar keys %unique_source_file)
     unless $opt_quiet;
 # 1}}}
 # Step 6:  Count code, comments, blank lines.  {{{1
 #
-
 my %Results_by_Language = ();
 my %Results_by_File     = ();
-my $nCounted = 0;
-foreach my $file (sort keys %unique_source_file) {
-    ++$nCounted;
-    printf "Counting:  %d\r", $nCounted
-        unless (!$opt_progress_rate or ($nCounted % $opt_progress_rate));
-    next if $Ignored{$file};
-    if ($opt_include_lang and not $Include_Language{$Language{$file}}) {
-        $Ignored{$file} = "--include-lang=$Language{$file}";
-        next;
-    }
-    if ($Exclude_Language{$Language{$file}}) {
-        $Ignored{$file} = "--exclude-lang=$Language{$file}";
-        next;
-    }
-    my $Filters_by_Language_Language_file = ! @{$Filters_by_Language{$Language{$file}} };
-    if ($Filters_by_Language_Language_file) {
-        if ($Language{$file} eq "(unknown)") {
-            $Ignored{$file} = "language unknown (#1)";
-        } else {
-            $Ignored{$file} = "missing Filters_by_Language{$Language{$file}}";
-        }
-        next;
-    }
+my @results_parts  = ();
+my @sorted_files = sort keys %unique_source_file;
 
-    my ($all_line_count, $blank_count, $comment_count, $code_count);
-    if ($opt_use_sloccount and $Language{$file} =~ /^(C|C\+\+|XML|PHP|Pascal|Java)$/) {
-        chomp ($blank_count     = `grep -Pcv '\\S' $file`);
-        chomp ($all_line_count  = `cat $file | wc -l`);
-        if      ($Language{$file} =~ /^(C|C\+\+)$/) {
-            $code_count = `cat '$file' | c_count      | head -n 1`;
-        } elsif ($Language{$file} eq "XML") {
-            $code_count = `cat '$file' | xml_count    | head -n 1`;
-        } elsif ($Language{$file} eq "PHP") {
-            $code_count = `cat '$file' | php_count    | head -n 1`;
-        } elsif ($Language{$file} eq "Pascal") {
-            $code_count = `cat '$file' | pascal_count | head -n 1`;
-        } elsif ($Language{$file} eq "Java") {
-            $code_count = `cat '$file' | java_count   | head -n 1`;
-        } else {
-            die "SLOCCount match failure: file=[$file] lang=[$Language{$file}]";
-        }
-        $code_count = substr($code_count, 0, -2);
-        $comment_count = $all_line_count - $code_count - $blank_count;
-    } else {
-        ($all_line_count,
-         $blank_count   ,
-         $comment_count ,) = call_counter($file, $Language{$file}, \@Errors);
-        $code_count = $all_line_count - $blank_count - $comment_count;
-    }
-    if ($opt_by_file) {
-        $Results_by_File{$file}{'code'   } = $code_count     ;
-        $Results_by_File{$file}{'blank'  } = $blank_count    ;
-        $Results_by_File{$file}{'comment'} = $comment_count  ;
-        $Results_by_File{$file}{'lang'   } = $Language{$file};
-        $Results_by_File{$file}{'nFiles' } = 1;
-    } else {
-        $Results_by_File{$file} = 1;  # just keep track of counted files
-    }
+if ( $max_processes == 0) {
+    # Multiprocessing is disabled
+    my $part = count_files ( \@sorted_files , 0, \%Language);
+    %Results_by_File = %{$part->{'results_by_file'}};
+    %Results_by_Language= %{$part->{'results_by_language'}};
+    %Ignored = ( %Ignored, %{$part->{'ignored'}});
+    push ( @Errors, @{$part->{'errors'}});
+} else {
+    # Do not create more processes than the number of files to be processed
+    my $num_files = scalar @sorted_files;
+    my $num_processes = $num_files >= $max_processes ? $max_processes : $num_files;
+    # Use at least one process.
+       $num_processes = 1
+            if $num_processes == 0;
+    # Start processes for counting
+    my $pm = Parallel::ForkManager->new($num_processes);
+    # When processes finish, they will use the embedded subroutine for
+    # merging the data into global variables.
+    $pm->run_on_finish ( sub {
+        my ($pid, $exit_code, $ident, $exit_signal, $core_dump, $part) = @_;
+        my $part_ignored = $part->{'ignored'};
+        my $part_result_by_file = $part->{'results_by_file'};
+        my $part_result_by_language = $part->{'results_by_language'};
+        my $part_errors = $part->{'errors'};
+        my $nCounted+= scalar keys %$part_result_by_file;
+        # Since files are processed by multiple processes, we can't measure
+        # the number of processed files exactly. We approximate this by showing
+        # the number of files counted by finished processes.
+        printf "Counting:  %d\r", $nCounted
+                 if $opt_progress_rate;
 
-    $Results_by_Language{$Language{$file}}{'nFiles'}++;
-    $Results_by_Language{$Language{$file}}{'code'}    += $code_count   ;
-    $Results_by_Language{$Language{$file}}{'blank'}   += $blank_count  ;
-    $Results_by_Language{$Language{$file}}{'comment'} += $comment_count;
+        foreach my $this_language ( keys %$part_result_by_language ) {
+            my $counts = $part_result_by_language->{$this_language};
+            foreach my $inner_key ( keys %$counts ) {
+                $Results_by_Language{$this_language}{$inner_key} +=
+                    $counts->{$inner_key};
+            }
+        }
+        %Results_by_File = ( %Results_by_File, %$part_result_by_file );
+        %Ignored = (%Ignored, %$part_ignored);
+        push ( @Errors, @$part_errors);
+    } );
+    my $num_files_per_part = ceil ( ( scalar @sorted_files ) / $num_processes );
+    while ( my @part = splice @sorted_files, 0 , $num_files_per_part ) {
+        $pm->start() and next;
+        my $count_result = count_files ( \@part, 1, \%Language );
+        $pm->finish(0 , $count_result);
+    }
+    # Wait for processes to finish
+    $pm->wait_all_children();
 }
+
 my @ignored_reasons = map { "$_: $Ignored{$_}" } sort keys %Ignored;
-write_file($opt_ignored, @ignored_reasons   ) if $opt_ignored;
-write_file($opt_counted, sort keys %Results_by_File) if $opt_counted;
+write_file($opt_ignored, {"file_type" => "ignored",
+                          "separator" => ": ",
+                          "columns"   => ["file", "reason"],
+                         }, @ignored_reasons   ) if $opt_ignored;
+write_file($opt_counted, {}, sort keys %Results_by_File) if $opt_counted;
 # 1}}}
 # Step 7:  Assemble results.                   {{{1
 #
@@ -1834,14 +2007,711 @@ if      ($opt_by_file_by_lang) {
 }
 # 1}}}
 }
-if ($opt_report_file) { write_file($opt_report_file, @Lines_Out); }
+if ($opt_report_file) { write_file($opt_report_file, {}, @Lines_Out); }
 else                  { print "\n", join("\n", @Lines_Out), "\n"; }
 if ($opt_count_diff) {
     ++$opt_count_diff;
     exit if $opt_count_diff > 3;
     goto Top_of_Processing_Loop;
 }
+sub exclude_by_regex {                       # {{{1
+    my ($regex,
+        $rh_unique_source_file, # in/out
+        $rh_ignored           , # out
+       ) = @_;
+    my @exclude = ();
+    foreach my $file (keys %{$rh_unique_source_file}) {
+        my $line_num = 0;
+        foreach my $line (read_file($file)) {
+            ++$line_num;
+            if ($line =~ /$regex/) {
+                $rh_ignored->{$file} = "line $line_num match for --exclude-content=$regex";
+                push @exclude, $file;
+                last;
+            }
+        }
+    }
+    foreach my $file (@exclude) {
+        delete $rh_unique_source_file->{$file};
+    }
+} # 1}}}
+sub get_max_processes {                      # {{{1
+    # If user has specified valid number of processes, use that.
+    if (defined $opt_processes) {
+        eval "use Parallel::ForkManager 0.7.6;";
+        if ( defined $Parallel::ForkManager::VERSION ) {
+            $HAVE_Parallel_ForkManager = 1;
+        }
+        if ( $opt_processes !~ /^\d+$/ ) {
+            print "Error: processes option argument must be numeric.\n";
+            exit 1;
+        }
+        elsif ( $opt_processes >0 and ! $HAVE_Parallel_ForkManager ) {
+            print "Error: cannot use multiple processes, because " .
+                  "Parallel::ForkManager is not installed, or the version is too old.\n";
+            exit 1;
+        }
+    elsif ( $opt_processes >0 and $ON_WINDOWS ) {
+            print "Error: cannot use multiple processes on Windows systems.\n";
+            exit 1;
+        }
+        else {
+            return $opt_processes;
+        }
+    }
 
+    # Disable multiprocessing on Windows - does not work reliably
+    if ($ON_WINDOWS) {
+        return 0;
+    }
+
+    # Disable multiprocessing if Parallel::ForkManager is not available
+    if ( ! $HAVE_Parallel_ForkManager ) {
+        return 0;
+    }
+
+    # Set to number of cores on Linux
+    if ( $^O =~ /linux/i and -x '/usr/bin/nproc' ) {
+        my $numavcores_linux = `/usr/bin/nproc`;
+        chomp $numavcores_linux;
+        if ( $numavcores_linux =~ /^\d+$/ ) {
+            return $numavcores_linux;
+        }
+    }
+
+    # Set to number of cores on MacOS
+    if ( $^O =~ /darwin/i and -x '/usr/sbin/sysctl') {
+       my $numavcores_macos = `/usr/sbin/sysctl -n hw.physicalcpu`;
+       chomp $numavcores_macos;
+       if ($numavcores_macos =~ /^\d+$/ ) {
+           return $numavcores_macos;
+       }
+    }
+
+    # Disable multiprocessing in other cases
+    return 0;
+} # 1}}}
+sub exclude_autogenerated_files {            # {{{1
+    my ($ra_file_list, # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+        $rh_Ignored  , # out
+       ) = @_;
+    print "-> exclude_autogenerated_files()\n" if $opt_v > 2;
+    my @file_list_minus_autogen = ();
+    foreach my $file (@{$ra_file_list}) {
+        if ($file !~ /\.go$/) {
+            # at the moment, only know Go autogenerated files
+            push @file_list_minus_autogen, $file;
+            next;
+        }
+        my $first_line = first_line($file, $rh_Err, $raa_errors);
+        if ($first_line =~ m{^//\s+Code\s+generated\s+.*?\s+DO\s+NOT\s+EDIT\.$}) {
+            $rh_Ignored->{$file} = 'Go autogenerated file';
+        } else {
+            # Go, but not autogenerated
+            push @file_list_minus_autogen, $file;
+        }
+    }
+    @{$ra_file_list} = @file_list_minus_autogen;
+    print "<- exclude_autogenerated_files()\n" if $opt_v > 2;
+} # 1}}}
+sub file_extension {                         # {{{1
+    my ($fname, ) = @_;
+    $fname =~ m/\.(\w+)$/;
+    if ($1) {
+        return $1;
+    } else {
+        return "";
+    }
+} # 1}}}
+sub count_files {                            # {{{1
+    my ($filelist, $counter_type, $language_hash) = @_;
+    print "-> count_files()\n" if $opt_v > 2;
+    my @p_errors = ();
+    my %p_ignored = ();
+    my %p_rbl = ();
+    my %p_rbf = ();
+    my %Language = %{$language_hash};
+
+    foreach my $file (@$filelist) {
+        if ( ! $counter_type ) {
+            # Multithreading disabled
+            $nCounted++;
+
+            printf "Counting:  %d\r", $nCounted
+                 unless (!$opt_progress_rate or ($nCounted % $opt_progress_rate));
+        }
+
+        next if $Ignored{$file};
+        if ($opt_include_ext and not $Include_Ext{ file_extension($file) }) {
+            $p_ignored{$file} = "not in --include-ext=$opt_include_ext";
+            next;
+        }
+        if ($opt_include_lang and not $Include_Language{$Language{$file}}) {
+            $p_ignored{$file} = "not in --include-lang=$opt_include_lang";
+            next;
+        }
+        if ($Exclude_Language{$Language{$file}}) {
+            $p_ignored{$file} = "--exclude-lang=$Language{$file}";
+            next;
+        }
+
+        my $Filters_by_Language_Language_file = ! @{$Filters_by_Language{$Language{$file}} };
+        if ($Filters_by_Language_Language_file) {
+            if ($Language{$file} eq "(unknown)") {
+                $p_ignored{$file} = "language unknown (#1)";
+            } else {
+                $p_ignored{$file} = "missing Filters_by_Language{$Language{$file}}";
+            }
+            next;
+        }
+
+        my ($all_line_count, $blank_count, $comment_count, $code_count);
+        if ($opt_use_sloccount and $Language{$file} =~ /^(C|C\+\+|XML|PHP|Pascal|Java)$/) {
+            chomp ($blank_count     = `grep -cv \"[^[:space:]]\" '$file'`);
+            chomp ($all_line_count  = `cat '$file' | wc -l`);
+            if      ($Language{$file} =~ /^(C|C\+\+)$/) {
+                $code_count = `cat '$file' | c_count      | head -n 1`;
+            } elsif ($Language{$file} eq "XML") {
+                $code_count = `cat '$file' | xml_count    | head -n 1`;
+            } elsif ($Language{$file} eq "PHP") {
+                $code_count = `cat '$file' | php_count    | head -n 1`;
+            } elsif ($Language{$file} eq "Pascal") {
+                $code_count = `cat '$file' | pascal_count | head -n 1`;
+            } elsif ($Language{$file} eq "Java") {
+                $code_count = `cat '$file' | java_count   | head -n 1`;
+            } else {
+                die "SLOCCount match failure: file=[$file] lang=[$Language{$file}]";
+            }
+            $code_count = substr($code_count, 0, -2);
+            $comment_count = $all_line_count - $code_count - $blank_count;
+        } else {
+            ($all_line_count,
+             $blank_count   ,
+             $comment_count ,) = call_counter($file, $Language{$file}, \@Errors);
+            $code_count = $all_line_count - $blank_count - $comment_count;
+        }
+
+        if ($opt_by_file) {
+            $p_rbf{$file}{'code'   } = $code_count     ;
+            $p_rbf{$file}{'blank'  } = $blank_count    ;
+            $p_rbf{$file}{'comment'} = $comment_count  ;
+            $p_rbf{$file}{'lang'   } = $Language{$file};
+            $p_rbf{$file}{'nFiles' } = 1;
+        } else {
+            $p_rbf{$file} = 1;  # just keep track of counted files
+        }
+
+        $p_rbl{$Language{$file}}{'nFiles'}++;
+        $p_rbl{$Language{$file}}{'code'}    += $code_count   ;
+        $p_rbl{$Language{$file}}{'blank'}   += $blank_count  ;
+        $p_rbl{$Language{$file}}{'comment'} += $comment_count;
+
+    }
+    print "<- count_files()\n" if $opt_v > 2;
+    return {
+        "ignored" => \%p_ignored,
+        "errors"  => \@p_errors,
+        "results_by_file" => \%p_rbf,
+        "results_by_language" => \%p_rbl,
+    }
+} # 1}}}
+sub count_filesets {                         # {{{1
+    my ($fset_a,
+        $fset_b,
+        $files_added,
+        $files_removed,
+        $file_pairs,
+        $counter_type,
+        $language_hash,
+        $rh_Ignored) = @_;
+    print "-> count_filesets()\n" if $opt_v > 2;
+    my @p_errors = ();
+    my %p_alignment = ();
+    my %p_ignored = ();
+    my %p_rbl = ();
+    my %p_rbf = ();
+    my %p_dbl = ();
+    my %p_dbf = ();
+    my %Language = %$language_hash;
+
+    my $nCounted = 0;
+
+    my %already_counted = (); # already_counted{ filename } = 1
+
+    if (!@$file_pairs) {
+        # Special case where all files were either added or deleted.
+        # In this case, one of these arrays will be empty:
+        #   @files_added, @files_removed
+        # so loop over both to cover both cases.
+        my $status = @$files_added ? 'added' : 'removed';
+        my $fset = @$files_added ? $fset_b : $fset_a;
+        foreach my $file (@$files_added, @$files_removed) {
+            next unless defined $Language{$fset}{$file};
+            my $Lang = $Language{$fset}{$file};
+            next if $Lang eq '(unknown)';
+            my ($all_line_count,
+                $blank_count   ,
+                $comment_count ,
+                ) = call_counter($file, $Lang, \@p_errors);
+            $already_counted{$file} = 1;
+            my $code_count = $all_line_count-$blank_count-$comment_count;
+            if ($opt_by_file) {
+                $p_dbf{$file}{'code'   }{$status} += $code_count   ;
+                $p_dbf{$file}{'blank'  }{$status} += $blank_count  ;
+                $p_dbf{$file}{'comment'}{$status} += $comment_count;
+                $p_dbf{$file}{'lang'   }{$status}  = $Lang         ;
+                $p_dbf{$file}{'nFiles' }{$status} += 1             ;
+            }
+            $p_dbl{$Lang}{'code'   }{$status} += $code_count   ;
+            $p_dbl{$Lang}{'blank'  }{$status} += $blank_count  ;
+            $p_dbl{$Lang}{'comment'}{$status} += $comment_count;
+            $p_dbl{$Lang}{'nFiles' }{$status} += 1             ;
+        }
+    }
+
+    #use Data::Dumper::Simple;
+    #use Data::Dumper;
+    #print Dumper(\@files_added, \@files_removed, \@file_pairs);
+    #print "after align_by_pairs:\n";
+    #print "added:\n";
+
+    foreach my $f (@$files_added) {
+        next if $already_counted{$f};
+        #printf "%10s -> %s\n", $f, $Language{$fh[$F+1]}{$f};
+        # Don't proceed unless the file (both L and R versions)
+        # is in a known language.
+        next if $opt_include_ext
+            and not $Include_Ext{ file_extension($f) };
+        next if $opt_include_lang
+            and not $Include_Language{$Language{$fset_b}{$f}};
+        my $this_lang = $Language{$fset_b}{$f};
+        if (!defined  $Language{$fset_b}{$f}) {
+            # shouldn't happen but could get here if using
+            # --diff-list-file which bypasses earlier checks
+            $p_ignored{$f} = "empty or uncharacterizeable file";
+            next;
+        }
+        if ($this_lang eq "(unknown)") {
+            $p_ignored{$f} = "unknown language";
+            next;
+        }
+        if ($Exclude_Language{$this_lang}) {
+            $p_ignored{$f} = "--exclude-lang=$this_lang";
+            next;
+        }
+        $p_alignment{"added"}{sprintf "  + %s ; %s\n", $f, $this_lang} = 1;
+        ++$p_dbl{ $this_lang }{'nFiles'}{'added'};
+        # Additionally, add contents of file $f to
+        # Delta_by_File{$f}{comment/blank/code}{'added'}
+        # Delta_by_Language{$lang}{comment/blank/code}{'added'}
+        # via the $p_dbl and $p_dbf variables.
+        my ($all_line_count,
+            $blank_count   ,
+            $comment_count ,
+           ) = call_counter($f, $this_lang, \@p_errors);
+        $p_dbl{ $this_lang }{'comment'}{'added'} += $comment_count;
+        $p_dbl{ $this_lang }{'blank'}{'added'}   += $blank_count;
+        $p_dbl{ $this_lang }{'code'}{'added'}    +=
+           $all_line_count - $blank_count - $comment_count;
+        $p_dbf{ $f }{'comment'}{'added'} = $comment_count;
+        $p_dbf{ $f }{'blank'}{'added'}   = $blank_count;
+        $p_dbf{ $f }{'code'}{'added'}    =
+           $all_line_count - $blank_count - $comment_count;
+    }
+
+    #print "removed:\n";
+    foreach my $f (@$files_removed) {
+        next if $already_counted{$f};
+        # Don't proceed unless the file (both L and R versions)
+        # is in a known language.
+        next if $opt_include_ext
+            and not $Include_Ext{ file_extension($f) };
+        next if $opt_include_lang
+            and (not defined $Language{$fset_a}{$f}
+             or  not defined $Include_Language{$Language{$fset_a}{$f}});
+        my $this_lang = $Language{$fset_a}{$f};
+        if ($this_lang eq "(unknown)") {
+            $p_ignored{$f} = "unknown language";
+            next;
+        }
+        if ($Exclude_Language{$this_lang}) {
+            $p_ignored{$f} = "--exclude-lang=$this_lang";
+            next;
+        }
+        ++$p_dbl{ $this_lang }{'nFiles'}{'removed'};
+        $p_alignment{"removed"}{sprintf "  - %s ; %s\n", $f, $this_lang} = 1;
+        #printf "%10s -> %s\n", $f, $Language{$fh[$F  ]}{$f};
+        # Additionally, add contents of file $f to
+        #        Delta_by_File{$f}{comment/blank/code}{'removed'}
+        #        Delta_by_Language{$lang}{comment/blank/code}{'removed'}
+        # via the $p_dbl and $p_dbf variables.
+        my ($all_line_count,
+            $blank_count   ,
+            $comment_count ,
+           ) = call_counter($f, $this_lang, \@p_errors);
+        $p_dbl{ $this_lang}{'comment'}{'removed'} += $comment_count;
+        $p_dbl{ $this_lang}{'blank'}{'removed'}   += $blank_count;
+        $p_dbl{ $this_lang}{'code'}{'removed'}    +=
+             $all_line_count - $blank_count - $comment_count;
+        $p_dbf{ $f }{'comment'}{'removed'} = $comment_count;
+        $p_dbf{ $f }{'blank'}{'removed'}   = $blank_count;
+        $p_dbf{ $f }{'code'}{'removed'}    =
+            $all_line_count - $blank_count - $comment_count;
+    }
+
+    my $n_file_pairs_compared = 0;
+    # Don't know ahead of time how many file pairs will be compared
+    # since duplicates are weeded out below.  The answer is
+    # scalar @file_pairs only if there are no duplicates.
+
+    foreach my $pair (@$file_pairs) {
+        my $file_L = $pair->[0];
+        my $file_R = $pair->[1];
+        my $Lang_L = $Language{$fset_a}{$file_L};
+        my $Lang_R = $Language{$fset_b}{$file_R};
+        if (!defined($Lang_L) or !defined($Lang_R)) {
+            print " -> count_filesets skipping $file_L, $file_R ",
+                  "because language cannot be inferred\n" if $opt_v;
+            next;
+        }
+        #print "main step 6 file_L=$file_L    file_R=$file_R\n";
+        ++$nCounted;
+        printf "Counting:  %d\r", $nCounted
+             unless ($counter_type or !$opt_progress_rate or ($nCounted % $opt_progress_rate));
+        next if $p_ignored{$file_L} or $p_ignored{$file_R};
+
+        # filter out non-included extensions
+        if ($opt_include_ext  and not $Include_Ext{ file_extension($file_L) }
+                              and not $Include_Ext{ file_extension($file_R) }) {
+            $p_ignored{$file_L} = "not in --include-lang=$opt_include_ext";
+            $p_ignored{$file_R} = "not in --include-lang=$opt_include_ext";
+            next;
+        }
+        # filter out non-included languages
+        if ($opt_include_lang and not $Include_Language{$Lang_L}
+                              and not $Include_Language{$Lang_R}) {
+            $p_ignored{$file_L} = "not in --include-lang=$opt_include_lang";
+            $p_ignored{$file_R} = "not in --include-lang=$opt_include_lang";
+            next;
+        }
+        # filter out excluded or unrecognized languages
+        if ($Exclude_Language{$Lang_L} or $Exclude_Language{$Lang_R}) {
+            $p_ignored{$file_L} = "--exclude-lang=$Lang_L";
+            $p_ignored{$file_R} = "--exclude-lang=$Lang_R";
+            next;
+        }
+
+        my $not_Filters_by_Language_Lang_LR = 0;
+        #print "file_LR = [$file_L] [$file_R]\n";
+        #print "Lang_LR = [$Lang_L] [$Lang_R]\n";
+        if (($Lang_L eq "(unknown)") or
+            ($Lang_R eq "(unknown)") or
+            !(@{$Filters_by_Language{$Lang_L} }) or
+            !(@{$Filters_by_Language{$Lang_R} })) {
+            $not_Filters_by_Language_Lang_LR = 1;
+        }
+        if ($not_Filters_by_Language_Lang_LR) {
+            if (($Lang_L eq "(unknown)") or ($Lang_R eq "(unknown)")) {
+                $p_ignored{$fset_a}{$file_L} = "language unknown (#1)";
+                $p_ignored{$fset_b}{$file_R} = "language unknown (#1)";
+            } else {
+                $p_ignored{$fset_a}{$file_L} = "missing Filters_by_Language{$Lang_L}";
+                $p_ignored{$fset_b}{$file_R} = "missing Filters_by_Language{$Lang_R}";
+            }
+            next;
+        }
+
+        # filter out explicitly excluded files
+        if ($opt_exclude_list_file and
+            ($rh_Ignored->{$file_L} or $rh_Ignored->{$file_R})) {
+            my $msg_2;
+            if ($rh_Ignored->{$file_L}) {
+                $msg_2 = "$file_L (paired to $file_R)";
+            } else {
+                $msg_2 = "$file_R (paired to $file_L)";
+            }
+            my $msg_1 = "in --exclude-list-file=$opt_exclude_list_file";
+            $p_ignored{$file_L} = "$msg_1, $msg_2";
+            $p_ignored{$file_R} = "$msg_1, $msg_2";
+            next;
+        }
+
+        #print "DIFF($file_L, $file_R)\n";
+        # step 0: compare the two files' contents
+        chomp ( my @lines_L = read_file($file_L) );
+        chomp ( my @lines_R = read_file($file_R) );
+        my $language_file_L = "";
+        if (defined $Language{$fset_a}{$file_L}) {
+            $language_file_L = $Language{$fset_a}{$file_L};
+        } else {
+            # files $file_L and $file_R do not contain known language
+            next;
+        }
+
+        my $contents_are_same = 1;
+        if (scalar @lines_L == scalar @lines_R) {
+            # same size, must compare line-by-line
+            for (my $i = 0; $i < scalar @lines_L; $i++) {
+               if ($lines_L[$i] ne $lines_R[$i]) {
+                   $contents_are_same = 0;
+                   last;
+               }
+            }
+            if ($contents_are_same) {
+                ++$p_dbl{$language_file_L}{'nFiles'}{'same'};
+            } else {
+                ++$p_dbl{$language_file_L}{'nFiles'}{'modified'};
+            }
+        } else {
+            $contents_are_same = 0;
+            # different sizes, contents have changed
+            ++$p_dbl{$language_file_L}{'nFiles'}{'modified'};
+        }
+
+        if ($opt_diff_alignment) {
+            my $str =  "$file_L | $file_R ; $language_file_L";
+            if ($contents_are_same) {
+                $p_alignment{"pairs"}{"  == $str"} = 1;
+            } else {
+                $p_alignment{"pairs"}{"  != $str"} = 1;
+            }
+            ++$n_file_pairs_compared;
+        }
+
+        my ($all_line_count_L, $blank_count_L   , $comment_count_L ,
+            $all_line_count_R, $blank_count_R   , $comment_count_R , )  = (0,0,0,0,0,0,);
+        if (!$contents_are_same) {
+            # step 1: identify comments in both files
+            #print "Diff blank removal L language= $Lang_L";
+            #print " scalar(lines_L)=", scalar @lines_L, "\n";
+            my @original_minus_blanks_L
+                    = rm_blanks(  \@lines_L, $Lang_L, \%EOL_Continuation_re);
+            #print "1: scalar(original_minus_blanks_L)=", scalar @original_minus_blanks_L, "\n";
+            @lines_L    = @original_minus_blanks_L;
+            #print "2: scalar(lines_L)=", scalar @lines_L, "\n";
+            @lines_L    = add_newlines(\@lines_L); # compensate for rm_comments()
+            @lines_L    = rm_comments( \@lines_L, $Lang_L, $file_L,
+                                       \%EOL_Continuation_re);
+            #print "3: scalar(lines_L)=", scalar @lines_L, "\n";
+
+            #print "Diff blank removal R language= $Lang_R\n";
+            my @original_minus_blanks_R
+                    = rm_blanks(  \@lines_R, $Lang_R, \%EOL_Continuation_re);
+            @lines_R    = @original_minus_blanks_R;
+            @lines_R    = add_newlines(\@lines_R); # taken away by rm_comments()
+            @lines_R    = rm_comments( \@lines_R, $Lang_R, $file_R,
+                                       \%EOL_Continuation_re);
+
+            my (@diff_LL, @diff_LR, );
+                   array_diff( $file_L                  ,   # in
+                       \@original_minus_blanks_L ,   # in
+                       \@lines_L                 ,   # in
+                       "comment"                 ,   # in
+                       \@diff_LL, \@diff_LR      ,   # out
+                       \@p_errors);                    # in/out
+
+            my (@diff_RL, @diff_RR, );
+                    array_diff( $file_R                  ,   # in
+                       \@original_minus_blanks_R ,   # in
+                       \@lines_R                 ,   # in
+                       "comment"                 ,   # in
+                       \@diff_RL, \@diff_RR      ,   # out
+                       \@p_errors);                    # in/out
+            # each line of each file is now classified as
+            # code or comment
+            #use Data::Dumper;
+            #print Dumper("diff_LL", \@diff_LL, "diff_LR", \@diff_LR, );
+            #print Dumper("diff_RL", \@diff_RL, "diff_RR", \@diff_RR, );
+            #die;
+
+            # step 2: separate code from comments for L and R files
+            my @code_L = ();
+            my @code_R = ();
+            my @comm_L = ();
+            my @comm_R = ();
+            foreach my $line_info (@diff_LL) {
+                if      ($line_info->{'type'} eq "code"   ) {
+                    push @code_L, $line_info->{char};
+                } elsif ($line_info->{'type'} eq "comment") {
+                    push @comm_L, $line_info->{char};
+                } else {
+                    die "Diff unexpected line type ",
+                        $line_info->{'type'}, "for $file_L line ",
+                        $line_info->{'lnum'};
+                }
+            }
+
+            foreach my $line_info (@diff_RL) {
+                if      ($line_info->{type} eq "code"   ) {
+                    push @code_R, $line_info->{'char'};
+                } elsif ($line_info->{type} eq "comment") {
+                    push @comm_R, $line_info->{'char'};
+                } else {
+                    die "Diff unexpected line type ",
+                        $line_info->{'type'}, "for $file_R line ",
+                        $line_info->{'lnum'};
+                }
+            }
+
+            if ($opt_ignore_whitespace) {
+                # strip all whitespace from each line of source code
+                # and comments then use these stripped arrays in diffs
+                foreach (@code_L) { s/\s+//g }
+                foreach (@code_R) { s/\s+//g }
+                foreach (@comm_L) { s/\s+//g }
+                foreach (@comm_R) { s/\s+//g }
+            }
+            if ($opt_ignore_case) {
+                # change all text to lowercase in diffs
+                foreach (@code_L) { $_ = lc }
+                foreach (@code_R) { $_ = lc }
+                foreach (@comm_L) { $_ = lc }
+                foreach (@comm_R) { $_ = lc }
+            }
+            # step 3: compute code diffs
+            array_diff("$file_L v. $file_R"   ,   # in
+                       \@code_L               ,   # in
+                       \@code_R               ,   # in
+                       "revision"             ,   # in
+                       \@diff_LL, \@diff_LR   ,   # out
+                       \@p_errors);                 # in/out
+            #print Dumper("diff_LL", \@diff_LL, "diff_LR", \@diff_LR, );
+            #print Dumper("diff_LR", \@diff_LR);
+            foreach my $line_info (@diff_LR) {
+                my $status = $line_info->{'desc'}; # same|added|removed|modified
+                ++$p_dbl{$Lang_L}{'code'}{$status};
+                if ($opt_by_file) {
+                    ++$p_dbf{$file_L}{'code'}{$status};
+                }
+            }
+            #use Data::Dumper;
+            #print Dumper("code diffs:", \@diff_LL, \@diff_LR);
+
+            # step 4: compute comment diffs
+            array_diff("$file_L v. $file_R"   ,   # in
+                       \@comm_L               ,   # in
+                       \@comm_R               ,   # in
+                       "revision"             ,   # in
+                       \@diff_LL, \@diff_LR   ,   # out
+                       \@Errors);                 # in/out
+            #print Dumper("comment diff_LR", \@diff_LR);
+            foreach my $line_info (@diff_LR) {
+                my $status = $line_info->{'desc'}; # same|added|removed|modified
+                ++$p_dbl{$Lang_L}{'comment'}{$status};
+                if ($opt_by_file) {
+                    ++$p_dbf{$file_L}{'comment'}{$status};
+                }
+            }
+            #print Dumper("comment diffs:", \@diff_LL, \@diff_LR);
+
+            # step 5: compute difference in blank lines (kind of pointless)
+            next if $Lang_L eq '(unknown)' or
+                    $Lang_R eq '(unknown)';
+            ($all_line_count_L,
+             $blank_count_L   ,
+             $comment_count_L ,
+            ) = call_counter($file_L, $Lang_L, \@Errors);
+
+            ($all_line_count_R,
+             $blank_count_R   ,
+             $comment_count_R ,
+            ) = call_counter($file_R, $Lang_R, \@Errors);
+        } else {
+            # L and R file contents are identical, no need to diff
+            ($all_line_count_L,
+             $blank_count_L   ,
+             $comment_count_L ,
+            ) = call_counter($file_L, $Lang_L, \@Errors);
+            $all_line_count_R = $all_line_count_L;
+            $blank_count_R    = $blank_count_L   ;
+            $comment_count_R  = $comment_count_L ;
+            my $code_lines_R  = $all_line_count_R - ($blank_count_R + $comment_count_R);
+            $p_dbl{$Lang_L}{'blank'}{'same'}   += $blank_count_R;
+            $p_dbl{$Lang_L}{'comment'}{'same'} += $comment_count_R;
+            $p_dbl{$Lang_L}{'code'}{'same'}    += $code_lines_R;
+            if ($opt_by_file) {
+                $p_dbf{$file_L}{'blank'}{'same'}   += $blank_count_R;
+                $p_dbf{$file_L}{'comment'}{'same'} += $comment_count_R;
+                $p_dbf{$file_L}{'code'}{'same'}    += $code_lines_R;
+            }
+        }
+
+        if ($blank_count_L <  $blank_count_R) {
+            my $D = $blank_count_R - $blank_count_L;
+            $p_dbl{$Lang_L}{'blank'}{'added'}   += $D;
+        } else {
+            my $D = $blank_count_L - $blank_count_R;
+            $p_dbl{$Lang_L}{'blank'}{'removed'} += $D;
+        }
+        if ($opt_by_file) {
+            if ($blank_count_L <  $blank_count_R) {
+                my $D = $blank_count_R - $blank_count_L;
+                $p_dbf{$file_L}{'blank'}{'added'}   += $D;
+            } else {
+                my $D = $blank_count_L - $blank_count_R;
+                $p_dbf{$file_L}{'blank'}{'removed'} += $D;
+            }
+        }
+
+        my $code_count_L = $all_line_count_L-$blank_count_L-$comment_count_L;
+        if ($opt_by_file) {
+            $p_rbf{$file_L}{'code'   } = $code_count_L    ;
+            $p_rbf{$file_L}{'blank'  } = $blank_count_L   ;
+            $p_rbf{$file_L}{'comment'} = $comment_count_L ;
+            $p_rbf{$file_L}{'lang'   } = $Lang_L          ;
+            $p_rbf{$file_L}{'nFiles' } = 1                ;
+        } else {
+            $p_rbf{$file_L} = 1;  # just keep track of counted files
+        }
+
+        $p_rbl{$Lang_L}{'nFiles'}++;
+        $p_rbl{$Lang_L}{'code'}    += $code_count_L   ;
+        $p_rbl{$Lang_L}{'blank'}   += $blank_count_L  ;
+        $p_rbl{$Lang_L}{'comment'} += $comment_count_L;
+    }
+
+    print "<- count_filesets()\n" if $opt_v > 2;
+    return {
+        "ignored" => \%p_ignored,
+        "errors"  => \@p_errors,
+        "results_by_file" => \%p_rbf,
+        "results_by_language" => \%p_rbl,
+        "delta_by_file" => \%p_dbf,
+        "delta_by_language" => \%p_dbl,
+        "alignment" => \%p_alignment,
+        "n_filepairs_compared" => $n_file_pairs_compared
+    }
+} # 1}}}
+sub write_alignment_data {                   # {{{1
+    my ($filename, $n_filepairs_compared, $data ) = @_;
+    my @output = ();
+    if ( $data->{'added'} ) {
+        my %added_lines = %{$data->{'added'}};
+        push (@output, "Files added: " . (scalar keys %added_lines) . "\n");
+        foreach my $line ( sort keys %added_lines ) {
+            push (@output, $line);
+        }
+        push (@output, "\n" );
+    }
+    if ( $data->{'removed'} ) {
+        my %removed_lines = %{$data->{'removed'}};
+        push (@output, "Files removed: " . (scalar keys %removed_lines) . "\n");
+        foreach my $line ( sort keys %removed_lines ) {
+            push (@output, $line);
+        }
+        push (@output, "\n");
+    }
+    if ( $data->{'pairs'} ) {
+        my %pairs = %{$data->{'pairs'}};
+        push (@output, "File pairs compared: " . $n_filepairs_compared . "\n");
+        foreach my $pair ( sort keys %pairs ) {
+            push (@output, $pair);
+        }
+    }
+    write_file($filename, {}, @output);
+} # 1}}}
 sub exclude_dir_validates {                  # {{{1
     my ($rh_Exclude_Dir) = @_;
     my $is_OK = 1;
@@ -1886,6 +2756,7 @@ sub process_exclude_list_file {              # {{{1
                 if $opt_v > 1;
         }
     }
+
     print "<- process_exclude_list_file\n" if $opt_v > 2;
 } # 1}}}
 sub combine_results {                        # {{{1
@@ -1901,6 +2772,7 @@ sub combine_results {                        # {{{1
     my $found_language = 0;
 
     foreach my $file (@{$ra_report_files}) {
+        my $n_results_found = 0;
         my $IN = new IO::File $file, "r";
         if (!defined $IN) {
             warn "Unable to read $file; ignoring.\n";
@@ -1914,7 +2786,7 @@ sub combine_results {                        # {{{1
                    (\d+)\s+         # blank
                    (\d+)\s+         # comments
                    (\d+)\s+         # code
-                   (                #    next four entries missing with -nno3
+                   (                #    next four entries missing with -no3
                    x\s+             # x
                    \d+\.\d+\s+      # scale
                    =\s+             # =
@@ -1941,12 +2813,13 @@ sub combine_results {                        # {{{1
                     $rhh_count->{$file}{'code'   } += $5;
                     $rhh_count->{$file}{'scaled' } += $7 if $opt_3;
                 }
+                ++$n_results_found;
             } elsif ($opt_by_file  and
                 m{^(.*?)\s+         # language
                    (\d+)\s+         # blank
                    (\d+)\s+         # comments
                    (\d+)\s+         # code
-                   (                #    next four entries missing with -nno3
+                   (                #    next four entries missing with -no3
                    x\s+             # x
                    \d+\.\d+\s+      # scale
                    =\s+             # =
@@ -1970,8 +2843,11 @@ sub combine_results {                        # {{{1
                     $rhh_count->{$file}{'code'   } += $4;
                     $rhh_count->{$file}{'scaled' } += $6 if $opt_3;
                 }
+                ++$n_results_found;
             }
         }
+        warn "No counts found in $file--is the file format correct?\n"
+            unless $n_results_found;
     }
     print "<- combine_results\n" if $opt_v > 2;
     return $found_language;
@@ -1991,6 +2867,7 @@ sub yaml_to_json_separators {                # {{{1
     # YAML and JSON are closely related.  Their differences can be captured
     # by trailing commas ($C), braces ($open_B, $close_B), and
     # quotes around text ($Q).
+    print "-> yaml_to_json_separators()\n" if $opt_v > 2;
     my ($Q, $open_B, $close_B, $start, $C);
     if ($opt_json) {
        $C       = ',';
@@ -2005,6 +2882,7 @@ sub yaml_to_json_separators {                # {{{1
        $close_B = '';
        $start   = "---\n# $URL\n";
     }
+    print "<- yaml_to_json_separators()\n" if $opt_v > 2;
     return ($Q, $open_B, $close_B, $start, $C);
 } # 1}}}
 sub diff_report     {                        # {{{1
@@ -2014,7 +2892,6 @@ sub diff_report     {                        # {{{1
     if ($opt_xml) {
         print "<- diff_report\n" if $opt_v > 2;
         return diff_xml_report(@_)
-###     return diff_xml_yaml_json_report(@_)
     } elsif ($opt_yaml) {
         print "<- diff_report\n" if $opt_v > 2;
         return diff_yaml_report(@_)
@@ -2061,7 +2938,7 @@ sub diff_report     {                        # {{{1
     if (!$opt_3) {
         $spacing_1 = 19;
         $spacing_2 = 14;
-        $spacing_3 = 28;
+        $spacing_3 = 27;
     }
     $spacing_0 += $column_1_offset;
     $spacing_1 += $column_1_offset;
@@ -2074,7 +2951,7 @@ sub diff_report     {                        # {{{1
                  'txt' => "\%-${spacing_3}s ",
                },
         '3' => { 'xml' => 'files_count="%d" ',
-                 'txt' => '%5d ',
+                 'txt' => '%6d ',
                },
         '4' => { 'xml' => 'blank="%d" comment="%d" code="%d" ',
                  'txt' => "\%${spacing_2}d \%${spacing_2}d \%${spacing_2}d",
@@ -2109,19 +2986,6 @@ sub diff_report     {                        # {{{1
         $first_column = "Report File";
     }
 
-    my $header_line  = sprintf "%s v %s", $URL, $version;
-    my $sum_files    = 1;
-    my $sum_lines    = 1;
-       $header_line .= sprintf("  T=%.2f s (%.1f files/s, %.1f lines/s)",
-                        $elapsed_sec           ,
-                        $sum_files/$elapsed_sec,
-                        $sum_lines/$elapsed_sec) unless $opt_sum_reports;
-    if ($Style eq "txt") {
-        push @results, output_header($header_line, $hyphen_line, $BY_FILE);
-    } elsif ($Style eq "csv") {
-        die "csv";
-    }
-
     # column headers
     if (!$opt_3 and $BY_FILE) {
         my $spacing_n = $spacing_1 - 11;
@@ -2146,15 +3010,18 @@ sub diff_report     {                        # {{{1
         push @results, $hyphen_line;
     }
 
-####foreach my $lang_or_file (keys %{$rhhh_count}) {
-####    $rhhh_count->{$lang_or_file}{'code'} = 0 unless
-####        defined $rhhh_count->{$lang_or_file}{'code'};
-####}
+    # sort diff output in descending order of cumulative entries
     foreach my $lang_or_file (sort {
-                                 $rhhh_count->{$b}{'code'} <=>
-                                 $rhhh_count->{$a}{'code'}
-                               }
-                          keys %{$rhhh_count}) {
+                                ($rhhh_count->{$b}{'code'}{'added'}    +
+                                 $rhhh_count->{$b}{'code'}{'same'}     +
+                                 $rhhh_count->{$b}{'code'}{'modified'} +
+                                 $rhhh_count->{$b}{'code'}{'removed'}  )  <=>
+                                ($rhhh_count->{$a}{'code'}{'added'}    +
+                                 $rhhh_count->{$a}{'code'}{'same'}     +
+                                 $rhhh_count->{$a}{'code'}{'modified'} +
+                                 $rhhh_count->{$a}{'code'}{'removed'})
+                              or $a cmp $b }
+                                    keys %{$rhhh_count}) {
 
         if ($BY_FILE) {
             push @results, rm_leading_tempdir($lang_or_file, \%TEMP_DIR);
@@ -2194,13 +3061,17 @@ sub diff_report     {                        # {{{1
     }
     push @results, $hyphen_line;
     push @results, "SUM:";
+    my $sum_files    = 0;
+    my $sum_lines    = 0;
     foreach my $S (qw(same modified added removed)) {
         my $indent = $spacing_1 - 2;
         my $line .= sprintf " %-${indent}s", $S;
             if ($BY_FILE) {
                 $line .= sprintf "   ";
+                $sum_files += 1;
             } else {
                 $line .= sprintf "  %${spacing_2}s", $sum{'nFiles'}{$S};
+                $sum_files += $sum{'nFiles'}{$S};
             }
         if ($opt_by_percent) {
             my $DEN = compute_denominator($opt_by_percent,
@@ -2220,8 +3091,19 @@ sub diff_report     {                        # {{{1
                 $sum{'comment'}{$S} ,
                 $sum{'code'}{$S}    ;
         }
+        $sum_lines += $sum{'blank'}{$S} + $sum{'comment'}{$S} + $sum{'code'}{$S};
         push @results, $line;
     }
+
+    my $header_line  = sprintf "%s v %s", $URL, $version;
+       $header_line .= sprintf("  T=%.2f s (%.1f files/s, %.1f lines/s)",
+                        $elapsed_sec           ,
+                        $sum_files/$elapsed_sec,
+                        $sum_lines/$elapsed_sec) unless $opt_sum_reports or $opt_hide_rate;
+    if ($Style eq "txt") {
+        unshift @results, output_header($header_line, $hyphen_line, $BY_FILE);
+    }
+
     push @results, $hyphen_line;
     write_xsl_file() if $opt_xsl and $opt_xsl eq $CLOC_XSL;
     print "<- diff_report\n" if $opt_v > 2;
@@ -2249,7 +3131,7 @@ sub xml_yaml_or_json_header {                # {{{1
         }
     }
     if ($opt_xml) {
-        $header = "<?xml version=\"1.0\"?>";
+        $header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
         $header .= "\n<?xml-stylesheet type=\"text/xsl\" href=\"" . $opt_xsl . "\"?>" if $opt_xsl;
         $header .= "<${type}results>
 <header>
@@ -2313,7 +3195,9 @@ sub diff_yaml_report {                       # {{{1
     foreach my $S (qw(added same modified removed)) {
         push @results, "$S :";
         foreach my $F_or_L (keys %{$rhhh_count}) {
-            push @results, "  $F_or_L :";
+            # force quoted language or filename in case these
+            # have embedded funny characters, issue #312
+            push @results, "  '" . rm_leading_tempdir($F_or_L, \%TEMP_DIR) . "' :";
             foreach my $k (keys %{$rhhh_count->{$F_or_L}}) {
                 next if $k eq "lang"; # present only in those cases
                                       # where code exists for action $S
@@ -2324,7 +3208,17 @@ sub diff_yaml_report {                       # {{{1
             }
         }
     }
+
+    push @results, "SUM :";
+    foreach my $S (qw(added same modified removed)) {
+        push @results, "  $S :";
+        foreach my $topic (keys %sum) {
+            push @results, "    $topic : $sum{$topic}{$S}";
+        }
+    }
+
     print "<- diff_yaml_report\n" if $opt_v > 2;
+
     return @results;
 } # 1}}}
 sub diff_json_report {                       # {{{1
@@ -2351,14 +3245,14 @@ sub diff_json_report {                       # {{{1
     foreach my $S (qw(added same modified removed)) {
         push @results, " \"$S\" : {";
         foreach my $F_or_L (keys %{$rhhh_count}) {
-            push @results, "  \"$F_or_L\" : {";
+            push @results, "  \"" . rm_leading_tempdir($F_or_L, \%TEMP_DIR) . "\" : {";
             foreach my $k (keys %{$rhhh_count->{$F_or_L}}) {
                 next if $k eq "lang"; # present only in those cases
                                       # where code exists for action $S
                 $rhhh_count->{$F_or_L}{$k}{$S} = 0 unless
                     defined $rhhh_count->{$F_or_L}{$k}{$S};
                 push @results,
-                    "    \"$k\" : \"$rhhh_count->{$F_or_L}{$k}{$S}\",";
+                    "    \"$k\" : $rhhh_count->{$F_or_L}{$k}{$S},";
             }
             $results[-1] =~ s/,\s*$//;
             push @results, "  },"
@@ -2366,8 +3260,19 @@ sub diff_json_report {                       # {{{1
         $results[-1] =~ s/,\s*$//;
         push @results, "  },"
     }
+
+    push @results, "  \"SUM\" : {";
+    foreach my $S (qw(added same modified removed)) {
+        push @results, "  \"$S\" : {";
+        foreach my $topic (keys %sum) {
+            push @results, "    \"$topic\" : $sum{$topic}{$S},";
+        }
+        $results[-1] =~ s/,\s*$//;
+        push @results, "},";
+    }
+
     $results[-1] =~ s/,\s*$//;
-    push @results, "}";
+    push @results, "} }";
     print "<- diff_json_report\n" if $opt_v > 2;
     return @results;
 } # 1}}}
@@ -2517,9 +3422,6 @@ sub diff_csv_report {                        # {{{1
        ) = @_;
     print "-> diff_csv_report\n" if $opt_v > 2;
 
-#use Data::Dumper;
-#print "diff_csv_report: ", Dumper($rhhh_count), "\n";
-#die;
     my @results       = ();
     my $languages     = ();
 
@@ -2533,6 +3435,7 @@ sub diff_csv_report {                        # {{{1
     }
     my $DELIM = ",";
        $DELIM = $opt_csv_delimiter if defined $opt_csv_delimiter;
+       $DELIM = "|" if defined $opt_md;
 
     $elapsed_sec = 0.5 unless $elapsed_sec;
 
@@ -2544,8 +3447,25 @@ sub diff_csv_report {                        # {{{1
             $line .= "$symbol $item${DELIM} ";
         }
     }
-    $line .= "\"$URL v $version T=$elapsed_sec s\"";
-    push @results, $line;
+
+    my $T_elapsed_sec = "T=$elapsed_sec s";
+       $T_elapsed_sec = "" if $opt_hide_rate;
+
+    if ($opt_md) {
+        push @results, "cloc|$URL v $version $T_elapsed_sec";
+        push @results, "--- | ---";
+        push @results, "";
+        push @results, $line;
+        my @col_header  = ();
+        push @col_header, ":-------";
+        foreach (1..16) {
+            push @col_header, "-------:";
+        }
+        push @results, join("|", @col_header) . "|";
+    } else {
+        $line .= "\"$URL v $version $T_elapsed_sec\"";
+        push @results, $line;
+    }
 
     foreach my $lang_or_file (keys %{$rhhh_count}) {
         $rhhh_count->{$lang_or_file}{'code'}{'added'} = 0 unless
@@ -2625,7 +3545,13 @@ sub rm_leading_tempdir {                     # {{{1
             last;
         }
     }
-    $clean_filename =~ s{/}{\\}g if $ON_WINDOWS; # then go back from / to \
+    if ($ON_WINDOWS and $opt_by_file) { # then go back from / to \
+        if ($opt_json) {
+            $clean_filename =~ s{/}{\\\\}g;
+        } else {
+            $clean_filename =~ s{/}{\\}g;
+        }
+    }
     return $clean_filename;
 } # 1}}}
 sub generate_sql    {                        # {{{1
@@ -2697,10 +3623,14 @@ create table t        (
     }
     print $fh $schema unless defined $opt_sql_append;
 
+    my $insert_into_t = "insert into t ";
     if ($opt_sql_style eq "oracle") {
         printf $fh "insert into metadata values(TO_TIMESTAMP('%s','yyyy-mm-dd hh24:mi:ss'), '%s', %f);\n",
                     strftime("%Y-%m-%d %H:%M:%S", localtime(time())),
                     $opt_sql_project, $elapsed_sec;
+    } elsif ($opt_sql_style eq "named_columns") {
+        print $fh "begin transaction;\n";
+        $insert_into_t .= "( Project, Language, File, File_dirname, File_basename, nBlank, nComment, nCode, nScaled )";
     } else {
         print $fh "begin transaction;\n";
         printf $fh "insert into metadata values('%s', '%s', %f);\n",
@@ -2721,7 +3651,7 @@ create table t        (
         $clean_filename =~ s/\'/''/g;  # double embedded single quotes
                                        # to escape them
 
-        printf $fh "insert into t values('%s', '%s', '%s', '%s', '%s', " .
+        printf $fh "$insert_into_t values('%s', '%s', '%s', '%s', '%s', " .
                    "%d, %d, %d, %f);\n",
                     $opt_sql_project           ,
                     $language                  ,
@@ -2765,7 +3695,7 @@ sub output_header   {                        # {{{1
     my @R = ();
     if      ($opt_xml) {
         if (!$ALREADY_SHOWED_XML_SECTION) {
-            push @R, "<?xml version=\"1.0\"?>";
+            push @R, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
             push @R, '<?xml-stylesheet type="text/xsl" href="' .
                             $opt_xsl . '"?>' if $opt_xsl;
             push @R, "<results>";
@@ -2837,7 +3767,7 @@ sub generate_report {                        # {{{1
     if (!$opt_3) {
         $spacing_1 = 19;
         $spacing_2 = 14;
-        $spacing_3 = 28;
+        $spacing_3 = 27;
     }
     $spacing_0 += $column_1_offset;
     $spacing_1 += $column_1_offset;
@@ -2850,7 +3780,7 @@ sub generate_report {                        # {{{1
                  'txt' => "\%-${spacing_3}s ",
                },
         '3' => { 'xml' => 'files_count="%d" ',
-                 'txt' => '%5d ',
+                 'txt' => '%6d ',
                },
         '4' => { 'xml' => 'blank="%d" comment="%d" code="%d" ',
                  'txt' => "\%${spacing_2}d \%${spacing_2}d \%${spacing_2}d",
@@ -2891,12 +3821,15 @@ sub generate_report {                        # {{{1
        $header_line .= sprintf("  T=%.2f s (%.1f files/s, %.1f lines/s)",
                         $elapsed_sec           ,
                         $sum_files/$elapsed_sec,
-                        $sum_lines/$elapsed_sec) unless $opt_sum_reports;
+                        $sum_lines/$elapsed_sec) unless $opt_sum_reports or $opt_hide_rate;
     if ($opt_xml or $opt_yaml or $opt_json) {
         if (!$ALREADY_SHOWED_HEADER) {
+            if ($opt_by_file_by_lang and $opt_json) {
+                push @results, '{ "by_file" : ';
+            }
             push @results, xml_yaml_or_json_header($URL, $version, $elapsed_sec,
                                                    $sum_files, $sum_lines, $BY_FILE);
-            $ALREADY_SHOWED_HEADER = 1 unless $opt_sum_reports;
+#           $ALREADY_SHOWED_HEADER = 1 unless $opt_sum_reports;
             # --sum-reports yields two xml or yaml files, one by
             # language and one by report file, each of which needs a header
         }
@@ -2969,15 +3902,12 @@ sub generate_report {                        # {{{1
     }
 
     my $sum_scaled = 0;
-####foreach my $lang_or_file (keys %{$rhh_count}) {
-####    $rhh_count->{$lang_or_file}{'code'} = 0 unless
-####        defined $rhh_count->{$lang_or_file}{'code'};
-####}
     foreach my $lang_or_file (sort {
                                  $rhh_count->{$b}{'code'} <=>
                                  $rhh_count->{$a}{'code'}
-                               }
-                          keys %{$rhh_count}) {
+                              or $a cmp $b
+                                        }
+                                   keys %{$rhh_count}) {
         next if $lang_or_file eq "by report file";
         my ($factor, $scaled);
         if ($BY_LANGUAGE or $BY_FILE) {
@@ -3056,7 +3986,13 @@ sub generate_report {                        # {{{1
             }
         } elsif ($opt_yaml or $opt_json) {
             my ($Q, $open_B, $close_B, $start, $C) = yaml_to_json_separators();
-            push @results,"${Q}$lang_or_file${Q} :$open_B";
+            if ($opt_yaml) {
+                # YAML: force quoted language or filename in case these
+                #       have embedded funny characters, issue #312
+                push @results,"'" . rm_leading_tempdir($lang_or_file, \%TEMP_DIR). "' :$open_B";
+            } else {
+                push @results,"${Q}" . rm_leading_tempdir($lang_or_file, \%TEMP_DIR). "${Q} :$open_B";
+            }
             push @results,"  ${Q}nFiles${Q}: " . $rhh_count->{$lang_or_file}{'nFiles'} . $C
                 unless $BY_FILE;
             if ($opt_by_percent) {
@@ -3192,9 +4128,38 @@ sub generate_report {                        # {{{1
         }
         if ($opt_json) {
             $results[-1] =~ s/,\s*$/} }/;
+            if ($opt_by_file_by_lang) {
+                if ($ALREADY_SHOWED_HEADER) {
+                    $results[-1] .= ' }';
+                } else {
+                    $results[-1] .= ', "by_lang" : {';
+                }
+            }
         }
     } elsif ($opt_csv) {
-        # do nothing
+        my @entries = ();
+        if ($opt_by_file) {
+            push @entries, "SUM";
+            push @entries, "";
+        } else {
+            push @entries, $sum_files;
+            push @entries, "SUM";
+        }
+        if ($opt_by_percent) {
+            my $DEN = compute_denominator($opt_by_percent    ,
+                          $sum_code, $sum_comment, $sum_blank);
+            push @entries, sprintf("%.2f", $sum_blank   / $DEN * 100);
+            push @entries, sprintf("%.2f", $sum_comment / $DEN * 100);
+        } else {
+            push @entries, $sum_blank;
+            push @entries, $sum_comment;
+        }
+        push @entries, $sum_code;
+        if ($opt_3) {
+            push @entries, $sum_scaled;
+            push @entries, $avg_scale ;
+        }
+        push @results, join(",", @entries);
     } else {
 
         if ($BY_FILE) {
@@ -3235,6 +4200,7 @@ sub generate_report {                        # {{{1
         }
     }
     write_xsl_file() if $opt_xsl and $opt_xsl eq $CLOC_XSL;
+    $ALREADY_SHOWED_HEADER = 1 unless $opt_sum_reports;
     print "<- generate_report\n" if $opt_v > 2;
     return @results;
 } # 1}}}
@@ -3268,58 +4234,63 @@ sub write_lang_def {                         # {{{1
        ) = @_;
 
     print "-> write_lang_def($file)\n" if $opt_v > 2;
-    my $OUT = new IO::File $file, "w";
-    die "Unable to write to $file\n" unless defined $OUT;
+    my @outlines = ();
 
     foreach my $language (sort keys %{$rhaa_Filters_by_Language}) {
-        next if $language =~ /Brain/;
-        next if $language eq "MATLAB/Mathematica/Objective C/MUMPS/Mercury" or
-                $language eq "PHP/Pascal"                       or
-                $language eq "Pascal/Puppet"                    or
-                $language eq "Lisp/OpenCL"                      or
-                $language eq "Lisp/Julia"                       or
-                $language eq "Perl/Prolog"                      or
-                $language eq "D/dtrace"                         or
-                $language eq "IDL/Qt Project/Prolog"            or
-                $language eq "Fortran 77/Forth"                 or
-                $language eq "F#/Forth"                         or
-                $language eq "Verilog-SystemVerilog/Coq"        or
-                $language eq "TypeScript/Qt Linguist"           or
-                $language eq "Qt/Glade"                         or
-                $language eq "(unknown)";
-        printf $OUT "%s\n", $language;
+        next if $language =~ /(Brain|\(unknown\))/;
+        next if defined $Extension_Collision{$language};
+        push @outlines, $language;
         foreach my $filter (@{$rhaa_Filters_by_Language->{$language}}) {
-            printf $OUT "    filter %s", $filter->[0];
-            printf $OUT " %s", $filter->[1] if defined $filter->[1];
+            my $line = "";
+            $line .= sprintf "    filter %s", $filter->[0];
+            $line .= sprintf " %s", $filter->[1] if defined $filter->[1];
             # $filter->[0] == 'remove_between_general',
             #                 'remove_between_regex', and
             #                 'remove_matches_2re' have two args
-            printf $OUT " %s", $filter->[2] if defined $filter->[2];
-            print  $OUT "\n";
+            $line .= sprintf " %s", $filter->[2] if defined $filter->[2];
+            # $filter->[0] == 'replace_between_regex' has three or four args
+            $line .= sprintf " %s", $filter->[3] if defined $filter->[3];
+            $line .= sprintf " %s", $filter->[4] if defined $filter->[4];
+            push @outlines, $line;
         }
+
+        # file extension won't appear if the extension maps to
+        # multiple languages; work around this
+        my $found = 0;
         foreach my $ext (sort keys %{$rh_Language_by_Extension}) {
             if ($language eq $rh_Language_by_Extension->{$ext}) {
-                printf $OUT "    extension %s\n", $ext;
+                push @outlines, sprintf "    extension %s\n", $ext;
+                $found = 1;
             }
         }
+        if (!$found and $opt_write_lang_def_incl_dup) {
+            foreach my $multilang (sort keys %Extension_Collision) {
+                my %Languages = map { $_ => 1 } split('/', $multilang);
+                next unless $Languages{$language};
+                foreach my $ext (@{$Extension_Collision{$multilang}}) {
+                    push @outlines, sprintf "    extension %s\n", $ext;
+                }
+            }
+        }
+
         foreach my $filename (sort keys %{$rh_Language_by_File}) {
             if ($language eq $rh_Language_by_File->{$filename}) {
-                printf $OUT "    filename %s\n", $filename;
+                push @outlines, sprintf "    filename %s\n", $filename;
             }
         }
         foreach my $script_exe (sort keys %{$rh_Language_by_Script}) {
             if ($language eq $rh_Language_by_Script->{$script_exe}) {
-                printf $OUT "    script_exe %s\n", $script_exe;
+                push @outlines, sprintf "    script_exe %s\n", $script_exe;
             }
         }
-        printf $OUT "    3rd_gen_scale %.2f\n", $rh_Scale_Factor->{$language};
+        push @outlines, sprintf "    3rd_gen_scale %.2f\n", $rh_Scale_Factor->{$language};
         if (defined $rh_EOL_Continuation_re->{$language}) {
-            printf $OUT "    end_of_line_continuation %s\n",
+            push @outlines, sprintf "    end_of_line_continuation %s\n",
                 $rh_EOL_Continuation_re->{$language};
         }
     }
 
-    $OUT->close;
+    write_file($file, {}, @outlines);
     print "<- write_lang_def\n" if $opt_v > 2;
 } # 1}}}
 sub read_lang_def {                          # {{{1
@@ -3352,9 +4323,28 @@ sub read_lang_def {                          # {{{1
             unless $language;
 
         if      (/^\s{4}filter\s+(remove_between_(general|2re|regex))
-                       \s+(\S+)\s+(\S+)s*$/x) {
+                       \s+(\S+)\s+(\S+)\s*$/x) {
             push @{$rhaa_Filters_by_Language->{$language}}, [
                   $1 , $3 , $4 ]
+
+        } elsif (/^\s{4}filter\s+(replace_between_regex)
+                   \s+(\S+)\s+(\S+)\s+(\S+|\".*\")\s+(\S+)\s*$/x) {
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 , $4 , $5]
+
+        } elsif (/^\s{4}filter\s+(replace_between_regex)
+                       \s+(\S+)\s+(\S+)\s+(.*?)\s*$/x) {
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 , $4 ]
+
+        } elsif (/^\s{4}filter\s+(replace_regex)\s+(\S+)\s*$/) {
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , '' ]
+
+        } elsif (/^\s{4}filter\s+(replace_regex)
+                       \s+(\S+)\s+(.+?)\s*$/x) {
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 ]
 
         } elsif (/^\s{4}filter\s+(\w+)\s*$/) {
             push @{$rhaa_Filters_by_Language->{$language}}, [ $1 ]
@@ -3423,15 +4413,39 @@ sub merge_lang_def {                         # {{{1
         die "Missing computer language name, line $. of $file\n"
             unless $language;
 
-        if      (/^    filter\s+(\w+)\s*$/) {
+        if      (/^\s{4}filter\s+(remove_between_(general|2re|regex))
+                       \s+(\S+)\s+(\S+)\s*$/x) {
+            next if $already_know_it;
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $3 , $4 ]
+
+        } elsif (/^\s{4}filter\s+(replace_between_regex)
+                   \s+(\S+)\s+(\S+)\s+(\S+|\".*\")\s+(\S+)\s*$/x) {
+            next if $already_know_it;
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 , $4 , $5]
+
+        } elsif (/^\s{4}filter\s+(replace_between_regex)
+                       \s+(\S+)\s+(\S+)\s+(.*?)\s*$/x) {
+            next if $already_know_it;
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 , $4 ]
+
+        } elsif (/^\s{4}filter\s+(replace_regex)
+                       \s+(\S+)\s+(.+?)\s*$/x) {
+            next if $already_know_it;
+            push @{$rhaa_Filters_by_Language->{$language}}, [
+                  $1 , $2 , $3 ]
+
+        } elsif (/^\s{4}filter\s+(\w+)\s*$/) {
             next if $already_know_it;
             push @{$rhaa_Filters_by_Language->{$language}}, [ $1 ]
 
-        } elsif (/^    filter\s+(\w+)\s+(.*?)\s*$/) {
+        } elsif (/^\s{4}filter\s+(\w+)\s+(.*?)\s*$/) {
             next if $already_know_it;
             push @{$rhaa_Filters_by_Language->{$language}}, [ $1 , $2 ]
 
-        } elsif (/^    extension\s+(\S+)\s*$/) {
+        } elsif (/^\s{4}extension\s+(\S+)\s*$/) {
             next if $already_know_it;
             if (defined $rh_Language_by_Extension->{$1}) {
                 die "File extension collision:  $1 ",
@@ -3442,19 +4456,19 @@ sub merge_lang_def {                         # {{{1
             }
             $rh_Language_by_Extension->{$1} = $language;
 
-        } elsif (/^    filename\s+(\S+)\s*$/) {
+        } elsif (/^\s{4}filename\s+(\S+)\s*$/) {
             next if $already_know_it;
             $rh_Language_by_File->{$1} = $language;
 
-        } elsif (/^    script_exe\s+(\S+)\s*$/) {
+        } elsif (/^\s{4}script_exe\s+(\S+)\s*$/) {
             next if $already_know_it;
             $rh_Language_by_Script->{$1} = $language;
 
-        } elsif (/^    3rd_gen_scale\s+(\S+)\s*$/) {
+        } elsif (/^\s{4}3rd_gen_scale\s+(\S+)\s*$/) {
             next if $already_know_it;
             $rh_Scale_Factor->{$language} = $1;
 
-        } elsif (/^    end_of_line_continuation\s+(\S+)\s*$/) {
+        } elsif (/^\s{4}end_of_line_continuation\s+(\S+)\s*$/) {
             next if $already_know_it;
             $rh_EOL_Continuation_re->{$language} = $1;
 
@@ -3469,14 +4483,14 @@ sub merge_lang_def {                         # {{{1
 sub print_extension_info {                   # {{{1
     my ($extension,) = @_;
     if ($extension) {  # show information on this extension
-        foreach my $ext (sort {lc $a cmp lc $b } keys %Language_by_Extension) {
+        foreach my $ext (sort {lc $a cmp lc $b or $a cmp $b } keys %Language_by_Extension) {
             # Language_by_Extension{f}    = 'Fortran 77'
             next if $Language_by_Extension{$ext} =~ /Brain/;
             printf "%-15s -> %s\n", $ext, $Language_by_Extension{$ext}
                 if $ext =~ m{$extension}i;
         }
     } else {           # show information on all  extensions
-        foreach my $ext (sort {lc $a cmp lc $b } keys %Language_by_Extension) {
+        foreach my $ext (sort {lc $a cmp lc $b or $a cmp $b } keys %Language_by_Extension) {
             next if $Language_by_Extension{$ext} =~ /Brain/;
             # Language_by_Extension{f}    = 'Fortran 77'
             printf "%-15s -> %s\n", $ext, $Language_by_Extension{$ext};
@@ -3488,26 +4502,26 @@ sub print_language_info {                    # {{{1
         $prefix ,) = @_;
     my %extensions = (); # the subset matched by the given $language value
     if ($language) {  # show information on this language
-        foreach my $ext (sort {lc $a cmp lc $b } keys %Language_by_Extension) {
+        foreach my $ext (sort {lc $a cmp lc $b or $a cmp $b } keys %Language_by_Extension) {
             # Language_by_Extension{f}    = 'Fortran 77'
             push @{$extensions{$Language_by_Extension{$ext}} }, $ext
                 if lc $Language_by_Extension{$ext} eq lc $language;
 #               if $Language_by_Extension{$ext} =~ m{$language}i;
         }
     } else {          # show information on all  languages
-        foreach my $ext (sort {lc $a cmp lc $b } keys %Language_by_Extension) {
+        foreach my $ext (sort {lc $a cmp lc $b  or $a cmp $b } keys %Language_by_Extension) {
             # Language_by_Extension{f}    = 'Fortran 77'
             push @{$extensions{$Language_by_Extension{$ext}} }, $ext
         }
     }
 
     # add exceptions (one file extension mapping to multiple languages)
-    if (!$language or $language =~ /^(Objective C|MATLAB|Mathematica|MUMPS|Mercury)$/i) {
-        push @{$extensions{'Objective C'}}, "m";
+    if (!$language or $language =~ /^(Objective-C|MATLAB|Mathematica|MUMPS|Mercury)$/i) {
+        push @{$extensions{'Objective-C'}}, "m";
         push @{$extensions{'MATLAB'}}     , "m";
         push @{$extensions{'Mathematica'}}, "m";
         push @{$extensions{'MUMPS'}}      , "m";
-        delete $extensions{'MATLAB/Mathematica/Objective C/MUMPS/Mercury'};
+        delete $extensions{'MATLAB/Mathematica/Objective-C/MUMPS/Mercury'};
     }
     if (!$language or $language =~ /^(Lisp|OpenCL)$/i) {
         push @{$extensions{'Lisp'}}  , "cl";
@@ -3524,11 +4538,17 @@ sub print_language_info {                    # {{{1
         push @{$extensions{'Prolog'}}, "pl";
         delete $extensions{'Perl/Prolog'};
     }
-    if (!$language or $language =~ /^(IDL|Qt Project|Prolog)$/i) {
+    if (!$language or $language =~ /^(Raku|Prolog)$/i) {
+        push @{$extensions{'Perl'}}  , "p6";
+        push @{$extensions{'Prolog'}}, "p6";
+        delete $extensions{'Perl/Prolog'};
+    }
+    if (!$language or $language =~ /^(IDL|Qt Project|Prolog|ProGuard)$/i) {
         push @{$extensions{'IDL'}}       , "pro";
         push @{$extensions{'Qt Project'}}, "pro";
         push @{$extensions{'Prolog'}}    , "pro";
-        delete $extensions{'IDL/Qt Project/Prolog'};
+        push @{$extensions{'ProGuard'}}  , "pro";
+        delete $extensions{'IDL/Qt Project/Prolog/ProGuard'};
     }
     if (!$language or $language =~ /^(D|dtrace)$/i) {
         push @{$extensions{'D'}}       , "d";
@@ -3567,9 +4587,25 @@ sub print_language_info {                    # {{{1
         push @{$extensions{'Qt'}}    , "ui";
         delete $extensions{'Qt/Glade'};
     }
+    if (!$language or $language =~ /^(C#|Smalltalk)$/) {
+        push @{$extensions{'C#'}}           , "cs";
+        push @{$extensions{'Smalltalk'}}    , "cs";
+        delete $extensions{'C#/Smalltalk'};
+    }
+    if (!$language or $language =~ /^(Visual\s+Basic|TeX|Apex\s+Class)$/i) {
+        push @{$extensions{'Visual Basic'}} , "cls";
+        push @{$extensions{'TeX'}}          , "cls";
+        push @{$extensions{'Apex Class'}}   , "cls";
+        delete $extensions{'Visual Basic/TeX/Apex Class'};
+    }
     if (!$language or $language =~ /^(Ant)$/i) {
         push @{$extensions{'Ant'}}  , "build.xml";
         delete $extensions{'Ant/XML'};
+    }
+    if (!$language or $language =~ /^(Scheme|SaltStack)$/i) {
+        push @{$extensions{'Scheme'}}    , "sls";
+        push @{$extensions{'SaltStack'}} , "sls";
+        delete $extensions{'Scheme/SaltStack'};
     }
     if ($opt_explain) {
         return unless $extensions{$language};
@@ -3604,9 +4640,361 @@ sub print_language_filters {                 # {{{1
         printf "    filter %s", $filter->[0];
         printf "  %s", $filter->[1] if defined $filter->[1];
         printf "  %s", $filter->[2] if defined $filter->[2];
+        printf "  %s", $filter->[3] if defined $filter->[3];
+        printf "  %s", $filter->[4] if defined $filter->[4];
         print  "\n";
     }
     print_language_info($language, "    extensions:");
+} # 1}}}
+sub top_level_SMB_dir {                      # {{{1
+    # Ref https://github.com/AlDanial/cloc/issues/392, if the
+    # user supplies a directory name which is an SMB mount
+    # point, this directory will appear to File::Find as
+    # though it is empty unless $File::Find::dont_use_nlink
+    # is set to 1.  This subroutine checks to see if any SMB
+    # mounts (identified from stat()'s fourth entry, nlink,
+    # having a value of 2) were passed in on the command line.
+
+    my ($ra_arg_list,) = @_;  # in user supplied file name, directory name, git hash, etc
+    foreach my $entry (@{$ra_arg_list}) {
+        next unless -d $entry;
+        # gets here if $entry is a directory; now get its nlink value
+        my @stats = stat($entry);
+        my $nlink = $stats[3];
+        return 1 if $nlink == 2;  # meaning it is an SMB mount
+    }
+    return 0;
+}
+# 1}}}
+sub replace_git_hash_with_tarfile {          # {{{1
+    my ($ra_arg_list,             # in  file name, directory name and/or
+                                  #     git commit hash to examine
+        $ra_git_similarity) = @_; # out only if --opt-git-diff-simindex
+    # replace git hashes in $ra_arg_list with tar files
+    # Diff mode and count mode behave differently:
+    #   Diff:
+    #       file  git_hash
+    #          Extract file from the git repo and only compare to it.
+    #       git_hash1  git_hash2
+    #          Get listings of all files in git_hash1 and git_hash2.
+    #            git ls-tree --name-only -r *git_hash1*
+    #            git ls-tree --name-only -r *git_hash2*
+    #          Next, get listings of files that changed with git_hash1
+    #          and git_hash2.
+    #            git diff-tree -r --no-commit-id --name-only *git_hash1* *git_hash2*
+    #          Finally, make two tar files of git repos1 and 2 where the file
+    #          listing is the union of changes.
+    #            git archive -o tarfile1 *git_hash1* \
+    #               <union of files that changed and exist in this commit>
+    #            git archive -o tarfile2 *git_hash2* \
+    #               <union of files that changed and exist in this commit>
+    #          To avoid "Argument list too long" error, repeat the git
+    #          archive step with chunks of 30,000 files at a time then
+    #          merge the tar files as the final step.
+    #   Regular count:
+    #       Simply make a tar file of all files in the git repo.
+
+    my $prt_args = join(",", @{$ra_arg_list});
+    print "-> replace_git_hash_with_tarfile($prt_args)\n" if $opt_v > 2;
+#print "ra_arg_list 1: @{$ra_arg_list}\n";
+
+    my $hash_regex = qr/^([a-f\d]{5,40}|master|HEAD)(~\d+)?$/;
+    my %replacement_arg_list = ();
+
+    # early exit if none of the inputs look like git hashes
+    my %git_hash = ();
+    my $i = 0;
+    foreach my $file_or_dir (@{$ra_arg_list}) {
+        ++$i;
+        if (-r $file_or_dir) { # readable file or dir; not a git hash
+            $replacement_arg_list{$i} = $file_or_dir;
+            next;
+        } elsif ($opt_force_git or $file_or_dir =~ m/$hash_regex/) {
+            $git_hash{$file_or_dir} = $i;
+        } # else the input can't be understood; ignore for now
+    }
+    return unless %git_hash;
+
+    my $have_tar_git = external_utility_exists($ON_WINDOWS ? "unzip" : "tar --version") &&
+                       external_utility_exists("git --version");
+    if (!$have_tar_git) {
+        warn "One or more inputs looks like a git hash but " .
+             "either git or tar is unavailable.\n";
+        return;
+    }
+
+    my %repo_listing = ();  # $repo_listing{hash}{files} = 1;
+    foreach my $hash (sort keys %git_hash) {
+        my $git_list_cmd = "git ls-tree --name-only -r ";
+        if ($hash =~ m/(.*?):(.*?)$/) {
+            # requesting specific file(s) from this hash; grep for them
+            # Note:  this capability not fully implemented yet
+            $git_list_cmd .= "$1|grep '$2'";
+        } else {
+            $git_list_cmd .= $hash;
+        }
+        print "$git_list_cmd\n" if $opt_v;
+        foreach my $file (`$git_list_cmd`) {
+            $file =~ s/\s+$//;
+            $repo_listing{$hash}{$file} = 1;
+        }
+    }
+
+    # logic for each of the modes
+    if ($opt_diff) {
+#print "A DIFF\n";
+        # set the default git diff algorithm
+        $opt_git_diff_rel = 1 unless $opt_git_diff_all or
+                                     $opt_git_diff_simindex;
+        # is it git to git, or git to file/dir ?
+        my ($Left, $Right) = @{$ra_arg_list};
+
+#use Data::Dumper;
+#print "diff_listing= "; print Dumper(\%diff_listing);
+#print "git_hash= "; print Dumper(\%git_hash);
+        if ($git_hash{$Left} and $git_hash{$Right}) {
+#print "A DIFF git-to-git\n";
+            # git to git
+            # first make a union of all files that have changed in both commits
+            my %files_union = ();
+
+            my @left_files  = ();
+            my @right_files = ();
+            if ($opt_git_diff_rel) {
+                # Strategy 1:  Union files are what git consinders have changed
+                #              between the two commits.
+                my $git_list_cmd = "git diff-tree -r --no-commit-id --name-only $Left $Right";
+                # print "$git_list_cmd\n" if $opt_v;
+                foreach my $file (`$git_list_cmd`) {
+                    chomp($file);
+                    $files_union{$file} = 1;
+                }
+            } elsif ($opt_git_diff_all) {
+                # Strategy 2:  Union files all files in both repos.
+                foreach my $file (keys %{$repo_listing{$Left }},
+                                  keys %{$repo_listing{$Right}}) {
+                   $files_union{$file} = 1;
+                }
+            } elsif ($opt_git_diff_simindex) {
+                # Strategy 3:  Use git's own similarity index to figure
+                #              out which files to compare.
+                git_similarity_index($Left              , # in
+                                     $Right             , # in
+                                    \@left_files        , # out
+                                    \@right_files       , # out
+                                     $ra_git_similarity); # out
+
+            }
+
+#use Data::Dumper;
+#print "files_union =\n", Dumper(\%files_union);
+#print "repo_listing=\n", Dumper(\%repo_listing);
+
+            # then make truncated tar files of those union files which
+            # actually exist in each repo
+            foreach my $file (sort keys %files_union) {
+                push @left_files , $file if $repo_listing{$Left }{$file};
+                push @right_files, $file if $repo_listing{$Right}{$file};
+            }
+            # backslash whitespace, weird chars within file names (#257, #284)
+
+#           my @Lfiles= map {$_ =~ s/([\s\(\)\[\]{}';\^\$\?])/\\$1/g; $_}   @left_files;
+#           my @Lfiles= @left_files;
+            if(scalar(@left_files) > 0) {
+                $replacement_arg_list{$git_hash{$Left}}  = git_archive($Left , \@left_files);
+            } else {
+                # In the right side commit ONLY file(s) was added, so no file(s) will exist in the left side commit.
+                # Create empty TAR to detect added lines of code.
+                $replacement_arg_list{$git_hash{$Left}} = empty_tar();
+            }
+#           $replacement_arg_list{$git_hash{$Left}}  = git_archive($Left , \@Lfiles);
+#           my @Rfiles= map {$_ =~ s/([\s\(\)\[\]{}';\^\$\?])/\\$1/g; $_}   @right_files ;
+#           my @Rfiles= @right_files ;
+#use Data::Dumper;
+#print Dumper('left' , \@left_files);
+#print Dumper('right', \@right_files);
+#die;
+
+            if(scalar(@right_files) > 0) {
+                $replacement_arg_list{$git_hash{$Right}} = git_archive($Right, \@right_files);
+            } else {
+                 # In the left side commit ONLY file(s) was deleted, so file(s) will not exist in right side commit.
+                 # Create empty TAR to detect removed lines of code.
+                 $replacement_arg_list{$git_hash{$Right}} = empty_tar();
+            }
+#           $replacement_arg_list{$git_hash{$Right}} = git_archive($Right, \@Rfiles);
+#write_file("/tmp/Lfiles.txt", {}, sort @Lfiles);
+#write_file("/tmp/Rfiles.txt", {}, sort @Rfiles);
+#write_file("/tmp/files_union.txt", {}, sort keys %files_union);
+
+        } else {
+#print "A DIFF git-to-file or file-to-git Left=$Left Right=$Right\n";
+            # git to file/dir or file/dir to git
+            if      ($git_hash{$Left}  and $repo_listing{$Left}{$Right} ) {
+#print "A DIFF 1\n";
+                # $Left is a git hash and $Right is a file
+                $replacement_arg_list{$git_hash{$Left}}  = git_archive($Left, $Right);
+            } elsif ($git_hash{$Right} and $repo_listing{$Right}{$Left}) {
+#print "A DIFF 2\n";
+                # $Left is a file and $Right is a git hash
+                $replacement_arg_list{$git_hash{$Right}} = git_archive($Right, $Left);
+            } elsif ($git_hash{$Left}) {
+#print "A DIFF 3\n";
+                # assume Right is a directory; tar the entire git archive at this hash
+                $replacement_arg_list{$git_hash{$Left}}  = git_archive($Left, "");
+            } else {
+#print "A DIFF 4\n";
+                # assume Left  is a directory; tar the entire git archive at this hash
+                $replacement_arg_list{$git_hash{$Right}} = git_archive($Right, "");
+            }
+        }
+    } else {
+#print "B COUNT\n";
+        foreach my $hash (sort keys %git_hash) {
+            $replacement_arg_list{$git_hash{$hash}} = git_archive($hash);
+        }
+    }
+# print "git_hash= "; print Dumper(\%git_hash);
+#print "repo_listing= "; print Dumper(\%repo_listing);
+
+    # replace the input arg list with the new one
+    @{$ra_arg_list} = ();
+    foreach my $index (sort {$a <=> $b} keys %replacement_arg_list) {
+        push @{$ra_arg_list}, $replacement_arg_list{$index};
+    }
+
+#print "ra_arg_list 2: @{$ra_arg_list}\n";
+    print "<- replace_git_hash_with_tarfile()\n" if $opt_v > 2;
+} # 1}}}
+sub git_similarity_index {                   # {{{
+    my ($git_hash_Left    ,       # in
+        $git_hash_Right   ,       # in
+        $ra_left_files    ,       # out
+        $ra_right_files   ,       # out
+        $ra_git_similarity) = @_; # out
+    die "this option is not yet implemented";
+    print "-> git_similarity_index($git_hash_Left, $git_hash_Right)\n" if $opt_v > 2;
+    my $cmd = "git diff -M --name-status $git_hash_Left $git_hash_Right";
+    print  $cmd, "\n" if $opt_v;
+    open(GSIM, "$cmd |") or die "Unable to run $cmd  $!";
+    while (<GSIM>) {
+        print "git similarity> $_";
+    }
+    close(GSIM);
+    print "<- git_similarity_index\n" if $opt_v > 2;
+} # 1}}}
+sub empty_tar {                              # {{{1
+    my ($Tarfh, $Tarfile);
+    if ($opt_sdir) {
+      File::Path::mkpath($opt_sdir) unless is_dir($opt_sdir);
+      ($Tarfh, $Tarfile) = tempfile(UNLINK => 1, DIR => $opt_sdir, SUFFIX => $ON_WINDOWS ? '.zip' : '.tar');  # delete on exit
+    } else {
+      ($Tarfh, $Tarfile) = tempfile(UNLINK => 1, SUFFIX => $ON_WINDOWS ? '.zip' : '.tar');  # delete on exit
+    }
+    my $cmd = $ON_WINDOWS ? "type nul > $Tarfile" : "tar -cf $Tarfile -T /dev/null";
+    print  $cmd, "\n" if $opt_v;
+    system $cmd;
+    if (!-r $Tarfile) {
+        # not readable
+        die "Failed to create empty tarfile.";
+    }
+
+    return $Tarfile;
+} # 1}}}
+sub git_archive {                            # {{{1
+    # Invoke 'git archive' as a system command to create a tar file
+    # using the given argument(s).
+    my ($A1, $A2) = @_;
+    print "-> git_archive($A1)\n" if $opt_v > 2;
+
+    my $args = undef;
+    my @File_Set = ( );
+    my $n_sets   = 1;
+    if (ref $A2 eq 'ARRAY') {
+        # Avoid "Argument list too long" for the git archive command
+        # by splitting the inputs into sets of 10,000 files (issue 273).
+        my $FILES_PER_ARCHIVE = 1_000;
+           $FILES_PER_ARCHIVE =   100 if $ON_WINDOWS; # github.com/AlDanial/cloc/issues/404
+
+        my $n_files  = scalar(@{$A2});
+        $n_sets = $n_files/$FILES_PER_ARCHIVE;
+        $n_sets = 1 + int($n_sets) if $n_sets > int($n_sets);
+        $n_sets = 1 if !$n_sets;
+        foreach my $i (0..$n_sets-1) {
+            @{$File_Set[$i]} = ( );
+            my $start = $i*$FILES_PER_ARCHIVE;
+            my $end   = smaller(($i+1)*$FILES_PER_ARCHIVE, $n_files) - 1;
+            # Wrap each file name in single quotes to protect spaces
+            # and other odd characters.  File names that themselves have
+            # single quotes are instead wrapped in double quotes.  File
+            # names with both single and double quotes... jeez.
+            foreach my $fname (@{$A2}[$start .. $end]) {
+                if      ($fname =~ /^".*?\\".*?"$/) {
+                    # git pre-handles filenames with double quotes by backslashing
+                    # each double quote then surrounding entire name in double
+                    # quotes; undo this otherwise archive command crashes
+                    $fname =~ s/\\"/"/g;
+                    $fname =~ s/^"(.*)"$/$1/;
+                } elsif ($fname =~ /'/ or $ON_WINDOWS) {
+                    push @{$File_Set[$i]}, "\"$fname\"";
+                } else {
+                    push @{$File_Set[$i]}, "'$fname'";
+                }
+            }
+            unshift @{$File_Set[$i]}, "$A1 ";  # prepend git hash to beginning of list
+
+##xx#        # don't include \$ in the regex because git handles these correctly
+#            # to each word in @{$A2}[$start .. $end]: first backslash each
+#            # single quote, then wrap all entries in single quotes (#320)
+#            push @File_Set,
+#                 "$A1 " . join(" ", map {$_ =~ s/'/\'/g; $_ =~ s/^(.*)$/'$1'/g; $_}
+##                "$A1 " . join(" ", map {$_ =~ s/([\s\(\)\[\]{}';\^\?])/\\$1/g; $_}
+#                              @{$A2}[$start .. $end]);
+        }
+    } else {
+        if (defined $A2) {
+            push @{$File_Set[0]}, "$A1 $A2";
+        } else {
+            push @{$File_Set[0]}, "$A1";
+        }
+    }
+
+    my $files_this_commit = join(" ", @{$File_Set[0]});
+    print "   git_archive(file_set[0]=$files_this_commit)\n" if $opt_v > 2;
+    my ($Tarfh, $Tarfile);
+    if ($opt_sdir) {
+      File::Path::mkpath($opt_sdir) unless is_dir($opt_sdir);
+      ($Tarfh, $Tarfile) = tempfile(UNLINK => 1, DIR => $opt_sdir, SUFFIX => $ON_WINDOWS ? '.zip' : '.tar');  # delete on exit
+    } else {
+      ($Tarfh, $Tarfile) = tempfile(UNLINK => 1, SUFFIX => $ON_WINDOWS ? '.zip' : '.tar');  # delete on exit
+    }
+    my $cmd = "git archive -o $Tarfile $files_this_commit";
+    print  $cmd, "\n" if $opt_v;
+    system $cmd;
+    if (!-r $Tarfile or !-s $Tarfile) {
+        # not readable, or zero sized
+        die "Failed to create tarfile of files from git.";
+    }
+    if ($n_sets > 1) {
+        foreach my $i (1..$n_sets-1) {
+            my $files_this_commit = join(" ", @{$File_Set[$i]});
+            my $cmd = "git archive -o ${Tarfile}_extra $files_this_commit";
+            print  $cmd, "\n" if $opt_v;
+            system $cmd;
+            # and merge into the first one
+            # TODO:  on Windows switch to .tar instead of .zip
+               $cmd = "tar -A -f ${Tarfile} ${Tarfile}_extra";
+            print  $cmd, "\n" if $opt_v;
+            system $cmd;
+        }
+        unlink "${Tarfile}_extra";
+    }
+    print "<- git_archive()\n" if $opt_v > 2;
+    return $Tarfile
+} # 1}}}
+sub smaller {                                # {{{1
+    my( $a, $b ) = @_;
+    return $a < $b ? $a : $b;
 } # 1}}}
 sub make_file_list {                         # {{{1
     my ($ra_arg_list,  # in   file and/or directory names to examine
@@ -3634,7 +5022,6 @@ sub make_file_list {                         # {{{1
 
     my @dir_list = ();
     foreach my $file_or_dir (@{$ra_arg_list}) {
-#print "make_file_list file_or_dir=$file_or_dir\n";
         my $size_in_bytes = 0;
         if (!-r $file_or_dir) {
             push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file_or_dir];
@@ -3682,7 +5069,6 @@ sub make_file_list {                         # {{{1
         push @new_file_list, $File unless $ignore_this_file;
     }
     @file_list = @new_file_list;
-
     foreach my $dir (@dir_list) {
 #print "make_file_list dir=$dir  Exclude_Dir{$dir}=$Exclude_Dir{$dir}\n";
         # populates global variable @file_list
@@ -3694,6 +5080,12 @@ sub make_file_list {                         # {{{1
               preprocess => \&find_preprocessor,
               follow     =>  $opt_follow_links }, $dir);
     }
+    if ($opt_follow_links) {
+        # giving { 'follow' => 1 } to find() makes it skip the
+        # call to find_preprocessor() so have to call this manually
+        @file_list = manual_find_preprocessor(@file_list);
+    }
+
     # there's a possibility of file duplication if user provided a list
     # file or --vcs command that returns directory names; squash these
     my %unique_file_list = map { $_ => 1 } @file_list;
@@ -3701,10 +5093,12 @@ sub make_file_list {                         # {{{1
 
     $nFiles_Found = scalar @file_list;
     printf "%8d text file%s.\n", plural_form($nFiles_Found) unless $opt_quiet;
-    write_file($opt_found, sort @file_list) if $opt_found;
+    write_file($opt_found, {}, sort @file_list) if $opt_found;
 
     my $nFiles_Categorized = 0;
+
     foreach my $file (@file_list) {
+        $file = lc $file if $ON_WINDOWS;
         printf "classifying $file\n" if $opt_v > 2;
 
         my $basename = basename $file;
@@ -3729,8 +5123,13 @@ sub make_file_list {                         # {{{1
                                            $raa_errors,
                                            $rh_ignored);
         }
-die  "make_file_list($file) undef size" unless defined $size_in_bytes;
-die  "make_file_list($file) undef lang" unless defined $language;
+        if (!defined $size_in_bytes) {
+            $rh_ignored->{$file} = "no longer readable";
+            next;
+        } elsif (!defined $language) {
+            $rh_ignored->{$file} = "unable to associate with a language";
+            next;
+        }
         printf $fh "%d,%s,%s\n", $size_in_bytes, $language, $file;
         ++$nFiles_Categorized;
         #printf "classified %d files\n", $nFiles_Categorized
@@ -3739,7 +5138,6 @@ die  "make_file_list($file) undef lang" unless defined $language;
     }
     printf "classified %d files\r", $nFiles_Categorized
         if !$opt_quiet and $nFiles_Categorized > 1;
-
     print "<- make_file_list()\n" if $opt_v > 2;
 
     return $fh;   # handle to the file containing the list of files to process
@@ -3820,6 +5218,13 @@ sub remove_duplicate_files {                 # {{{1
     while (<$fh>) {
         ++$n;
         my ($size_in_bytes, $language, $file) = split(/,/, $_, 3);
+        if (!defined($size_in_bytes) or
+            !defined($language)      or 
+            !defined($file)) {
+            print "-> remove_duplicate_files skipping error line [$_]\n"
+                if $opt_v;
+            next;
+        }
         chomp($file);
         $rh_Language->{$file} = $language;
         push @{$files_by_size{$size_in_bytes}}, $file;
@@ -3868,6 +5273,57 @@ sub remove_duplicate_files {                 # {{{1
     }
     print "<- remove_duplicate_files\n" if $opt_v > 2;
 } # 1}}}
+sub manual_find_preprocessor {               # {{{1
+    # When running with --follow-links, find_preprocessor() is not
+    # called by find().  Have to do it manually.  Inputs here
+    # are only files, which differs from find_preprocessor() which
+    # gets directories too.
+    # Reads global variable %Exclude_Dir.
+    # Populates global variable %Ignored.
+    # Reject files/directories in cwd which are in the exclude list.
+    print "-> manual_find_preprocessor(", cwd(), ")\n" if $opt_v > 2;
+    my @ok = ();
+
+    foreach my $File (@_) {  # pure file or directory name, no separators
+        my $Dir = dirname($File);
+        my $got_exclude_dir = 0;
+        foreach my $d (File::Spec->splitdir( $Dir )) {
+            # tests/inputs/issues/407/level2/level/Test/level2 ->
+            # $d iterates over tests, inputs, issues, 407,
+            #                  level2, level, Test, level2
+            # check every item against %Exclude_Dir
+            if ($Exclude_Dir{$d}) {
+                $got_exclude_dir = $d;
+                last;
+            }
+        }
+        if ($got_exclude_dir) {
+            $Ignored{$File} = "--exclude-dir=$Exclude_Dir{$got_exclude_dir}";
+#print "ignoring $File\n";
+        } else {
+            if ($opt_not_match_d) {
+                if ($opt_fullpath) {
+                    if ($Dir =~ m{^${opt_not_match_d}$}) {
+                        $Ignored{$File} = "--not-match-d=$opt_not_match_d";
+#print "matched fullpath\n"
+                    } else {
+                        push @ok, $File;
+                    }
+                } elsif (basename($Dir) =~ m{$opt_not_match_d}) {
+                    $Ignored{$File} = "--not-match-d=$opt_not_match_d";
+#print "matched partial\n"
+                } else {
+                    push @ok, $File;
+                }
+            } else {
+                push @ok, $File;
+            }
+        }
+    }
+
+    print "<- manual_find_preprocessor(@ok)\n" if $opt_v > 2;
+    return @ok;
+} # 1}}}
 sub find_preprocessor {                      # {{{1
     # invoked by File::Find's find() each time it enters a new directory
     # Reads global variable %Exclude_Dir.
@@ -3885,8 +5341,12 @@ sub find_preprocessor {                      # {{{1
         } else {
 #printf "  F_or_D=%-20s File::Find::name=%s\n", $F_or_D, $File::Find::name;
             if ($opt_not_match_d) {
-                if ($opt_fullpath and $File::Find::name =~ m{$opt_not_match_d}) {
-                    $Ignored{$File::Find::name} = "--not-match-d=$opt_not_match_d";
+                if ($opt_fullpath) {
+                    if ($File::Find::name =~ m{$opt_not_match_d}) {
+                        $Ignored{$File::Find::name} = "--not-match-d=$opt_not_match_d";
+                    } else {
+                        push @ok, $F_or_D;
+                    }
                 } elsif (!-d $F_or_D and basename($File::Find::name) =~ m{$opt_not_match_d}) {
                     $Ignored{$File::Find::name} = "--not-match-d (basename) =$opt_not_match_d";
                 } else {
@@ -3905,7 +5365,7 @@ sub files {                                  # {{{1
     # invoked by File::Find's find()   Populates global variable @file_list.
     # See also find_preprocessor() which prunes undesired directories.
 
-    my $Dir = cwd(); # not $File::Find::dir which just gives relative path
+    my $Dir = fastcwd(); # not $File::Find::dir which just gives relative path
     if ($opt_fullpath) {
         # look at as much of the path as is known
         if ($opt_match_f    ) {
@@ -3958,29 +5418,34 @@ sub is_file {                                # {{{1
     # portable method to test if item is a file
     # (-f doesn't work in ActiveState Perl on Windows)
     my $item = shift @_;
+    return (-f $item);
 
-    if ($ON_WINDOWS) {
-        my $mode = (stat $item)[2];
-           $mode = 0 unless $mode;
-        if ($mode & 0100000) { return 1; }
-        else                 { return 0; }
-    } else {
-        return (-f $item);  # works on Unix, Linux, CygWin, z/OS
-    }
+#     Was:
+####if ($ON_WINDOWS) {
+####    my $mode = (stat $item)[2];
+####       $mode = 0 unless $mode;
+####    if ($mode & 0100000) { return 1; }
+####    else                 { return 0; }
+####} else {
+####    return (-f $item);  # works on Unix, Linux, CygWin, z/OS
+####}
 } # 1}}}
 sub is_dir {                                 # {{{1
-    # portable method to test if item is a directory
-    # (-d doesn't work in older versions of ActiveState Perl on Windows)
     my $item = shift @_;
+    return (-d $item); # should work everywhere now (July 2017)
 
-    if ($ON_WINDOWS) {
-        my $mode = (stat $item)[2];
-           $mode = 0 unless $mode;
-        if ($mode & 0040000) { return 1; }
-        else                 { return 0; }
-    } else {
-        return (-d $item);  # works on Unix, Linux, CygWin, z/OS
-    }
+#     Was:
+##### portable method to test if item is a directory
+##### (-d doesn't work in older versions of ActiveState Perl on Windows)
+
+####if ($ON_WINDOWS) {
+####    my $mode = (stat $item)[2];
+####       $mode = 0 unless $mode;
+####    if ($mode & 0040000) { return 1; }
+####    else                 { return 0; }
+####} else {
+####    return (-d $item);  # works on Unix, Linux, CygWin, z/OS
+####}
 } # 1}}}
 sub is_excluded {                            # {{{1
     my ($file       , # in
@@ -4027,12 +5492,17 @@ sub classify_file {                          # {{{1
       my $extension = $1;
          # Windows file names are case insensitive so map
          # all extensions to lowercase there.
-         $extension = lc $extension if $ON_WINDOWS;
+         $extension = lc $extension if $ON_WINDOWS or $opt_ignore_case_ext;
       my @extension_list = ( $extension );
       if ($file =~ /\.([^\.]+\.[^\.]+)$/) { # has a double extension
           my $extension = $1;
-          $extension = lc $extension if $ON_WINDOWS;
+          $extension = lc $extension if $ON_WINDOWS or $opt_ignore_case_ext;
           unshift @extension_list, $extension;  # examine double ext first
+      }
+      if ($file =~ /\.([^\.]+\.[^\.]+\.[^\.]+)$/) { # has a triple extension
+          my $extension = $1;
+          $extension = lc $extension if $ON_WINDOWS or $opt_ignore_case_ext;
+          unshift @extension_list, $extension;  # examine triple ext first
       }
       foreach my $extension (@extension_list) {
         if ($Not_Code_Extension{$extension} and
@@ -4046,7 +5516,7 @@ sub classify_file {                          # {{{1
         }
         if (defined $Language_by_Extension{$extension}) {
             if ($Language_by_Extension{$extension} eq
-                'MATLAB/Mathematica/Objective C/MUMPS/Mercury') {
+                'MATLAB/Mathematica/Objective-C/MUMPS/Mercury') {
                 my $lang_M_or_O = "";
                 matlab_or_objective_C($full_file ,
                                       $rh_Err    ,
@@ -4086,8 +5556,10 @@ sub classify_file {                          # {{{1
                 return Lisp_or_Julia( $full_file, $rh_Err, $raa_errors);
             } elsif ($Language_by_Extension{$extension} eq 'Perl/Prolog') {
                 return Perl_or_Prolog($full_file, $rh_Err, $raa_errors);
+            } elsif ($Language_by_Extension{$extension} eq 'Raku/Prolog') {
+                return Raku_or_Prolog($full_file, $rh_Err, $raa_errors);
             } elsif ($Language_by_Extension{$extension} eq
-                     'IDL/Qt Project/Prolog') {
+                     'IDL/Qt Project/Prolog/ProGuard') {
                 return IDL_or_QtProject($full_file, $rh_Err, $raa_errors);
             } elsif ($Language_by_Extension{$extension} eq 'D/dtrace') {
                 # is it D or an init.d shell script?
@@ -4111,7 +5583,7 @@ sub classify_file {                          # {{{1
             } elsif ($Language_by_Extension{$extension} eq 'Verilog-SystemVerilog/Coq') {
                 return Verilog_or_Coq( $full_file, $rh_Err, $raa_errors);
             } elsif ($Language_by_Extension{$extension} eq 'Smarty') {
-                if ($extension eq "smarty") {
+                if ($extension ne "tpl") {
                     # unambiguous -- if ends with .smarty, is Smarty
                     return $Language_by_Extension{$extension};
                 }
@@ -4125,7 +5597,7 @@ sub classify_file {                          # {{{1
                         last;
                     }
                 }
-                if (really_is_php($full_file) or $force_smarty) {
+                if (really_is_smarty($full_file) or $force_smarty) {
                     return 'Smarty';
                 } else {
                     return $language; # (unknown)
@@ -4134,6 +5606,23 @@ sub classify_file {                          # {{{1
                 return TypeScript_or_QtLinguist( $full_file, $rh_Err, $raa_errors);
             } elsif ($Language_by_Extension{$extension} eq 'Qt/Glade') {
                 return Qt_or_Glade( $full_file, $rh_Err, $raa_errors);
+            } elsif ($Language_by_Extension{$extension} eq 'C#/Smalltalk') {
+                return Csharp_or_Smalltalk( $full_file, $rh_Err, $raa_errors);
+            } elsif ($Language_by_Extension{$extension} eq 'Scheme/SaltStack') {
+                return Scheme_or_SaltStack( $full_file, $rh_Err, $raa_errors);
+            } elsif ($Language_by_Extension{$extension} eq 'Visual Basic/TeX/Apex Class') {
+                my $lang_VB_T_A = "";
+                Visual_Basic_or_TeX_or_Apex($full_file ,
+                                            $rh_Err    ,
+                                            $raa_errors,
+                                           \$lang_VB_T_A);
+                if ($lang_VB_T_A) {
+                    return $lang_VB_T_A;
+                } else { # an error happened in Visual_Basic_or_TeX_or_Apex
+                    $rh_ignored->{$full_file} =
+                        'failure in Visual_Basic_or_TeX_or_Apex()';
+                    return $language; # (unknown)
+                }
             } elsif ($Language_by_Extension{$extension} eq 'Brainfuck') {
                 if (really_is_bf($full_file)) {
                     return $Language_by_Extension{$extension};
@@ -4161,9 +5650,9 @@ sub classify_file {                          # {{{1
         # starts with pound bang:
         #   #!/usr/bin/perl
         #   #!/usr/bin/env perl
-        my $script_language = peek_at_first_line($full_file ,
-                                                 $rh_Err    ,
-                                                 $raa_errors);
+        my ($script_language, $L) = peek_at_first_line($full_file ,
+                                                       $rh_Err    ,
+                                                       $raa_errors);
         if (!$script_language) {
             $rh_ignored->{$full_file} = "language unknown (#2)";
             # returns (unknown)
@@ -4180,12 +5669,43 @@ sub classify_file {                          # {{{1
                 # returns (unknown)
             }
         } else {
-            $rh_ignored->{$full_file} = "language unknown (#3)";
+            # #456:  XML files can have a variety of domain-specific file
+            #        extensions.  If the extension is unrecognized, examine
+            #        the first line of the file to see if it is XML
+            if ($L =~ /<\?xml\s/) {
+                $language = "XML";
+                delete $rh_ignored->{$full_file};
+            } else {
+                $rh_ignored->{$full_file} = "language unknown (#3)";
+            }
             # returns (unknown)
         }
     }
     print "<- classify_file($full_file)=$language\n" if $opt_v > 2;
     return $language;
+} # 1}}}
+sub first_line {                             # {{{1
+    # return back the first line of text in the file
+    my ($file        , # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+       ) = @_;
+    my $line = "";
+    print "-> first_line($file)\n" if $opt_v > 2;
+    if (!-r $file) {
+        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
+        return $line;
+    }
+    my $IN = new IO::File $file, "r";
+    if (!defined $IN) {
+        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
+        print "<- first_line($file)\n" if $opt_v > 2;
+        return $line;
+    }
+    chomp($line = <$IN>);
+    $IN->close;
+    print "<- first_line($file, '$line')\n" if $opt_v > 2;
+    return $line;
 } # 1}}}
 sub peek_at_first_line {                     # {{{1
     my ($file        , # in
@@ -4196,17 +5716,8 @@ sub peek_at_first_line {                     # {{{1
     print "-> peek_at_first_line($file)\n" if $opt_v > 2;
 
     my $script_language = "";
-    if (!-r $file) {
-        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
-        return $script_language;
-    }
-    my $IN = new IO::File $file, "r";
-    if (!defined $IN) {
-        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
-        print "<- peek_at_first_line($file)\n" if $opt_v > 2;
-        return $script_language;
-    }
-    chomp(my $first_line = <$IN>);
+    my $first_line = first_line($file, $rh_Err, $raa_errors);
+
     if (defined $first_line) {
 #print "peek_at_first_line of [$file] first_line=[$first_line]\n";
         if ($first_line =~ /^#\!\s*(\S.*?)$/) {
@@ -4223,9 +5734,8 @@ sub peek_at_first_line {                     # {{{1
             }
         }
     }
-    $IN->close;
     print "<- peek_at_first_line($file)\n" if $opt_v > 2;
-    return $script_language;
+    return ($script_language, $first_line);
 } # 1}}}
 sub different_files {                        # {{{1
     # See which of the given files are unique by computing each file's MD5
@@ -4325,17 +5835,21 @@ sub call_counter {                           # {{{1
         $ascii = join('', @lines);
     }
 
+    # implement --perl-ignore-data here
+
     my @original_lines = @lines;
     my $total_lines    = scalar @lines;
 
     print_lines($file, "Original file:", \@lines) if $opt_print_filter_stages;
     @lines = rm_blanks(\@lines, $language, \%EOL_Continuation_re); # remove blank lines
+    print "   call_counter: total_lines=$total_lines  blank_lines=",
+        scalar(@lines), "\n" if $opt_v > 2;
     my $blank_lines = $total_lines - scalar @lines;
     print_lines($file, "Blank lines removed:", \@lines)
         if $opt_print_filter_stages;
 
     @lines = rm_comments(\@lines, $language, $file,
-                               \%EOL_Continuation_re);
+                               \%EOL_Continuation_re, $ra_Errors);
 
     my $comment_lines = $total_lines - $blank_lines - scalar  @lines;
     if ($opt_strip_comments) {
@@ -4345,7 +5859,7 @@ sub call_counter {                           # {{{1
         } else {
             $stripped_file = basename $file . ".$opt_strip_comments";
         }
-        write_file($stripped_file, @lines);
+        write_file($stripped_file, {}, @lines);
     }
     if ($opt_html and !$opt_diff) {
         chomp(@original_lines);  # includes blank lines, comments
@@ -4392,10 +5906,16 @@ sub windows_glob {                           # {{{1
           } @_;
 } # 1}}}
 sub write_file {                             # {{{1
-    my ($file  , # in
-        @lines , # in
+    my ($file       , # in
+        $rh_options , # in
+        @lines      , # in
        ) = @_;
 
+    my $local_formatting = 0;
+    foreach my $opt (sort keys %{$rh_options}) {
+#       print "write_file option $opt = $rh_options->{$opt}\n";
+        $local_formatting = 1;
+    }
 #print "write_file 1 [$file]\n";
     # Do ~ expansion (by Tim LaBerge, fixes bug 2787984)
     my $preglob_filename = $file;
@@ -4403,7 +5923,7 @@ sub write_file {                             # {{{1
     if ($ON_WINDOWS) {
         $file = (windows_glob($file))[0];
     } else {
-        $file = File::Glob::glob($file);
+        $file = File::Glob::bsd_glob($file);
     }
 #print "write_file 3 [$file]\n";
     $file = $preglob_filename unless $file;
@@ -4416,20 +5936,152 @@ sub write_file {                             # {{{1
     my ($volume, $directories, $filename) = File::Spec->splitpath( $abs_file_path );
     mkpath($volume . $directories, 1, 0777);
 
-    my $OUT = new IO::File $file, "w";
-    if (defined $OUT) {
-        chomp(@lines);
-        print $OUT join("\n", @lines), "\n";
-        $OUT->close;
+    my $OUT = undef;
+    unlink $file;
+    if ($opt_file_encoding) {
+#       $OUT = IO::File->new($file, ">:$opt_file_encoding");  # doesn't work?
+        open($OUT, "> :encoding($opt_file_encoding)", $file);
     } else {
-        warn "Unable to write to $file\n";
+        $OUT = new IO::File $file, "w";
     }
-    print "Wrote $file" unless $opt_quiet;
-    print ", $CLOC_XSL" if $opt_xsl and $opt_xsl eq $CLOC_XSL;
-    print "\n" unless $opt_quiet;
+
+    my $n_col = undef;
+    if ($local_formatting) {
+        $n_col = scalar @{$rh_options->{'columns'}};
+        if ($opt_xml) {
+            print $OUT '<?xml version="1.0" encoding="UTF-8"?>', "\n";
+            print $OUT "<all_$rh_options->{'file_type'}>\n";
+        } elsif ($opt_yaml) {
+            print $OUT "---\n";
+        } elsif ($opt_md) {
+            print $OUT join("|", @{$rh_options->{'columns'}}) , "\n";
+            print $OUT join("|", map( ":------", 1 .. $n_col)), "\n";
+        }
+    }
+
+    if (!defined $OUT) {
+        warn "Unable to write to $file\n";
+        print "<- write_file\n" if $opt_v > 2;
+        return;
+    }
+    chomp(@lines);
+
+    if ($local_formatting) {
+        my @json_lines = ();
+        foreach my $L (@lines) {
+            my @entries;
+            if ($rh_options->{'separator'}) {
+                @entries = split($rh_options->{'separator'}, $L, $n_col);
+            } else {
+                @entries = ( $L );
+            }
+            if ($opt_xml) {
+                print $OUT "  <$rh_options->{'file_type'} ";
+                for (my $i = 0; $i < $n_col; $i++) {
+                    printf $OUT "%s=\"%s\" ", $rh_options->{'columns'}[$i], $entries[$i];
+                }
+                print $OUT "/>\n";
+            } elsif ($opt_yaml or $opt_json) {
+                my @pairs = ();
+                for (my $i = 0; $i < $n_col; $i++) {
+                    push @pairs,
+                        sprintf "\"%s\":\"%s\"", $rh_options->{'columns'}[$i], $entries[$i];
+                }
+                if ($opt_json) {
+                    push @json_lines, join(", ", @pairs );
+                } else {
+                    print $OUT "- {", join(", ", @pairs), "}\n";
+                }
+            } elsif ($opt_csv) {
+                print $OUT join(",", @entries), "\n";
+            } elsif ($opt_md) {
+                print $OUT join("|", @entries), "\n";
+            }
+        }
+        if ($opt_json) {
+            print $OUT "[{", join("}, {", @json_lines), "}]\n";
+        }
+        if (!$opt_json and !$opt_yaml and !$opt_xml and !$opt_csv) {
+            print $OUT join("\n", @lines), "\n";
+        }
+    } else {
+        print $OUT join("\n", @lines), "\n";
+    }
+
+    if ($local_formatting and $opt_xml) {
+        print $OUT "</all_$rh_options->{'file_type'}>\n";
+    }
+    $OUT->close;
+
+    if (-r $file) {
+        print "Wrote $file" unless $opt_quiet;
+        print ", $CLOC_XSL" if $opt_xsl and $opt_xsl eq $CLOC_XSL;
+        print "\n" unless $opt_quiet;
+    }
 
     print "<- write_file\n" if $opt_v > 2;
 } # 1}}}
+sub file_pairs_from_file {                   # {{{1
+    my ($file             , # in
+        $ra_added         , # out
+        $ra_removed       , # out
+        $ra_compare_list  , # out
+       ) = @_;
+    #
+    # Example valid input format for $file
+    # 1)
+	#   A/d1/hello.f90 | B/d1/hello.f90
+	#   A/hello.C | B/hello.C
+	#   A/d2/hi.py | B/d2/hi.py
+    #
+    # 2)
+	# Files added: 1
+	#   + B/extra_file.pl ; Perl
+	# 
+	# Files removed: 1
+	#   - A/d2/hello.java ; Java
+	# 
+	# File pairs compared: 3
+	#   != A/d1/hello.f90 | B/d1/hello.f90 ; Fortran 90
+	#   != A/hello.C | B/hello.C ; C++
+	#   == A/d2/hi.py | B/d2/hi.py ; Python
+
+    print "-> file_pairs_from_file($file)\n" if $opt_v and $opt_v > 2;
+    @{$ra_compare_list} = ();
+    my @lines = read_file($file);
+    my $mode = "compare";
+    foreach my $L (@lines) {
+        next if $L =~ /^\s*$/ or $L =~ /^\s*#/;
+		chomp($L);
+        if      ($L =~ /^Files\s+(added|removed):/) {
+            $mode = $1;
+        } elsif ($L =~ /^File\s+pairs\s+compared:/) {
+    		$mode = "compare";
+        } elsif ($mode eq "added" or $mode eq "removed") {
+            $L =~ m/^\s*[+-]\s+(.*?)\s+;/;
+            my $F = $1;
+            if (!defined $1) {
+                warn "file_pairs_from_file($file) parse failure\n",
+                     "in $mode mode for '$L', ignoring\n";
+                next;
+            }
+            if ($mode eq "added") {
+                push @{$ra_added}  , $F;
+            } else {
+                push @{$ra_removed}, $F;
+            }
+        } else {
+    		$L =~ m/^\s*([!=]=\s*)?(.*?)\s*\|\s*(.*?)\s*(;.*?)?$/;
+            if (!defined $2 or !defined $3) {
+                warn "file_pairs_from_file($file) parse failure\n",
+                     "in compare mode for '$L', ignoring\n";
+                next;
+            }
+            push @{$ra_compare_list}, ( [$2, $3] );
+        }
+    }
+    print "<- file_pairs_from_file\n" if $opt_v and $opt_v > 2;
+}
 sub read_file  {                             # {{{1
     my ($file, ) = @_;
     my %BoM = (
@@ -4450,7 +6102,7 @@ sub read_file  {                             # {{{1
         "2b 2f 76 38 2d"  => 5 ,
         );
 
-    print "-> read_file($file)\n" if $opt_v > 2;
+    print "-> read_file($file)\n" if $opt_v and $opt_v > 2;
     my @lines = ();
     my $IN = new IO::File $file, "r";
     if (defined $IN) {
@@ -4488,7 +6140,7 @@ sub read_file  {                             # {{{1
     # causing every line to differ.
     foreach (@lines) { s/\cM$// }
 
-    print "<- read_file\n" if $opt_v > 2;
+    print "<- read_file\n" if $opt_v and $opt_v > 2;
     return @lines;
 } # 1}}}
 sub rm_blanks {                              # {{{1
@@ -4510,7 +6162,8 @@ sub rm_blanks {                              # {{{1
         }
     }
 
-    print "<- rm_blanks(language=$language)\n" if $opt_v > 2;
+    print "<- rm_blanks(language=$language, n_remain= ",
+        scalar(@out), "\n" if $opt_v > 2;
     return @out;
 } # 1}}}
 sub rm_comments {                            # {{{1
@@ -4519,6 +6172,7 @@ sub rm_comments {                            # {{{1
         $file     , # in (some language counters, eg Haskell, need
                     #     access to the original file)
         $rh_EOL_continuation_re , # in
+        $raa_Errors , # out
        ) = @_;
     print "-> rm_comments(file=$file)\n" if $opt_v > 2;
     my @routines       = @{$Filters_by_Language{$language}};
@@ -4531,6 +6185,7 @@ sub rm_comments {                            # {{{1
 
     foreach my $call_string (@routines) {
         my $subroutine = $call_string->[0];
+        next if $subroutine eq "rm_comments_in_strings" and !$opt_strip_str_comments;
         if (! defined &{$subroutine}) {
             warn "rm_comments undefined subroutine $subroutine for $file\n";
             next;
@@ -4542,15 +6197,37 @@ sub rm_comments {                            # {{{1
             shift   @args;
             unshift @args, $file;
         }
-#use Data::Dumper;
-#print "\ncall_string=", Dumper($call_string);
-#print "args=\n";
-#print Dumper(\@args);
-#print "lines before=\n";
-#print Dumper(\@lines);
 
-        no strict 'refs';
-        @lines = &{$subroutine}(\@lines, @args);   # apply filter...
+        # Unusual inputs, namely /* within strings without
+        # a corresponding */ can cause huge delays so put a timer on this.
+        my $max_duration_sec = scalar(@lines)/1000.0; # est lines per second
+           $max_duration_sec = 1.0 if $max_duration_sec < 1;
+        if (defined $opt_timeout) {
+            $max_duration_sec = $opt_timeout if $opt_timeout > 0;
+        }
+#my $T_start = Time::HiRes::time();
+        eval {
+            local $SIG{ALRM} = sub { die "alarm\n" };
+            alarm $max_duration_sec;
+            no strict 'refs';
+            @lines = &{$subroutine}(\@lines, @args);   # apply filter...
+            alarm 0;
+        };
+        if ($@) {
+            # timed out
+            die unless $@ eq "alarm\n";
+            push @{$raa_Errors},
+                [ $Error_Codes{'Line count, exceeded timeout'}, $file ];
+            @lines = ();
+            if ($opt_v) {
+                warn "rm_comments($subroutine): exceeded timeout for $file--ignoring\n";
+            }
+            next;
+        }
+#print "end time = ",Time::HiRes::time() - $T_start;
+
+        print "   rm_comments after $subroutine line count=",
+            scalar(@lines), "\n" if $opt_v > 2;
 
 #print "lines after=\n";
 #print Dumper(\@lines);
@@ -4568,16 +6245,17 @@ sub rm_comments {                            # {{{1
         print_lines($file, "post $subroutine(@args) blank cleanup:", \@lines)
             if $opt_print_filter_stages;
     }
-    # Exception for scripting languages:  treat the first #! line as code.
-    # Will need to add it back in if it was removed earlier.
-    if (defined $Script_Language{$language} and
-        $original_lines[0] =~ /^#!/ and
-        (scalar(@lines) == 0 or
-         $lines[0] ne $original_lines[0])) {
-        unshift @lines, $original_lines[0];  # add the first line back
-    }
 
     foreach (@lines) { chomp }   # make sure no spurious newlines were added
+
+    # Exception for scripting languages:  treat the first #! line as code.
+    # Will need to add it back in if it was removed earlier.
+    chomp( $original_lines[0] );
+    if (defined $Script_Language{$language} and
+        $original_lines[0] =~ /^#!/ and
+        (!scalar(@lines) or ($lines[0] ne $original_lines[0]))) {
+        unshift @lines, $original_lines[0];  # add the first line back
+    }
 
     print "<- rm_comments\n" if $opt_v > 2;
     return @lines;
@@ -4613,6 +6291,27 @@ sub remove_f90_comments {                    # {{{1
     }
 
     print "<- remove_f90_comments\n" if $opt_v > 2;
+    return @save_lines;
+} # 1}}}
+sub reduce_to_rmd_code_blocks {              #{{{1
+    my ($ra_lines) = @_; #in
+    print "-> reduce_to_rmd_code_blocks()\n" if $opt_v > 2;
+
+    my $in_code_block = 0;
+    my @save_lines = ();
+    foreach (@{$ra_lines}) {
+        if ( m/^```\{\s*[[:alpha:]]/ ) {
+            $in_code_block = 1;
+            next;
+        }
+        if ( m/^```\s*$/ ) {
+            $in_code_block = 0;
+        }
+        next if (!$in_code_block);
+        push @save_lines, $_;
+    }
+
+    print "<- reduce_to_rmd_code_blocks()\n" if $opt_v> 2;
     return @save_lines;
 } # 1}}}
 sub remove_matches {                         # {{{1
@@ -4789,6 +6488,87 @@ sub remove_between {                         # {{{1
     print "<- remove_between\n" if $opt_v > 2;
     return split("\n", $all_lines);
 } # 1}}}
+sub rm_comments_in_strings {                 # {{{1
+    my ($ra_lines, $string_marker, $start_comment, $end_comment, $multiline_mode) = @_;
+    $multiline_mode = 0 if not defined $multiline_mode;
+    # Replace comments within strings with 'xx'.
+
+    print "-> rm_comments_in_strings(string_marker=$string_marker, " .
+          "start_comment=$start_comment, end_comment=$end_comment)\n"
+        if $opt_v > 2;
+
+    my @save_lines = ();
+    my $in_ml_string = 0;
+    foreach my $line (@{$ra_lines}) {
+       #print "line=[$line]\n";
+        my $new_line = "";
+
+        if ($line !~ /${string_marker}/) {
+            # short circuit; no strings on this line
+            if ( $in_ml_string ) {
+                $line =~ s/\Q${start_comment}\E/xx/g;
+                $line =~ s/\Q${end_comment}\E/xx/g if $end_comment;
+            }
+            push @save_lines, $line;
+            next;
+        }
+
+        # replace backslashed string markers with 'Q'
+        $line =~ s/\\${string_marker}/Q/g;
+
+        if ( $in_ml_string and $line =~ /^(.*?)(${string_marker})(.*)$/ ) {
+            # A multiline string ends on this line. Process the part
+            # until the end of the multiline string first.
+            my ($lastpart_ml_string, $firstpart_marker, $rest_of_line )  = ($1, $2, $3);
+            $lastpart_ml_string =~ s/\Q${start_comment}\E/xx/g;
+            $lastpart_ml_string =~ s/\Q${end_comment}\E/xx/g if $end_comment;
+            $new_line = $lastpart_ml_string . $firstpart_marker;
+            $line = $rest_of_line;
+            $in_ml_string = 0;
+        }
+
+        my @tokens = split(/(${string_marker}.*?${string_marker})/, $line);
+        foreach my $t (@tokens) {
+           #printf "  t0 = [$t]\n";
+            if ($t =~ /${string_marker}.*${string_marker}$/) {
+                # enclosed in quotes; process this token
+                $t =~ s/\Q${start_comment}\E/xx/g;
+                $t =~ s/\Q${end_comment}\E/xx/g if $end_comment;
+            }
+            elsif ( $multiline_mode and $t =~ /(${string_marker})/ ) {
+                # Unclosed quote present in line. If multiline_mode is enabled,
+                # consider it the start of a multiline string.
+                my $firstpart_marker = $1;
+                my @sub_token = split(/${string_marker}/, $t );
+
+                if ( scalar @sub_token == 1 ) {
+                    # The line ends with a string marker that starts
+                    # a multiline string.
+                    $t = $sub_token[0] . $firstpart_marker;
+                    $in_ml_string = 1;
+                }
+                elsif ( scalar @sub_token == 2 ) {
+		    # The line has some more content after the string
+		    # marker that starts a multiline string
+                    $t = $sub_token[0] . $firstpart_marker;
+                    $sub_token[1] =~ s/\Q${start_comment}\E/xx/g;
+                    $sub_token[1] =~ s/\Q${end_comment}\E/xx/g if $end_comment;
+                    $t .= $sub_token[1];
+                    $in_ml_string = 1;
+                } else {
+                    print "Warning: rm_comments_in_string length \@sub_token > 2\n";
+                }
+
+            }
+            #printf "  t1 = [$t]\n";
+            $new_line .= $t;
+        }
+        push @save_lines, $new_line;
+    }
+
+    print "<- rm_comments_in_strings\n" if $opt_v > 2;
+    return @save_lines;
+} # 1}}}
 sub remove_between_general {                 # {{{1
     my ($ra_lines, $start_marker, $end_marker, ) = @_;
     # Start and end markers may be any length strings.
@@ -4861,11 +6641,35 @@ sub remove_between_regex   {                 # {{{1
     print "<- remove_between_regex\n" if $opt_v > 2;
     return @save_lines;
 } # 1}}}
+sub replace_regex  {                         # {{{1
+    my ($ra_lines, $regex, $replace, ) = @_;
+
+    print "-> replace_regex(regex=$regex, replace=$replace)\n"
+        if $opt_v > 2;
+
+    my $all_lines = join("", @{$ra_lines});
+
+    my @save_lines = ();
+    my $in_comment = 0;
+    foreach (@{$ra_lines}) {
+
+        next if /^\s*$/;
+        s/${regex}/${replace}/g;
+        next if /^\s*$/;
+        push @save_lines, $_;
+    }
+
+    print "<- replace_regex\n" if $opt_v > 2;
+    return @save_lines;
+} # 1}}}
 sub replace_between_regex  {                 # {{{1
-    my ($ra_lines, $start_RE, $end_RE, $replace_RE, ) = @_;
+    my ($ra_lines, $start_RE, $end_RE, $replace_RE, $multiline_mode ) = @_;
+    # If multiline_mode is enabled, $replace_RE should not refer
+    # to any captured groups in $start_RE.
+    $multiline_mode = 1 if not defined $multiline_mode;
     # Start and end regex's may be any length strings.
 
-    print "-> replace_between_regex(start=$start_RE, end=$end_RE)\n"
+    print "-> replace_between_regex(start=$start_RE, end=$end_RE, replace=$replace_RE)\n"
         if $opt_v > 2;
 
     my $all_lines = join("", @{$ra_lines});
@@ -4885,7 +6689,7 @@ sub replace_between_regex  {                 # {{{1
             next if $in_comment;
         }
         next if /^\s*$/;
-        $in_comment = 1 if /^(.*?)${start_RE}/; # $1 may be blank or code
+        $in_comment = 1 if $multiline_mode and /^(.*?)${start_RE}/ ; # $1 may be blank or code
         next if defined $1 and $1 =~ /^\s*$/; # leading blank; all comment
         if ($in_comment) {
             # part code, part comment; strip the comment and keep the code
@@ -4950,7 +6754,7 @@ sub remove_jcl_comments {                    # {{{1
     my $in_comment = 0;
     foreach (@{$ra_lines}) {
         next if /^\s*$/;
-        next if m{^\s*//\*};
+        next if m{^//\*};
         last if m{^\s*//\s*$};
         push @save_lines, $_;
     }
@@ -5122,6 +6926,34 @@ sub remove_pug_block {                       # {{{1
     my ($ra_lines, ) = @_;
     return remove_intented_block($ra_lines, '^(\s*)(//)\s*$');
 } # 1}}}
+sub remove_OCaml_comments {                  # {{{1
+    my ($ra_lines, ) = @_;
+
+    print "-> remove_OCaml_comments\n" if $opt_v > 2;
+
+    my @save_lines = ();
+    my $in_comment = 0;   # counter to depth of nested comments
+    foreach my $L (@{$ra_lines}) {
+        next if $L =~ /^\s*$/;
+        # make an array of tokens where a token is a start comment
+        # marker, end comment marker, string, or anything else
+        my $clean_line = ""; # ie, free of comments
+        my @tokens = split(/(\(\*|\*\)|".*?")/, $L);
+        foreach my $t (@tokens) {
+            next unless $t;
+            if      ($t eq "(*") {
+                ++$in_comment;
+            } elsif ($t eq "*)") {
+                --$in_comment;
+            } elsif (!$in_comment) {
+                $clean_line .= $t;
+            }
+        }
+        push @save_lines, $clean_line if $clean_line;
+    }
+    print "<- remove_OCaml_comments\n" if $opt_v > 2;
+    return @save_lines;
+} # 1}}}
 sub remove_slim_block {                      # {{{1
     # slim comments start with /
     # followed by indented text on subsequent lines.
@@ -5146,22 +6978,79 @@ sub docstring_to_C {                         # {{{1
     my ($ra_lines, ) = @_;
     # Converts Python docstrings to C comments.
 
+    if ($opt_docstring_as_code) {
+        return @{$ra_lines};
+    }
+
     print "-> docstring_to_C()\n" if $opt_v > 2;
 
     my $in_docstring = 0;
     foreach (@{$ra_lines}) {
-        while (/"""/) {
+        while (/((""")|('''))/) {
             if (!$in_docstring) {
-                s{[uU]?"""}{/*};
+                s{[uU]?((""")|('''))}{/*};
                 $in_docstring = 1;
             } else {
-                s{"""}{*/};
+                s{((""")|('''))}{*/};
                 $in_docstring = 0;
             }
         }
     }
 
     print "<- docstring_to_C\n" if $opt_v > 2;
+    return @{$ra_lines};
+} # 1}}}
+sub jupyter_nb {                             # {{{1
+    my ($ra_lines, ) = @_;
+    # Translate .ipynb file content into an equivalent set of code
+    # lines as expected by cloc.
+
+    print "-> jupyter_nb()\n" if $opt_v > 2;
+
+    my @save_lines = ();
+    my $in_code   = 0;
+    my $in_source = 0;
+    foreach (@{$ra_lines}) {
+        if (!$in_code and !$in_source and /^\s*"cell_type":\s*"code",\s*$/) {
+            $in_code = 1;
+        } elsif ($in_code and !$in_source and /^\s*"source":\s*\[\s*$/) {
+            $in_source = 1;
+        } elsif ($in_code and $in_source) {
+            if (/^\s*"\s*\\n",\s*$/) {    #  "\n",  -> empty line
+                next;
+            } elsif (/^\s*"\s*#/) {       #  comment within the code block
+                next;
+            } elsif (/^\s*\]\s*$/) {
+                $in_code   = 0;
+                $in_source = 0;
+            } else {
+                push @save_lines, $_;
+            }
+        }
+    }
+
+    print "<- jupyter_nb\n" if $opt_v > 2;
+
+    return @save_lines;
+} # 1}}}
+sub elixir_doc_to_C {                        # {{{1
+    my ($ra_lines, ) = @_;
+    # Converts Elixir docs to C comments.
+
+    print "-> elixir_doc_to_C()\n" if $opt_v > 2;
+
+    my $in_docstring = 0;
+    foreach (@{$ra_lines}) {
+        if (!$in_docstring && /(\@(module)?doc\s+(~[sScC])?['"]{3})/) {
+            s{$1}{/*};
+            $in_docstring = 1;
+        } elsif ($in_docstring && /(['"]{3})/) {
+            s{$1}{*/};
+            $in_docstring = 0;
+        }
+    }
+
+    print "<- elixir_doc_to_C\n" if $opt_v > 2;
     return @{$ra_lines};
 } # 1}}}
 sub Forth_paren_to_C  {                      # {{{1
@@ -5171,17 +7060,31 @@ sub Forth_paren_to_C  {                      # {{{1
     print "-> Forth_paren_to_C()\n" if $opt_v > 2;
 
     my $in_comment = 0;
+    my $max_paren_pair_per_line = 255;
     foreach (@{$ra_lines}) {
+#print "Forth_paren_to_C: [$_]\n";
+        my $n_iter = 0;
         while (/\s\(\s/ or ($in_comment and /\)/)) {
+#print "TOP n_iter=$n_iter in_comment=$in_comment\n";
             if (/\s\(\s.*?\)/) {
                 # in-line parenthesis comment; handle here
                 s/\s+\(\s+.*?\)//g;
+#print "B\n";
             } elsif (!$in_comment and /\s\(\s/) {
                 s{\s+\(\s+}{/*};
+#print "C\n";
                 $in_comment = 1;
             } elsif ($in_comment and /\)/) {
                 s{\)}{*/};
+#print "D\n";
                 $in_comment = 0;
+            } else {
+                # gets here if it can't find a matching
+                # close parenthesis; in this case the
+                # results will likely be incorrect
+                ++$n_iter;
+#print "E\n";
+                last if $n_iter > $max_paren_pair_per_line;
             }
         }
     }
@@ -5308,26 +7211,59 @@ sub set_constants {                          # {{{1
             'adb'         => 'Ada'                   ,
             'ads'         => 'Ada'                   ,
             'adso'        => 'ADSO/IDSM'             ,
+            'ahkl'        => 'AutoHotkey'            ,
             'ahk'         => 'AutoHotkey'            ,
+            'agda'        => 'Agda'                  ,
+            'lagda'       => 'Agda'                  ,
             'aj'          => 'AspectJ'               ,
             'am'          => 'make'                  ,
             'ample'       => 'AMPLE'                 ,
+            'apl'         => 'APL'                   ,
+            'apla'        => 'APL'                   ,
+            'aplf'        => 'APL'                   ,
+            'aplo'        => 'APL'                   ,
+            'apln'        => 'APL'                   ,
+            'aplc'        => 'APL'                   ,
+            'apli'        => 'APL'                   ,
+            'dyalog'      => 'APL'                   ,
+            'dyapp'       => 'APL'                   ,
+            'mipage'      => 'APL'                   ,
             'as'          => 'ActionScript'          ,
+            'adoc'        => 'AsciiDoc'              ,
+            'asciidoc'    => 'AsciiDoc'              ,
             'dofile'      => 'AMPLE'                 ,
             'startup'     => 'AMPLE'                 ,
+            'axd'         => 'ASP'                   ,
+            'ashx'        => 'ASP'                   ,
             'asa'         => 'ASP'                   ,
-            'asax'        => 'ASP.Net'               ,
-            'ascx'        => 'ASP.Net'               ,
+            'asax'        => 'ASP.NET'               ,
+            'ascx'        => 'ASP.NET'               ,
+            'asd'         => 'Lisp'                  , # system definition file
+            'nasm'        => 'Assembly'              ,
+            'a51'         => 'Assembly'              ,
             'asm'         => 'Assembly'              ,
-            'asmx'        => 'ASP.Net'               ,
+            'asmx'        => 'ASP.NET'               ,
             'asp'         => 'ASP'                   ,
-            'aspx'        => 'ASP.Net'               ,
-            'master'      => 'ASP.Net'               ,
-            'sitemap'     => 'ASP.Net'               ,
+            'aspx'        => 'ASP.NET'               ,
+            'master'      => 'ASP.NET'               ,
+            'sitemap'     => 'ASP.NET'               ,
             'cshtml'      => 'Razor'                 ,
+            'razor'       => 'Razor'                 , # Client-side Blazor
+            'nawk'        => 'awk'                   ,
+            'mawk'        => 'awk'                   ,
+            'gawk'        => 'awk'                   ,
+            'auk'         => 'awk'                   ,
             'awk'         => 'awk'                   ,
             'bash'        => 'Bourne Again Shell'    ,
+            'bzl'         => 'Bazel'                 ,
+            'bazel'       => 'Bazel'                 ,
+            'BUILD'       => 'Bazel'                 ,
+            'vbhtml'      => 'Visual Basic'          ,
+            'VBHTML'      => 'Visual Basic'          ,
+            'frx'         => 'Visual Basic'          ,
+            'FRX'         => 'Visual Basic'          ,
             'bas'         => 'Visual Basic'          ,
+            'BAS'         => 'Visual Basic'          ,
             'dxl'         => 'DOORS Extension Language',
             'bat'         => 'DOS Batch'             ,
             'BAT'         => 'DOS Batch'             ,
@@ -5335,33 +7271,61 @@ sub set_constants {                          # {{{1
             'CMD'         => 'DOS Batch'             ,
             'btm'         => 'DOS Batch'             ,
             'BTM'         => 'DOS Batch'             ,
+            'blade'       => 'Blade'                 ,
             'blade.php'   => 'Blade'                 ,
             'build.xml'   => 'Ant'                   ,
             'b'           => 'Brainfuck'             ,
             'bf'          => 'Brainfuck'             ,
+            'brs'         => 'BrightScript'          ,
+            'bzl'         => 'Starlark'              ,
+            'cpy'         => 'COBOL'                 ,
+            'cobol'       => 'COBOL'                 ,
+            'ccp'         => 'COBOL'                 ,
             'cbl'         => 'COBOL'                 ,
             'CBL'         => 'COBOL'                 ,
+            'idc'         => 'C'                     ,
+            'cats'        => 'C'                     ,
             'c'           => 'C'                     ,
+            'tpp'         => 'C++'                   ,
+            'tcc'         => 'C++'                   ,
+            'ipp'         => 'C++'                   ,
+            'inl'         => 'C++'                   ,
+            'h++'         => 'C++'                   ,
             'C'           => 'C++'                   ,
             'cc'          => 'C++'                   ,
             'c++'         => 'C++'                   ,
             'ccs'         => 'CCS'                   ,
             'cfc'         => 'ColdFusion CFScript'   ,
+            'cfml'        => 'ColdFusion'            ,
             'cfm'         => 'ColdFusion'            ,
+            'chpl'        => 'Chapel'                ,
             'cl'          => 'Lisp/OpenCL'           ,
+            'riemann.config'=> 'Clojure'               ,
+            'hic'         => 'Clojure'               ,
+            'cljx'        => 'Clojure'               ,
+            'cljscm'      => 'Clojure'               ,
+            'cljs.hl'     => 'Clojure'               ,
+            'cl2'         => 'Clojure'               ,
+            'boot'        => 'Clojure'               ,
             'clj'         => 'Clojure'               ,
             'cljs'        => 'ClojureScript'         ,
             'cljc'        => 'ClojureC'              ,
-            'cls'         => 'Visual Basic'          , # also Apex Class
+            'cls'         => 'Visual Basic/TeX/Apex Class' ,
+            'cmake.in'    => 'CMake'                 ,
             'CMakeLists.txt' => 'CMake'              ,
             'cmake'       => 'CMake'                 ,
             'cob'         => 'COBOL'                 ,
             'COB'         => 'COBOL'                 ,
+            'iced'        => 'CoffeeScript'          ,
+            'cjsx'        => 'CoffeeScript'          ,
+            'cakefile'    => 'CoffeeScript'          ,
+            '_coffee'     => 'CoffeeScript'          ,
             'coffee'      => 'CoffeeScript'          ,
             'component'   => 'Visualforce Component' ,
             'cpp'         => 'C++'                   ,
+            'CPP'         => 'C++'                   ,
             'cr'          => 'Crystal'               ,
-            'cs'          => 'C#'                    ,
+            'cs'          => 'C#/Smalltalk'          ,
             'csh'         => 'C Shell'               ,
             'cson'        => 'CSON'                  ,
             'css'         => "CSS"                   ,
@@ -5375,10 +7339,25 @@ sub set_constants {                          # {{{1
             'da'          => 'DAL'                   ,
             'dart'        => 'Dart'                  ,
             'def'         => 'Windows Module Definition',
+            'dhall'       => 'dhall'                 ,
+            'dt'          => 'DIET'                  ,
+            'patch'       => 'diff'                  ,
             'diff'        => 'diff'                  ,
             'dmap'        => 'NASTRAN DMAP'          ,
+            'sthlp'       => 'Stata'                 ,
+            'matah'       => 'Stata'                 ,
+            'mata'        => 'Stata'                 ,
+            'ihlp'        => 'Stata'                 ,
+            'doh'         => 'Stata'                 ,
+            'ado'         => 'Stata'                 ,
+            'do'          => 'Stata'                 ,
+            'DO'          => 'Stata'                 ,
+            'pascal'      => 'Pascal'                ,
+            'lpr'         => 'Pascal'                ,
+            'dfm'         => 'Pascal'                ,
             'dpr'         => 'Pascal'                ,
             'dita'        => 'DITA'                  ,
+            'drl'         => 'Drools'                ,
             'dsr'         => 'Visual Basic'          ,
             'dtd'         => 'DTD'                   ,
             'ec'          => 'C'                     ,
@@ -5388,11 +7367,22 @@ sub set_constants {                          # {{{1
             'elm'         => 'Elm'                   ,
             'exs'         => 'Elixir'                ,
             'ex'          => 'Elixir'                ,
+            'ecr'         => 'Embedded Crystal'      ,
+            'ejs'         => 'EJS'                   ,
             'erb'         => 'ERB'                   ,
             'ERB'         => 'ERB'                   ,
+            'yrl'         => 'Erlang'                ,
+            'xrl'         => 'Erlang'                ,
+            'rebar.lock'  => 'Erlang'                ,
+            'rebar.config.lock'=> 'Erlang'           ,
+            'rebar.config'=> 'Erlang'                ,
+            'emakefile'   => 'Erlang'                ,
+            'app.src'     => 'Erlang'                ,
             'erl'         => 'Erlang'                ,
             'exp'         => 'Expect'                ,
             '4th'         => 'Forth'                 ,
+            'fish'        => 'Fish Shell'            ,
+            'fnl'         => 'Fennel'                ,
             'forth'       => 'Forth'                 ,
             'fr'          => 'Forth'                 ,
             'frt'         => 'Forth'                 ,
@@ -5421,22 +7411,44 @@ sub set_constants {                          # {{{1
             'frm'         => 'Visual Basic'          ,
             'fs'          => 'F#/Forth'              ,
             'fsi'         => 'F#'                    ,
-            'g'           => 'Antlr'                 ,
+            'fsx'         => 'F# Script'             ,
+            'fxml'        => 'FXML'                  ,
             'gnumakefile' => 'make'                  ,
             'Gnumakefile' => 'make'                  ,
             'gd'          => 'GDScript'              ,
+            'vshader'     => 'GLSL'                  ,
+            'vsh'         => 'GLSL'                  ,
+            'vrx'         => 'GLSL'                  ,
+            'gshader'     => 'GLSL'                  ,
+            'glslv'       => 'GLSL'                  ,
+            'geo'         => 'GLSL'                  ,
+            'fshader'     => 'GLSL'                  ,
+            'fsh'         => 'GLSL'                  ,
+            'frg'         => 'GLSL'                  ,
+            'fp'          => 'GLSL'                  ,
             'glsl'        => 'GLSL'                  ,
-			'vert'        => 'GLSL'                  ,
-			'tesc'        => 'GLSL'                  ,
-			'tese'        => 'GLSL'                  ,
-			'geom'        => 'GLSL'                  ,
-			'frag'        => 'GLSL'                  ,
-			'comp'        => 'GLSL'                  ,
+            'graphqls'    => 'GraphQL'               ,
+            'gql'         => 'GraphQL'               ,
+            'graphql'     => 'GraphQL'               ,
+            'vert'        => 'GLSL'                  ,
+            'tesc'        => 'GLSL'                  ,
+            'tese'        => 'GLSL'                  ,
+            'geom'        => 'GLSL'                  ,
+            'feature'     => 'Cucumber'              ,
+            'frag'        => 'GLSL'                  ,
+            'comp'        => 'GLSL'                  ,
+            'g'           => 'ANTLR Grammar'         ,
+            'g4'          => 'ANTLR Grammar'         ,
             'go'          => 'Go'                    ,
             'gsp'         => 'Grails'                ,
+            'jenkinsfile' => 'Groovy'                ,
+            'gvy'         => 'Groovy'                ,
+            'gtpl'        => 'Groovy'                ,
+            'grt'         => 'Groovy'                ,
             'groovy'      => 'Groovy'                ,
             'gant'        => 'Groovy'                ,
-            'gradle'      => 'Groovy'                ,
+            'gradle'      => 'Gradle'                ,
+            'gradle.kts'  => 'Gradle'                ,
             'h'           => 'C/C++ Header'          ,
             'H'           => 'C/C++ Header'          ,
             'hh'          => 'C/C++ Header'          ,
@@ -5444,76 +7456,168 @@ sub set_constants {                          # {{{1
             'hxx'         => 'C/C++ Header'          ,
             'hb'          => 'Harbour'               ,
             'hrl'         => 'Erlang'                ,
+            'hsc'         => 'Haskell'               ,
             'hs'          => 'Haskell'               ,
+            'tfvars'      => 'HCL'                   ,
+            'hcl'         => 'HCL'                   ,
+            'tf'          => 'HCL'                   ,
+            'nomad'       => 'HCL'                   ,
+            'hlsli'       => 'HLSL'                  ,
+            'fxh'         => 'HLSL'                  ,
             'hlsl'        => 'HLSL'                  ,
             'shader'      => 'HLSL'                  ,
             'cg'          => 'HLSL'                  ,
             'cginc'       => 'HLSL'                  ,
+            'haml.deface' => 'Haml'                  ,
             'haml'        => 'Haml'                  ,
             'handlebars'  => 'Handlebars'            ,
             'hbs'         => 'Handlebars'            ,
+            'hxsl'        => 'Haxe'                  ,
             'hx'          => 'Haxe'                  ,
+            'hoon'        => 'Hoon'                  ,
+            'xht'         => 'HTML'                  ,
+            'html.hl'     => 'HTML'                  ,
             'htm'         => 'HTML'                  ,
             'html'        => 'HTML'                  ,
             'i3'          => 'Modula3'               ,
             'ice'         => 'Slice'                 ,
             'icl'         => 'Clean'                 ,
             'dcl'         => 'Clean'                 ,
+            'dlm'         => 'IDL'                   ,
             'idl'         => 'IDL'                   ,
+            'idr'         => 'Idris'                 ,
+            'lidr'        => 'Literate Idris'        ,
+            'imba'        => 'Imba'                  ,
+            'prefs'       => 'INI'                   ,
+            'lektorproject'=> 'INI'                  ,
+            'buildozer.spec'=> 'INI'                 ,
             'ini'         => 'INI'                   ,
             'ism'         => 'InstallShield'         ,
-            'pro'         => 'IDL/Qt Project/Prolog' ,
+            'ipl'         => 'IPL'                   ,
+            'pro'         => 'IDL/Qt Project/Prolog/ProGuard' ,
             'ig'          => 'Modula3'               ,
             'il'          => 'SKILL'                 ,
             'ils'         => 'SKILL++'               ,
             'inc'         => 'PHP/Pascal'            , # might be PHP or Pascal
+            'inl'         => 'C++'                   ,
             'ino'         => 'Arduino Sketch'        ,
+            'ipf'         => 'Igor Pro'              ,
             'pde'         => 'Arduino Sketch'        , # pre 1.0
             'itk'         => 'Tcl/Tk'                ,
             'java'        => 'Java'                  ,
             'jcl'         => 'JCL'                   , # IBM Job Control Lang.
             'jl'          => 'Lisp/Julia'            ,
+            'xsjslib'     => 'JavaScript'            ,
+            'xsjs'        => 'JavaScript'            ,
+            'ssjs'        => 'JavaScript'            ,
+            'sjs'         => 'JavaScript'            ,
+            'pac'         => 'JavaScript'            ,
+            'njs'         => 'JavaScript'            ,
+            'mjs'         => 'JavaScript'            ,
+            'jss'         => 'JavaScript'            ,
+            'jsm'         => 'JavaScript'            ,
+            'jsfl'        => 'JavaScript'            ,
+            'jscad'       => 'JavaScript'            ,
+            'jsb'         => 'JavaScript'            ,
+            'jakefile'    => 'JavaScript'            ,
+            'jake'        => 'JavaScript'            ,
+            'bones'       => 'JavaScript'            ,
+            '_js'         => 'JavaScript'            ,
             'js'          => 'JavaScript'            ,
             'es6'         => 'JavaScript'            ,
             'jsf'         => 'JavaServer Faces'      ,
             'jsx'         => 'JSX'                   ,
             'xhtml'       => 'XHTML'                 ,
+            'jinja'       => 'Jinja Template'        ,
+            'jinja2'      => 'Jinja Template'        ,
+            'yyp'         => 'JSON'                  ,
+            'webmanifest' => 'JSON'                  ,
+            'webapp'      => 'JSON'                  ,
+            'topojson'    => 'JSON'                  ,
+            'tfstate.backup'=> 'JSON'                  ,
+            'tfstate'     => 'JSON'                  ,
+            'mcmod.info'  => 'JSON'                  ,
+            'mcmeta'      => 'JSON'                  ,
+            'json-tmlanguage'=> 'JSON'                  ,
+            'jsonl'       => 'JSON'                  ,
+            'har'         => 'JSON'                  ,
+            'gltf'        => 'JSON'                  ,
+            'geojson'     => 'JSON'                  ,
+            'composer.lock'=> 'JSON'                  ,
+            'avsc'        => 'JSON'                  ,
+            'watchmanconfig'=> 'JSON'                  ,
+            'tern-project'=> 'JSON'                  ,
+            'tern-config' => 'JSON'                  ,
+            'htmlhintrc'  => 'JSON'                  ,
+            'arcconfig'   => 'JSON'                  ,
             'json'        => 'JSON'                  ,
+            'json5'       => 'JSON5'                 ,
             'jsp'         => 'JSP'                   , # Java server pages
             'jspf'        => 'JSP'                   , # Java server pages
             'vm'          => 'Velocity Template Language' ,
             'ksc'         => 'Kermit'                ,
             'ksh'         => 'Korn Shell'            ,
+            'ktm'         => 'Kotlin'                ,
             'kt'          => 'Kotlin'                ,
             'kts'         => 'Kotlin'                ,
+            'hlean'       => 'Lean'                  ,
+            'lean'        => 'Lean'                  ,
             'lhs'         => 'Haskell'               ,
+            'lex'         => 'lex'                   ,
             'l'           => 'lex'                   ,
             'less'        => 'LESS'                  ,
             'lfe'         => 'LFE'                   ,
             'liquid'      => 'liquid'                ,
             'lsp'         => 'Lisp'                  ,
             'lisp'        => 'Lisp'                  ,
+            'll'          => 'LLVM IR'               ,
             'lgt'         => 'Logtalk'               ,
             'logtalk'     => 'Logtalk'               ,
+            'wlua'        => 'Lua'                   ,
+            'rbxs'        => 'Lua'                   ,
+            'pd_lua'      => 'Lua'                   ,
+            'p8'          => 'Lua'                   ,
+            'nse'         => 'Lua'                   ,
             'lua'         => 'Lua'                   ,
             'm3'          => 'Modula3'               ,
             'm4'          => 'm4'                    ,
             'makefile'    => 'make'                  ,
             'Makefile'    => 'make'                  ,
+            'mao'         => 'Mako'                  ,
             'mako'        => 'Mako'                  ,
+            'workbook'    => 'Markdown'              ,
+            'ronn'        => 'Markdown'              ,
+            'mkdown'      => 'Markdown'              ,
+            'mkdn'        => 'Markdown'              ,
+            'mkd'         => 'Markdown'              ,
+            'mdx'         => 'Markdown'              ,
+            'mdwn'        => 'Markdown'              ,
+            'mdown'       => 'Markdown'              ,
+            'markdown'    => 'Markdown'              ,
+            'contents.lr' => 'Markdown'              ,
             'md'          => 'Markdown'              ,
             'mc'          => 'Windows Message File'  ,
             'met'         => 'Teamcenter met'        ,
             'mg'          => 'Modula3'               ,
+            'mojom'       => 'Mojo'                  ,
+            'meson.build' => 'Meson'                 ,
             'mk'          => 'make'                  ,
 #           'mli'         => 'ML'                    , # ML not implemented
 #           'ml'          => 'ML'                    ,
+            'ml4'         => 'OCaml'                 ,
+            'eliomi'      => 'OCaml'                 ,
+            'eliom'       => 'OCaml'                 ,
             'ml'          => 'OCaml'                 ,
             'mli'         => 'OCaml'                 ,
             'mly'         => 'OCaml'                 ,
             'mll'         => 'OCaml'                 ,
-            'm'           => 'MATLAB/Mathematica/Objective C/MUMPS/Mercury' ,
-            'mm'          => 'Objective C++'         ,
+            'm'           => 'MATLAB/Mathematica/Objective-C/MUMPS/Mercury' ,
+            'mm'          => 'Objective-C++'         ,
+            'msg'         => 'Gencat NLS'            ,
+            'nbp'         => 'Mathematica'           ,
+            'mathematica' => 'Mathematica'           ,
+            'ma'          => 'Mathematica'           ,
+            'cdf'         => 'Mathematica'           ,
             'mt'          => 'Mathematica'           ,
             'wl'          => 'Mathematica'           ,
             'wlt'         => 'Mathematica'           ,
@@ -5526,15 +7630,41 @@ sub set_constants {                          # {{{1
             'mps'         => 'MUMPS'                 ,
             'mth'         => 'Teamcenter mth'        ,
             'n'           => 'Nemerle'               ,
+            'nims'        => 'Nim'                   ,
+            'nimrod'      => 'Nim'                   ,
+            'nimble'      => 'Nim'                   ,
+            'nim.cfg'     => 'Nim'                   ,
             'nim'         => 'Nim'                   ,
+            'nix'         => 'Nix'                   ,
+            'nut'         => 'Squirrel'              ,
+            'odin'        => 'Odin'                  ,
             'oscript'     => 'LiveLink OScript'      ,
+            'bod'         => 'Oracle PL/SQL'         ,
+            'spc'         => 'Oracle PL/SQL'         ,
+            'fnc'         => 'Oracle PL/SQL'         ,
+            'prc'         => 'Oracle PL/SQL'         ,
+            'trg'         => 'Oracle PL/SQL'         ,
             'pad'         => 'Ada'                   , # Oracle Ada preprocessor
             'page'        => 'Visualforce Page'      ,
             'pas'         => 'Pascal'                ,
             'pcc'         => 'C++'                   , # Oracle C++ preprocessor
+            'rexfile'     => 'Perl'                  ,
+            'psgi'        => 'Perl'                  ,
+            'ph'          => 'Perl'                  ,
+            'makefile.pl' => 'Perl'                  ,
+            'cpanfile'    => 'Perl'                  ,
+            'al'          => 'Perl'                  ,
+            'ack'         => 'Perl'                  ,
             'perl'        => 'Perl'                  ,
             'pfo'         => 'Fortran 77'            ,
             'pgc'         => 'C'                     , # Postgres embedded C/C++
+            'phpt'        => 'PHP'                   ,
+            'phps'        => 'PHP'                   ,
+            'phakefile'   => 'PHP'                   ,
+            'ctp'         => 'PHP'                   ,
+            'aw'          => 'PHP'                   ,
+            'php_cs.dist' => 'PHP'                   ,
+            'php_cs'      => 'PHP'                   ,
             'php3'        => 'PHP'                   ,
             'php4'        => 'PHP'                   ,
             'php5'        => 'PHP'                   ,
@@ -5543,48 +7673,128 @@ sub set_constants {                          # {{{1
             'pig'         => 'Pig Latin'             ,
             'plh'         => 'Perl'                  ,
             'pl'          => 'Perl/Prolog'           ,
-            'p6'          => 'Perl/Prolog'           ,
             'PL'          => 'Perl/Prolog'           ,
+            'p6'          => 'Raku/Prolog'           ,
+            'P6'          => 'Raku/Prolog'           ,
             'plx'         => 'Perl'                  ,
             'pm'          => 'Perl'                  ,
-            'pm6'         => 'Perl'                  ,
+            'pm6'         => 'Raku'                  ,
+            'raku'        => 'Raku'                  ,
+            'rakumod'     => 'Raku'                  ,
             'pom.xml'     => 'Maven'                 ,
             'pom'         => 'Maven'                 ,
+            'yap'         => 'Prolog'                ,
+            'prolog'      => 'Prolog'                ,
             'P'           => 'Prolog'                ,
             'p'           => 'Pascal'                ,
             'pp'          => 'Pascal/Puppet'         ,
+            'viw'         => 'SQL'                   ,
+            'udf'         => 'SQL'                   ,
+            'tab'         => 'SQL'                   ,
+            'mysql'       => 'SQL'                   ,
+            'cql'         => 'SQL'                   ,
             'psql'        => 'SQL'                   ,
+            'xpy'         => 'Python'                ,
+            'wsgi'        => 'Python'                ,
+            'wscript'     => 'Python'                ,
+            'workspace'   => 'Python'                ,
+            'tac'         => 'Python'                ,
+            'snakefile'   => 'Python'                ,
+            'sconstruct'  => 'Python'                ,
+            'sconscript'  => 'Python'                ,
+            'pyt'         => 'Python'                ,
+            'pyp'         => 'Python'                ,
+            'pyi'         => 'Python'                ,
+            'pyde'        => 'Python'                ,
+            'py3'         => 'Python'                ,
+            'lmi'         => 'Python'                ,
+            'gypi'        => 'Python'                ,
+            'gyp'         => 'Python'                ,
+            'build.bazel' => 'Python'                ,
+            'buck'        => 'Python'                ,
+            'gclient'     => 'Python'                ,
             'py'          => 'Python'                ,
+            'pyw'         => 'Python'                ,
+            'ipynb'       => 'Jupyter Notebook'      ,
             'pyj'         => 'RapydScript'           ,
+            'pxi'         => 'Cython'                ,
+            'pxd'         => 'Cython'                ,
             'pyx'         => 'Cython'                ,
+            'qbs'         => 'QML'                   ,
             'qml'         => 'QML'                   ,
+            'watchr'      => 'Ruby'                  ,
+            'vagrantfile' => 'Ruby'                  ,
+            'thorfile'    => 'Ruby'                  ,
+            'thor'        => 'Ruby'                  ,
+            'snapfile'    => 'Ruby'                  ,
+            'ru'          => 'Ruby'                  ,
+            'rbx'         => 'Ruby'                  ,
+            'rbw'         => 'Ruby'                  ,
+            'rbuild'      => 'Ruby'                  ,
+            'rabl'        => 'Ruby'                  ,
+            'puppetfile'  => 'Ruby'                  ,
+            'podfile'     => 'Ruby'                  ,
+            'mspec'       => 'Ruby'                  ,
+            'mavenfile'   => 'Ruby'                  ,
+            'jbuilder'    => 'Ruby'                  ,
+            'jarfile'     => 'Ruby'                  ,
+            'guardfile'   => 'Ruby'                  ,
+            'god'         => 'Ruby'                  ,
+            'gemspec'     => 'Ruby'                  ,
+            'gemfile.lock'=> 'Ruby'                  ,
+            'gemfile'     => 'Ruby'                  ,
+            'fastfile'    => 'Ruby'                  ,
+            'eye'         => 'Ruby'                  ,
+            'deliverfile' => 'Ruby'                  ,
+            'dangerfile'  => 'Ruby'                  ,
+            'capfile'     => 'Ruby'                  ,
+            'buildfile'   => 'Ruby'                  ,
+            'builder'     => 'Ruby'                  ,
+            'brewfile'    => 'Ruby'                  ,
+            'berksfile'   => 'Ruby'                  ,
+            'appraisals'  => 'Ruby'                  ,
+            'pryrc'       => 'Ruby'                  ,
+            'irbrc'       => 'Ruby'                  ,
             'rb'          => 'Ruby'                  ,
+            'podspec'     => 'Ruby'                  ,
             'rake'        => 'Ruby'                  ,
-         #  'resx'        => 'ASP.Net'               ,
+         #  'resx'        => 'ASP.NET'               ,
             'rex'         => 'Oracle Reports'        ,
+            'pprx'        => 'Rexx'                  ,
             'rexx'        => 'Rexx'                  ,
             'rhtml'       => 'Ruby HTML'             ,
+            'rs.in'       => 'Rust'                  ,
             'rs'          => 'Rust'                  ,
+            'rst.txt'     => 'reStructuredText'      ,
+            'rest.txt'    => 'reStructuredText'      ,
+            'rest'        => 'reStructuredText'      ,
+            'rst'         => 'reStructuredText'      ,
             's'           => 'Assembly'              ,
             'S'           => 'Assembly'              ,
             'SCA'         => 'Visual Fox Pro'        ,
             'sca'         => 'Visual Fox Pro'        ,
+            'sbt'         => 'Scala'                 ,
+            'kojo'        => 'Scala'                 ,
             'scala'       => 'Scala'                 ,
             'sbl'         => 'Softbridge Basic'      ,
             'SBL'         => 'Softbridge Basic'      ,
-            'sc'          => 'Lisp'                  ,
-            'scm'         => 'Lisp'                  ,
             'sed'         => 'sed'                   ,
             'ses'         => 'Patran Command Language'   ,
+            'sp'          => 'SparForte'             ,
+            'sol'         => 'Solidity'              ,
             'pcl'         => 'Patran Command Language'   ,
             'pl1'         => 'PL/I'                  ,
+            'plm'         => 'PL/M'                  ,
+            'lit'         => 'PL/M'                  ,
             'po'          => 'PO File'               ,
+            'pbt'         => 'PowerBuilder'          ,
             'sra'         => 'PowerBuilder'          ,
             'srf'         => 'PowerBuilder'          ,
             'srm'         => 'PowerBuilder'          ,
             'srs'         => 'PowerBuilder'          ,
             'sru'         => 'PowerBuilder'          ,
             'srw'         => 'PowerBuilder'          ,
+            'jade'        => 'Pug'                   ,
             'pug'         => 'Pug'                   ,
             'purs'        => 'PureScript'            ,
             'prefab'      => 'Unity-Prefab'          ,
@@ -5593,15 +7803,27 @@ sub set_constants {                          # {{{1
             'ps1'         => 'PowerShell'            ,
             'psd1'        => 'PowerShell'            ,
             'psm1'        => 'PowerShell'            ,
+            'rsx'         => 'R'                     ,
+            'rd'          => 'R'                     ,
+            'expr-dist'   => 'R'                     ,
+            'rprofile'    => 'R'                     ,
             'R'           => 'R'                     ,
             'r'           => 'R'                     ,
+            'raml'        => 'RAML'                  ,
+            'rktd'        => 'Racket'                ,
             'rkt'         => 'Racket'                ,
             'rktl'        => 'Racket'                ,
-            'ss'          => 'Racket'                ,
-            'scm'         => 'Racket'                ,
-            'sch'         => 'Racket'                ,
+            'Rmd'         => 'Rmd'                   ,
+            're'          => 'ReasonML'              ,
+            'rei'         => 'ReasonML'              ,
             'scrbl'       => 'Racket'                ,
-            'tsv'         => 'RobotFramework'        ,
+            'sps'         => 'Scheme'                ,
+            'sc'          => 'Scheme'                ,
+            'ss'          => 'Scheme'                ,
+            'scm'         => 'Scheme'                ,
+            'sch'         => 'Scheme'                ,
+            'sls'         => 'Scheme/SaltStack'      ,
+            'sld'         => 'Scheme'                ,
             'robot'       => 'RobotFramework'        ,
             'rc'          => 'Windows Resource File' ,
             'rc2'         => 'Windows Resource File' ,
@@ -5622,24 +7844,56 @@ sub set_constants {                          # {{{1
             'spc.sql'     => 'SQL Stored Procedure'  ,
             'udf.sql'     => 'SQL Stored Procedure'  ,
             'data.sql'    => 'SQL Data'              ,
+            'sss'         => 'SugarSS'               ,
+            'st'          => 'Smalltalk'             ,
             'styl'        => 'Stylus'                ,
+            'i'           => 'SWIG'                  ,
+            'svelte'      => 'Svelte'                ,
             'sv'          => 'Verilog-SystemVerilog' ,
             'svh'         => 'Verilog-SystemVerilog' ,
+            'svg'         => 'SVG'                   ,
+            'SVG'         => 'SVG'                   ,
             'v'           => 'Verilog-SystemVerilog/Coq' ,
             'tcl'         => 'Tcl/Tk'                ,
             'tcsh'        => 'C Shell'               ,
             'tk'          => 'Tcl/Tk'                ,
+            'mkvi'        => 'TeX'                   ,
+            'mkiv'        => 'TeX'                   ,
+            'mkii'        => 'TeX'                   ,
+            'ltx'         => 'TeX'                   ,
+            'lbx'         => 'TeX'                   ,
+            'ins'         => 'TeX'                   ,
+            'cbx'         => 'TeX'                   ,
+            'bib'         => 'TeX'                   ,
+            'bbx'         => 'TeX'                   ,
+            'aux'         => 'TeX'                   ,
             'tex'         => 'TeX'                   , # TeX, LaTex, MikTex, ..
+            'toml'        => 'TOML'                  ,
             'sty'         => 'TeX'                   ,
 #           'cls'         => 'TeX'                   ,
             'dtx'         => 'TeX'                   ,
             'bst'         => 'TeX'                   ,
+            'thrift'      => 'Thrift'                ,
             'tpl'         => 'Smarty'                ,
             'trigger'     => 'Apex Trigger'          ,
             'ttcn'        => 'TTCN'                  ,
             'ttcn2'       => 'TTCN'                  ,
             'ttcn3'       => 'TTCN'                  ,
             'ttcnpp'      => 'TTCN'                  ,
+            'sdl'         => 'TNSDL'                 ,
+            'ssc'         => 'TNSDL'                 ,
+            'sdt'         => 'TNSDL'                 ,
+            'spd'         => 'TNSDL'                 ,
+            'sst'         => 'TNSDL'                 ,
+            'rou'         => 'TNSDL'                 ,
+            'cin'         => 'TNSDL'                 ,
+            'cii'         => 'TNSDL'                 ,
+            'interface'   => 'TNSDL'                 ,
+            'in1'         => 'TNSDL'                 ,
+            'in2'         => 'TNSDL'                 ,
+            'in3'         => 'TNSDL'                 ,
+            'in4'         => 'TNSDL'                 ,
+            'inf'         => 'TNSDL'                 ,
             'tpd'         => 'TITAN Project File Information',
             'ts'          => 'TypeScript/Qt Linguist',
             'tsx'         => 'TypeScript'            ,
@@ -5649,6 +7903,12 @@ sub set_constants {                          # {{{1
             'glade'       => 'Glade'                 ,
             'vala'        => 'Vala'                  ,
             'vapi'        => 'Vala Header'           ,
+            'vhw'         => 'VHDL'                  ,
+            'vht'         => 'VHDL'                  ,
+            'vhs'         => 'VHDL'                  ,
+            'vho'         => 'VHDL'                  ,
+            'vhi'         => 'VHDL'                  ,
+            'vhf'         => 'VHDL'                  ,
             'vhd'         => 'VHDL'                  ,
             'VHD'         => 'VHDL'                  ,
             'vhdl'        => 'VHDL'                  ,
@@ -5662,10 +7922,100 @@ sub set_constants {                          # {{{1
             'vbs'         => 'Visual Basic'          ,
             'VBS'         => 'Visual Basic'          ,
             'vue'         => 'Vuejs Component'       ,
-            'webinfo'     => 'ASP.Net'               ,
+            'webinfo'     => 'ASP.NET'               ,
+            'x'           => 'Logos'                 ,
+            'xm'          => 'Logos'                 ,
             'xmi'         => 'XMI'                   ,
             'XMI'         => 'XMI'                   ,
-            'xml'         => 'XML'                   ,
+            'zcml'        => 'XML'                   ,
+            'xul'         => 'XML'                   ,
+            'xspec'       => 'XML'                   ,
+            'xproj'       => 'XML'                   ,
+            'xml.dist'    => 'XML'                   ,
+            'xliff'       => 'XML'                   ,
+            'xlf'         => 'XML'                   ,
+            'xib'         => 'XML'                   ,
+            'xacro'       => 'XML'                   ,
+            'x3d'         => 'XML'                   ,
+            'wsf'         => 'XML'                   ,
+            'web.release.config'=> 'XML'             ,
+            'web.debug.config'=> 'XML'               ,
+            'web.config'  => 'XML'                   ,
+            'wxml'        => 'WXML'                  ,
+            'wxss'        => 'WXSS'                  ,
+            'vxml'        => 'XML'                   ,
+            'vstemplate'  => 'XML'                   ,
+            'vssettings'  => 'XML'                   ,
+            'vsixmanifest'=> 'XML'                   ,
+            'vcxproj'     => 'XML'                   ,
+            'ux'          => 'XML'                   ,
+            'urdf'        => 'XML'                   ,
+            'tmtheme'     => 'XML'                   ,
+            'tmsnippet'   => 'XML'                   ,
+            'tmpreferences'=> 'XML'                  ,
+            'tmlanguage'  => 'XML'                   ,
+            'tml'         => 'XML'                   ,
+            'tmcommand'   => 'XML'                   ,
+            'targets'     => 'XML'                   ,
+            'sublime-snippet'=> 'XML'                   ,
+            'sttheme'     => 'XML'                   ,
+            'storyboard'  => 'XML'                   ,
+            'srdf'        => 'XML'                   ,
+            'shproj'      => 'XML'                   ,
+            'sfproj'      => 'XML'                   ,
+            'settings.stylecop'=> 'XML'                   ,
+            'scxml'       => 'XML'                   ,
+            'rss'         => 'XML'                   ,
+            'resx'        => 'XML'                   ,
+            'rdf'         => 'XML'                   ,
+            'pt'          => 'XML'                   ,
+            'psc1'        => 'XML'                   ,
+            'ps1xml'      => 'XML'                   ,
+            'props'       => 'XML'                   ,
+            'proj'        => 'XML'                   ,
+            'plist'       => 'XML'                   ,
+            'pkgproj'     => 'XML'                   ,
+            'packages.config'=> 'XML'                   ,
+            'osm'         => 'XML'                   ,
+            'odd'         => 'XML'                   ,
+            'nuspec'      => 'XML'                   ,
+            'nuget.config'=> 'XML'                   ,
+            'nproj'       => 'XML'                   ,
+            'ndproj'      => 'XML'                   ,
+            'natvis'      => 'XML'                   ,
+            'mjml'        => 'XML'                   ,
+            'mdpolicy'    => 'XML'                   ,
+            'launch'      => 'XML'                   ,
+            'kml'         => 'XML'                   ,
+            'jsproj'      => 'XML'                   ,
+            'jelly'       => 'XML'                   ,
+            'ivy'         => 'XML'                   ,
+            'iml'         => 'XML'                   ,
+            'grxml'       => 'XML'                   ,
+            'gmx'         => 'XML'                   ,
+            'fsproj'      => 'XML'                   ,
+            'filters'     => 'XML'                   ,
+            'dotsettings' => 'XML'                   ,
+            'dll.config'  => 'XML'                   ,
+            'ditaval'     => 'XML'                   ,
+            'ditamap'     => 'XML'                   ,
+            'depproj'     => 'XML'                   ,
+            'ct'          => 'XML'                   ,
+            'csl'         => 'XML'                   ,
+            'csdef'       => 'XML'                   ,
+            'cscfg'       => 'XML'                   ,
+            'cproject'    => 'XML'                   ,
+            'clixml'      => 'XML'                   ,
+            'ccxml'       => 'XML'                   ,
+            'ccproj'      => 'XML'                   ,
+            'builds'      => 'XML'                   ,
+            'axml'        => 'XML'                   ,
+            'app.config'  => 'XML'                   ,
+            'ant'         => 'XML'                   ,
+            'admx'        => 'XML'                   ,
+            'adml'        => 'XML'                   ,
+            'project'     => 'XML'                   ,
+            'classpath'   => 'XML'                   ,
             'xml'         => 'XML'                   ,
             'XML'         => 'XML'                   ,
             'mxml'        => 'MXML'                  ,
@@ -5674,11 +8024,17 @@ sub set_constants {                          # {{{1
             'vim'         => 'vim script'            ,
             'swift'       => 'Swift'                 ,
             'xaml'        => 'XAML'                  ,
+            'wast'        => 'WebAssembly'           ,
+            'wat'         => 'WebAssembly'           ,
             'wxs'         => 'WiX source'            ,
             'wxi'         => 'WiX include'           ,
             'wxl'         => 'WiX string localization' ,
+            'prw'         => 'xBase'                 ,
             'prg'         => 'xBase'                 ,
             'ch'          => 'xBase Header'          ,
+            'xqy'         => 'XQuery'                ,
+            'xqm'         => 'XQuery'                ,
+            'xql'         => 'XQuery'                ,
             'xq'          => 'XQuery'                ,
             'xquery'      => 'XQuery'                ,
             'xsd'         => 'XSD'                   ,
@@ -5687,7 +8043,20 @@ sub set_constants {                          # {{{1
             'XSLT'        => 'XSLT'                  ,
             'xsl'         => 'XSLT'                  ,
             'XSL'         => 'XSLT'                  ,
+            'xtend'       => 'Xtend'                 ,
+            'yacc'        => 'yacc'                  ,
             'y'           => 'yacc'                  ,
+            'yml.mysql'   => 'YAML'                  ,
+            'yaml-tmlanguage'=> 'YAML'                  ,
+            'syntax'      => 'YAML'                  ,
+            'sublime-syntax'=> 'YAML'                  ,
+            'rviz'        => 'YAML'                  ,
+            'reek'        => 'YAML'                  ,
+            'mir'         => 'YAML'                  ,
+            'glide.lock'  => 'YAML'                  ,
+            'gemrc'       => 'YAML'                  ,
+            'clang-tidy'  => 'YAML'                  ,
+            'clang-format'=> 'YAML'                  ,
             'yaml'        => 'YAML'                  ,
             'yml'         => 'YAML'                  ,
             'zsh'         => 'zsh'                   ,
@@ -5701,6 +8070,8 @@ sub set_constants {                          # {{{1
             'csh'      => 'C Shell'               ,
             'dmd'      => 'D'                     ,
             'dtrace'   => 'dtrace'                ,
+            'escript'  => 'Erlang'                ,
+            'groovy'   => 'Groovy'                ,
             'idl'      => 'IDL'                   ,
             'kermit'   => 'Kermit'                ,
             'ksh'      => 'Korn Shell'            ,
@@ -5708,7 +8079,6 @@ sub set_constants {                          # {{{1
             'make'     => 'make'                  ,
             'octave'   => 'Octave'                ,
             'perl5'    => 'Perl'                  ,
-            'perl6'    => 'Perl'                  ,
             'perl'     => 'Perl'                  ,
             'miniperl' => 'Perl'                  ,
             'php'      => 'PHP'                   ,
@@ -5720,6 +8090,12 @@ sub set_constants {                          # {{{1
             'python3.3'=> 'Python'                ,
             'python3.4'=> 'Python'                ,
             'python3.5'=> 'Python'                ,
+            'python3.6'=> 'Python'                ,
+            'python3.7'=> 'Python'                ,
+            'python3.8'=> 'Python'                ,
+            'perl6'    => 'Raku'                  ,
+            'raku'     => 'Raku'                  ,
+            'rakudo'   => 'Raku'                  ,
             'rexx'     => 'Rexx'                  ,
             'regina'   => 'Rexx'                  ,
             'ruby'     => 'Ruby'                  ,
@@ -5734,38 +8110,58 @@ sub set_constants {                          # {{{1
             );
 # 1}}}
 %{$rh_Language_by_File}      = (             # {{{1
-            'build.xml'      => 'Ant/XML'            ,
-            'CMakeLists.txt' => 'CMake'              ,
-            'Jamfile'        => 'Jam'                ,
-            'Jamrules'       => 'Jam'                ,
-            'Makefile'       => 'make'               ,
-            'makefile'       => 'make'               ,
-            'gnumakefile'    => 'make'               ,
-            'Gnumakefile'    => 'make'               ,
-            'pom.xml'        => 'Maven/XML'          ,
-            'Rakefile'       => 'Ruby'               ,
-            'rakefile'       => 'Ruby'               ,
-            'Dockerfile'     => 'Dockerfile'         ,
+            'build.xml'         => 'Ant/XML'            ,
+            'BUILD'             => 'Bazel'              ,
+            'WORKSPACE'         => 'Bazel'              ,
+            'CMakeLists.txt'    => 'CMake'              ,
+            'Jamfile'           => 'Jam'                ,
+            'Jamrules'          => 'Jam'                ,
+            'Makefile'          => 'make'               ,
+            'makefile'          => 'make'               ,
+            'meson.build'       => 'Meson'              ,
+            'gnumakefile'       => 'make'               ,
+            'Gnumakefile'       => 'make'               ,
+            'pom.xml'           => 'Maven/XML'          ,
+            'Rakefile'          => 'Ruby'               ,
+            'rakefile'          => 'Ruby'               ,
+            'Dockerfile'        => 'Dockerfile'         ,
+            'Dockerfile.build'  => 'Dockerfile'         ,
+            'Dockerfile.test'   => 'Dockerfile'         ,
             );
 # 1}}}
-%{$rhaa_Filters_by_Language} = (             # {{{1
+%{$rhaa_Filters_by_Language} = (            # {{{1
     '(unknown)'          => [ ],
     'ABAP'               => [   [ 'remove_matches'      , '^\*'    ], ],
     'ActionScript'       => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
                             ],
-
+    'Apex Class'         => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
     'ASP'                => [   [ 'remove_matches'      , '^\s*\47'], ],  # \47 = '
-    'ASP.Net'            => [   [ 'call_regexp_common'  , 'C'      ], ],
+    'ASP.NET'            => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C'      ],
+                            ],
     'Ada'                => [   [ 'remove_matches'      , '^\s*--' ], ],
     'ADSO/IDSM'          => [   [ 'remove_matches'      , '^\s*\*[\+\!]' ], ],
+    'Agda'               => [   [ 'remove_haskell_comments', '>filename<' ], ],
     'AMPLE'              => [   [ 'remove_matches'      , '^\s*//' ], ],
+    'APL'                => [
+                                [ 'remove_matches'      , '^\s*⍝' ],
+                            ],
     'Ant/XML'            => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
                             ],
-    'Antlr'              => [
+    'ANTLR Grammar'      => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Ant'                => [
@@ -5773,38 +8169,50 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'HTML'   ],
                             ],
     'Apex Trigger'       => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
-    'Arduino Sketch'     => [   # same as C
+    'Arduino Sketch'     => [ # Arduino IDE inserts problematic 0xA0 characters; strip them
+                                [ 'replace_regex' , '\xa0', " " ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'AsciiDoc'           => [
+                                [ 'remove_between_general', '////', '////' ],
+                                [ 'remove_matches'      , '^\s*\/\/'  ],
                             ],
     'AspectJ'            => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Assembly'           => [
+                                [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                                 [ 'remove_matches'      , '^\s*;'  ],
                                 [ 'remove_matches'      , '^\s*\@' ],
                                 [ 'remove_matches'      , '^\s*\|' ],
                                 [ 'remove_matches'      , '^\s*!'  ],
-                                [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_matches'      , '^\s*--' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                                 [ 'remove_inline'       , ';.*$'   ],
                                 [ 'remove_inline'       , '\@.*$'  ],
                                 [ 'remove_inline'       , '\|.*$'  ],
                                 [ 'remove_inline'       , '!.*$'   ],
                                 [ 'remove_inline'       , '#.*$'   ],
                                 [ 'remove_inline'       , '--.*$'  ],
+                                [ 'remove_matches'      , '^\*'    ],  # z/OS Assembly
                             ],
     'AutoHotkey'         => [
                                 [ 'remove_matches'      , '^\s*;'  ],
                                 [ 'remove_inline'       , ';.*$'   ],
                             ],
     'awk'                => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
+    'Bazel'              => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
@@ -5828,29 +8236,42 @@ sub set_constants {                          # {{{1
 #                               [ 'call_regexp_common'  , 'Brainfuck' ],  # inaccurate
                                 [ 'remove_bf_comments',               ],
                             ],
+    'BrightScript'       => [
+                                [ 'remove_matches'      , '^\s*rem', ],
+                                [ 'remove_matches'      , '^\s*\'',  ],
+                            ],
     'builder'            => [
                                 [ 'remove_matches'      , '^\s*xml_markup.comment!'  ],
                             ],
     'C'                  => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ], # C99
-                                [ 'remove_inline'       , '//.*$'  ], # C99
+                            ],
+    'Chapel'       => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'C++'                => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'C/C++ Header'       => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Clean'              => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
-    'Clojure'            => [   [ 'remove_matches'      , '^\s*;'  ], ],
+    'Clojure'            => [
+                                [ 'remove_matches'      , '^\s*;'  ],
+                                [ 'remove_matches'      , '^\s*#_'  ],
+                            ],
     'ClojureScript'      => [   [ 'remove_matches'      , '^\s*;'  ], ],
     'ClojureC'           => [   [ 'remove_matches'      , '^\s*;'  ], ],
     'CMake'              => [
@@ -5862,33 +8283,48 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
     'CUDA'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Cython'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'docstring_to_C'                 ],
                                 [ 'call_regexp_common'  , 'C'      ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'C#/Smalltalk' => [ [ 'die' ,  ], ], # never called
     'C#'                 => [
 #                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
-    'CCS'                => [   [ 'call_regexp_common'  , 'C'      ], ],
-    'CSS'                => [   [ 'call_regexp_common'  , 'C'      ], ],
+    'CCS'                => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C'      ],
+                            ],
+    'CSS'                => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C'      ],
+                            ],
     'COBOL'              => [   [ 'remove_cobol_comments',         ], ],
     'CoffeeScript'       => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
     'ColdFusion'         => [   [ 'remove_html_comments',          ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
     'ColdFusion CFScript'=> [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Coq'                => [
                                 [ 'remove_between_general', '(*', '*)' ],
@@ -5898,20 +8334,30 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Cucumber'           => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                            ],
     'D/dtrace'           => [ [ 'die' ,          ], ], # never called
     'D'                  => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'rm_comments_in_strings', '"', '/+', '+/' ],
                                 [ 'remove_between_general', '/+', '+/' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'DAL'                => [
                                 [ 'remove_between_general', '[', ']', ],
                             ],
     'Dart'               => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'dhall'              => [   [ 'remove_haskell_comments', '>filename<' ], ],
+    'DIET'               => [  # same as Pug
+                                [ 'remove_pug_block'    ,          ],
+                                [ 'remove_matches'      , '^\s*//' ],
+                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     # diff is kind of weird: anything but a space in the first column
     # will count as code, with the exception of #, ---, +++.  Spaces
@@ -5925,11 +8371,18 @@ sub set_constants {                          # {{{1
                             ],
     'DITA'               => [
                                 [ 'remove_html_comments',          ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
                             ],
     'DOORS Extension Language' => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'Drools'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'dtrace'             => [
@@ -5946,10 +8399,18 @@ sub set_constants {                          # {{{1
     'EEx'                => [
                                 [ 'remove_between_general', '<%#', '%>' ],
                             ],
+    'EJS'                => [
+                                [ 'remove_between_general', '<%#', '%>' ],
+                                [ 'remove_html_comments',          ],
+                            ],
     'Elm'                => [   [ 'remove_haskell_comments', '>filename<' ], ],
+    'Embedded Crystal'   => [
+                                [ 'remove_between_general', '<%#', '%>' ],
+                            ],
     'ERB'                => [
                                 [ 'remove_between_general', '<%#', '%>' ],
                             ],
+    'Gencat NLS'         => [   [ 'remove_matches'       , '^\$ .*$' ], ],
     'NASTRAN DMAP'       => [
                                 [ 'remove_matches'      , '^\s*\$' ],
                                 [ 'remove_inline'       , '\$.*$'  ],
@@ -5963,6 +8424,8 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
     'Elixir'             => [
                                 [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'elixir_doc_to_C'                ],
+                                [ 'call_regexp_common'  , 'C'      ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
     'Erlang'             => [
@@ -5973,10 +8436,20 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Fennel'             => [
+                                [ 'remove_matches'      , '^\s*;'  ],
+                                [ 'remove_inline'       , ';.*$'   ],
+                            ],
+    'Fish Shell'         => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Focus'              => [   [ 'remove_matches'      , '^\s*\-\*'  ], ],
     'Forth'              => [
                                 [ 'remove_matches'      , '^\s*\\\\.*$'  ],
                                 [ 'Forth_paren_to_C'                 ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'      ],
                                 [ 'remove_inline'       , '\\\\.*$'  ],
                             ],
@@ -5999,7 +8472,15 @@ sub set_constants {                          # {{{1
     'Freemarker Template' => [
                                 [ 'remove_between_general', '<#--', '-->' ],
                             ],
+    'FXML'               => [
+                                [ 'remove_html_comments',          ],
+                                [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
     'F#'                 => [
+                                [ 'remove_between_general', '(*', '*)' ],
+                                [ 'remove_matches'      , '^\s*//' ],
+                            ],
+    'F# Script'          => [
                                 [ 'call_regexp_common'  , 'Pascal' ],
                                 [ 'remove_matches'      , '^\s*//' ],
                             ],
@@ -6012,26 +8493,51 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'HTML'   ],
                             ],
     'GLSL'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Go'                 => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                                 [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'Gradle'             => [ # same as Groovy
+                                [ 'remove_inline'       , '//.*$'  ],
+                                # separate /* inside quoted strings with two
+                                # concatenated strings split between / and *
+                                [ 'replace_between_regex', '(["\'])(.*?/)(\*.*?)\g1',
+                                  '(.*?)' , '"$1$2$1 + $1$3$1$4"', 0],
+                                [ 'rm_comments_in_strings', '"""', '/*', '*/', 1],
+                                [ 'rm_comments_in_strings', '"""', '//', '', 1],
+                                [ 'rm_comments_in_strings', "'''", '/*', '*/', 1],
+                                [ 'rm_comments_in_strings', "'''", '//', '', 1],
+                                [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Grails'             => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
                                 [ 'remove_jsp_comments' ,          ],
-#                               [ 'remove_matches'      , '^\s*//' ],
                                 [ 'add_newlines'        ,          ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'GraphQL'            => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
                             ],
     'Groovy'             => [
                                 [ 'remove_inline'       , '//.*$'  ],
                                 # separate /* inside quoted strings with two
                                 # concatenated strings split between / and *
                                 [ 'replace_between_regex', '(["\'])(.*?/)(\*.*?)\g1',
-                                  '(.*?)' , '"$1$2$1 + $1$3$1$4"'],
+                                  '(.*?)' , '"$1$2$1 + $1$3$1$4"', 0],
+                                [ 'rm_comments_in_strings', '"""', '/*', '*/', 1],
+                                [ 'rm_comments_in_strings', '"""', '//', '', 1],
+                                [ 'rm_comments_in_strings', "'''", '/*', '*/', 1],
+                                [ 'rm_comments_in_strings', "'''", '//', '', 1],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Handlebars'         => [
@@ -6040,7 +8546,6 @@ sub set_constants {                          # {{{1
                                 [ 'remove_html_comments',          ],
                             ],
     'Harbour'            => [
-#                               [ 'remove_matches'      , '^\s*//' ],
                                 [ 'remove_matches'      , '^\s*\&\&' ],
                                 [ 'remove_matches'      , '^\s*\*' ],
                                 [ 'remove_matches'      , '^\s*NOTE' ],
@@ -6048,11 +8553,8 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*Note' ],
                                 [ 'remove_inline'       , '//.*$'  ],
                                 [ 'remove_inline'       , '\&\&.*$' ],
-                                [ 'call_regexp_common'  , 'C++'    ],
-                            ],
-    'HLSL'               => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Haml'               => [
@@ -6062,11 +8564,29 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*-#\s*\S+' ],
                             ],
     'Haxe'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'HCL'                => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'HLSL'               => [
+                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'HTML'               => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
+    'Hoon'               => [
+                                [ 'remove_matches'      , '^\s*:[:><]' ],
+                                [ 'remove_inline'       , ':[:><].*$'  ],
                             ],
     'INI'                => [
                                 [ 'remove_matches'      , '^\s*;'  ],
@@ -6077,9 +8597,32 @@ sub set_constants {                          # {{{1
                             ],
     'Haskell'            => [   [ 'remove_haskell_comments', '>filename<' ], ],
     'IDL'                => [   [ 'remove_matches'      , '^\s*;'  ], ],
-    'IDL/Qt Project/Prolog' => [ [ 'die' ,          ], ], # never called
-    'InstallShield'      => [   [ 'remove_html_comments',          ],
-                                [ 'call_regexp_common'  , 'HTML'   ], ],
+    'IDL/Qt Project/Prolog/ProGuard' => [ [ 'die' ,          ], ], # never called
+    'Idris'              => [
+                                [ 'remove_haskell_comments', '>filename<' ],
+                                [ 'remove_matches'      , '^\s*\|{3}' ],
+                            ],
+    'Igor Pro'           => [
+                                [ 'remove_matches'      , '^\s*//' ],
+                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'Literate Idris'     => [
+                                [ 'remove_matches'      , '^[^>]'  ],
+                            ],
+    'Imba'               => [
+                                [ 'remove_matches'      , '^\s*#\s'],
+                                [ 'remove_inline'       , '#\s.*$' ],
+                                [ 'remove_between_regex', '###', '###' ],
+                            ],
+    'InstallShield'      => [
+                                [ 'remove_html_comments',          ],
+                                [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
+    'IPL'                => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
     'Jam'                => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
@@ -6092,24 +8635,40 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'C'      ],
                             ],
     'JavaServer Faces'   => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Java'               => [
-                                # separate /* inside quoted strings with two
-                                # concatenated strings split between / and *
-                                [ 'replace_between_regex', '(["\'])(.*?/)(\*.*?)\g1',
-                                  '(.*?)' , '"$1$2$1 + $1$3$1$4"'],
+                                [ 'replace_regex', '\\\\$', ' '],
+                                # Java seems to have more path globs in strings
+                                # than other languages.  The variations makes
+                                # it tricky to craft a universal fix.
+                                [ 'replace_between_regex', '(["\'])(.*?/\*)\g1',
+                                  '(.*?)' , '"xx"'],
+                                [ 'replace_between_regex', '(["\'])(.*?\*/)\g1',
+                                  '(.*?)' , '"xx"'],
+                               ## separate /* inside quoted strings with two
+                               ## concatenated strings split between / and *
+                               ##    -> defeated by "xx/**/*_xx" issue 365
+                               #[ 'replace_between_regex', '(["\'])(.*?/)(\*.*?)\g1',
+                               #  '(.*?)' , '"$1$2$1 + $1$3$1$4"'],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'JavaScript'         => [
+                                [ 'rm_comments_in_strings', "'", '/*', '*/' ],
+                                [ 'rm_comments_in_strings', "'", '//', '' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'Jinja Template'     => [
+                                [ 'remove_between_general', '{#', '#}' ],
                             ],
     'JSX'                => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'JCL'                => [   [ 'remove_jcl_comments' ,          ], ],
     'JSON'               => [   # ECMA-404, the JSON standard definition
@@ -6117,21 +8676,33 @@ sub set_constants {                          # {{{1
                                 # so just use a placeholder filter
                                 [ 'remove_matches'      , '^\s*$'  ],
                             ],
+    'JSON5'              => [   # same as JavaScript
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
     'Julia'              => [
                                 [ 'remove_between_general', '#=', '=#' ],
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
     'Kotlin'             => [
+                                [ 'rm_comments_in_strings', '"""', '/*', '*/', 1],
+                                [ 'rm_comments_in_strings', '"""', '//', '', 1],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
-#                               [ 'remove_between_general', '/*', '*/' ],
+                            ],
+    'Lean'               => [
+                                [ 'remove_between_general', '/-', '-/' ],
+                                [ 'remove_matches'      , '^\s*--' ],
+                                [ 'remove_inline'       , '--.*$'  ],
                             ],
     'LESS'               => [
 #                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'LFE'                => [
                                 [ 'remove_matches'      , '^\s*;'  ],
@@ -6149,6 +8720,14 @@ sub set_constants {                          # {{{1
     'Lisp/OpenCL'        => [ [ 'die' ,          ], ], # never called
     'Lisp/Julia'         => [ [ 'die' ,          ], ], # never called
     'LiveLink OScript'   => [   [ 'remove_matches'      , '^\s*//' ], ],
+    'LLVM IR'            => [
+                                [ 'remove_matches'      , '^\s*;'  ],
+                                [ 'remove_inline'       , ';.*$'   ],
+                            ],
+    'Logos'              => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Logtalk'            => [  # same filters as Prolog
                                 [ 'remove_matches'      , '^\s*\%' ],
                                 [ 'call_regexp_common'  , 'C'      ],
@@ -6156,6 +8735,11 @@ sub set_constants {                          # {{{1
                             ],
 #   'Lua'                => [   [ 'call_regexp_common'  , 'lua'    ], ],
     'Lua'                => [
+                                [ 'remove_between_general', '--[=====[', ']=====]' ],
+                                [ 'remove_between_general', '--[====[', ']====]' ],
+                                [ 'remove_between_general', '--[===[', ']===]' ],
+                                [ 'remove_between_general', '--[==[', ']==]' ],
+                                [ 'remove_between_general', '--[=[', ']=]' ],
                                 [ 'remove_between_general', '--[[', ']]' ],
                                 [ 'remove_matches'      , '^\s*\-\-' ],
                             ],
@@ -6163,7 +8747,12 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Meson'              => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'MATLAB'             => [
+                                [ 'remove_between_general', '%{', '%}' ],
                                 [ 'remove_matches'      , '^\s*%'  ],
                                 [ 'remove_inline'       , '%.*$'   ],
                             ],
@@ -6185,28 +8774,31 @@ sub set_constants {                          # {{{1
     'Modula3'            => [   [ 'call_regexp_common'  , 'Pascal' ], ],
         # Modula 3 comments are (* ... *) so applying the Pascal filter
         # which also treats { ... } as a comment is not really correct.
+    'Mojo'               => [   [ 'call_regexp_common' , 'C++' ], ],
     'Nemerle'            => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
-    'Objective C'        => [
+    'Objective-C'        => [
 #                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
-    'Objective C++'      => [
+    'Objective-C++'      => [
 #                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'OCaml'              => [
-                                [ 'call_regexp_common'  , 'Pascal' ],
+                                [ 'remove_OCaml_comments',         ],
                             ],
     'OpenCL'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ], # C99
-                                [ 'remove_inline'       , '//.*$'  ], # C99
                             ],
     'PHP/Pascal'               => [ [ 'die' ,          ], ], # never called
     'Mako'               => [
@@ -6217,7 +8809,7 @@ sub set_constants {                          # {{{1
                                   '\[(comment|\/\/)?\]\s*:?\s*(<\s*>|#)?\s*\(.*?', '.*?\)' ],
                                 # http://stackoverflow.com/questions/4823468/comments-in-markdown
                             ],
-    'MATLAB/Mathematica/Objective C/MUMPS/Mercury' => [ [ 'die' ,          ], ], # never called
+    'MATLAB/Mathematica/Objective-C/MUMPS/Mercury' => [ [ 'die' ,          ], ], # never called
     'MUMPS'              => [   [ 'remove_matches'      , '^\s*;'  ], ],
     'Mustache'           => [
                                 [ 'remove_between_general', '{{!', '}}' ],
@@ -6229,14 +8821,27 @@ sub set_constants {                          # {{{1
 #                               [ 'call_regexp_common'  , 'C'      ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Nix'                => [
+                                [ 'call_regexp_common'  , 'C'      ],
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Octave'             => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Odin'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
     'Oracle Forms'       => [   [ 'call_regexp_common'  , 'C'      ], ],
     'Oracle Reports'     => [   [ 'call_regexp_common'  , 'C'      ], ],
+    'Oracle PL/SQL'      => [
+                                [ 'call_regexp_common'  , 'PL/SQL'      ],
+                            ],
     'Pascal'             => [
-                                [ 'remove_between_regex', '{[^$]', '}' ],
+                                [ 'remove_between_regex', '\{[^$]', '}' ],
                                 [ 'remove_between_general', '(*', '*)' ],
                                 [ 'remove_matches'      , '^\s*//' ],
                             ],
@@ -6263,6 +8868,9 @@ sub set_constants {                          # {{{1
     'PL/I'               => [
                                 [ 'call_regexp_common'  , 'C'      ],
                             ],
+    'PL/M'               => [
+                                [ 'call_regexp_common'  , 'C'      ],
+                            ],
     'Perl'               => [   [ 'remove_below'        , '^__(END|DATA)__'],
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_below_above'  , '^=head1', '^=cut'  ],
@@ -6274,12 +8882,16 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '--.*$'  ],
                                 [ 'call_regexp_common'  , 'C'       ],
                             ],
+    'ProGuard'           => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'PO File'            => [
                                 [ 'remove_matches'      , '^\s*#[^,]' ],  # '#,' is not a comment
                             ],
     'PowerBuilder'       => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'PowerShell'         => [
@@ -6294,8 +8906,8 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '(//|\%).*$' ],
                             ],
     'Protocol Buffers'   => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Pug'                => [
@@ -6304,20 +8916,30 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Python'             => [
+                                [ 'remove_matches'      , '/\*'    ],
+                                [ 'remove_matches'      , '\*/'    ],
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'docstring_to_C'                 ],
                                 [ 'call_regexp_common'  , 'C'      ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Jupyter Notebook'   => [   # these are JSON files; have no comments
+                                # would have to parse JSON for
+                                #      "cell_type": "code"
+                                # to count code lines
+                                [ 'jupyter_nb'                     ],
+                                [ 'remove_matches'      , '^\s*$'  ],
+                            ],
     'PHP'                => [
                                 [ 'remove_matches'      , '^\s*#'  ],
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                                 [ 'remove_inline'       , '#.*$'   ],
-#                               [ 'remove_inline'       , '//.*$'  ],
                             ],
     'QML'                => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                                 [ 'remove_inline'       , '//.*$'  ],
                             ],
@@ -6337,9 +8959,24 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
+    'Rmd'                => [
+                                [ 'reduce_to_rmd_code_blocks'      ],
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Racket'             => [
                                 [ 'remove_matches'      , '^\s*;'  ],
                                 [ 'remove_inline'       , ';.*$'   ],
+                            ],
+    'Raku'               => [   [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_below_above'  , '^=head1', '^=cut'  ],
+                                [ 'remove_below_above'  , '^=begin', '^=end'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
+    'Raku/Prolog'        => [ [ 'die' ,          ], ], # never called
+    'RAML'               => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
                             ],
     'RapydScript'        => [
                                 [ 'remove_matches'      , '^\s*#'  ],
@@ -6348,10 +8985,18 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
     'Razor'              => [
-#                               [ 'remove_matches'      , '^\s*//' ],
                                 [ 'remove_between_general', '@*', '*@' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'reStructuredText'   => [
+                                [ 'remove_between_regex', '^\.\.', '^[^ \n\t\r\f\.]' ]
+                            ],
+    'Rexx'               => [   [ 'call_regexp_common'  , 'C'      ], ],
+    'ReasonML'           => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'remove_between_general', '/*', '*/' ],
                             ],
     'RobotFramework'     => [
                                 [ 'remove_matches'      , '^\s*#'   ],
@@ -6360,7 +9005,6 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*\[(Documentation|Tags)\]' ],
                                 [ 'remove_inline'       , '#.*$'   ],
                             ],
-    'Rexx'               => [   [ 'call_regexp_common'  , 'C'      ], ],
     'Ruby'               => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_below_above'  , '^=begin', '^=end' ],
@@ -6369,9 +9013,13 @@ sub set_constants {                          # {{{1
     'Ruby HTML'          => [   [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
     'Rust'               => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'SaltStack'          => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
                             ],
     'SAS'                => [
                                 [ 'call_regexp_common'  , 'C'      ],
@@ -6382,15 +9030,23 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Scala'              => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
+    'Scheme/SaltStack' => [ [ 'die' ,          ], ], # never called
+    'Scheme'             => [
+                                [ 'remove_matches'      , '^\s*;'  ],
+                                [ 'remove_inline'       , ';.*$'   ],
+                            ],
+    'sed'                => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Slice'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
-#                               [ 'remove_between_general', '/*', '*/' ],
                             ],
     'Slim'               => [
                                 [ 'remove_slim_block'   ,          ],
@@ -6403,11 +9059,37 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'C'      ],
                                 [ 'remove_matches'      , '^\s*;'  ],
                             ],
+    'Squirrel'           => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
+    'Starlark'           => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'docstring_to_C'                 ],
+                                [ 'call_regexp_common'  , 'C'      ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
+    'Solidity'           => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'SparForte'          => [
+                                [ 'remove_matches'      , '^\s*#!' ],
+                                [ 'remove_matches'      , '^\s*--' ],
+                            ],
     'Specman e'          => [
                                 [ 'pre_post_fix'        , "'>", "<'"],
-                                [ 'remove_between_general', "'>", "<'" ],
+                                [ 'remove_between_general', "^'>", "^<'" ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++',   ],
                                 [ 'remove_matches'      , '^\s*--' ],
+                                [ 'rm_last_line'        , ],  # undo pre_post_fix addition
+                                                              # of trailing line of just <'
                             ],
     'SQL'                => [
                                 [ 'call_regexp_common'  , 'C'      ],
@@ -6424,9 +9106,8 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*--' ],
                                 [ 'remove_inline'       , '--.*$'  ],
                             ],
-    'sed'                => [
-                                [ 'remove_matches'      , '^\s*#'  ],
-                                [ 'remove_inline'       , '#.*$'   ],
+    'Smalltalk'          => [
+                                [ 'call_regexp_common'  , 'Smalltalk'      ],
                             ],
     'Smarty'             => [
                                 [ 'smarty_to_C'                    ],
@@ -6435,18 +9116,41 @@ sub set_constants {                          # {{{1
     'Standard ML'        => [
                                 [ 'remove_between_general', '(*', '*)' ],
                             ],
-    'Stylus'             => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+    'Stata'              => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'Stylus'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'SugarSS'            => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                            ],
+    'Svelte'             => [
+                                [ 'remove_html_comments',          ],
+                                [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
+    'SVG'                => [
+                                [ 'remove_html_comments',          ],
+                                [ 'call_regexp_common'  , 'HTML'   ],
                             ],
     'Swift'              => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                            ],
+    'SWIG'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
                             ],
 
-    'm4'                 => [   [ 'remove_matches'      , '^dnl '  ], ],
+    'm4'                 => [   [ 'remove_matches'      , '^dnl\s'  ], ],
     'C Shell'            => [
                                 [ 'remove_matches'      , '^\s*#'  ],
                                 [ 'remove_inline'       , '#.*$'   ],
@@ -6470,25 +9174,41 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*%'  ],
                                 [ 'remove_inline'       , '%.*$'   ],
                             ],
+    'Thrift'             => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
+                            ],
     'Titanium Style Sheet'  => [
                                 [ 'remove_matches'      , '^\s*//' ],
                                 [ 'remove_inline'       , '//.*$'  ],
                                 [ 'remove_between_regex', '/[^/]', '[^/]/' ],
                             ],
-    'Twig'               => [
-                                [ 'remove_between_general', '{#', '#}' ],
+    'TNSDL'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'call_regexp_common'  , 'C++'      ],
+                            ],
+    'TOML'               => [
+                                [ 'remove_matches'      , '^\s*#'  ],
+                                [ 'remove_inline'       , '#.*$'   ],
                             ],
     'TTCN'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'      ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'TITAN Project File Information'               => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
                             ],
+    'Twig'               => [
+                                [ 'remove_between_general', '{#', '#}' ],
+                            ],
     'TypeScript'         => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Unity-Prefab'       => [
@@ -6506,27 +9226,27 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*\47'], ],  # \47 = '
     # http://www.altium.com/files/learningguides/TR0114%20VHDL%20Language%20Reference.pdf
     'Vala'               => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Vala Header'        => [
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'Verilog-SystemVerilog/Coq' => [ ['die'] ], # never called
     'Verilog-SystemVerilog' => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'VHDL'               => [
                                 [ 'remove_matches'      , '^\s*--' ],
-#                               [ 'remove_matches'      , '^\s*//' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                                 [ 'remove_inline'       , '--.*$'  ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'vim script'         => [
                                 [ 'remove_matches'      , '^\s*"'  ],
@@ -6547,13 +9267,15 @@ sub set_constants {                          # {{{1
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
                                 [ 'remove_jsp_comments' ,          ],
-                                [ 'remove_matches'      , '^\s*//' ],
+                                [ 'remove_matches'      , '^\s*##' ],
+                                [ 'remove_between_general', '#**', '*#' ],
                                 [ 'add_newlines'        ,          ],
-                                [ 'call_regexp_common'  , 'C'      ],
                             ],
     'Vuejs Component'     => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'Teamcenter def'     => [   [ 'remove_matches'      , '^\s*#'  ], ],
@@ -6562,9 +9284,9 @@ sub set_constants {                          # {{{1
                                 [ 'remove_inline'       , ';.*$'  ],
                             ],
     'yacc'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                             ],
     'YAML'               => [
                                 [ 'remove_matches'      , '^\s*#'  ],
@@ -6580,8 +9302,9 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*NOTE' ],
                                 [ 'remove_matches'      , '^\s*note' ],
                                 [ 'remove_matches'      , '^\s*Note' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                                 [ 'remove_inline'       , '\&\&.*$' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'xBase'              => [
@@ -6591,8 +9314,9 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*NOTE' ],
                                 [ 'remove_matches'      , '^\s*note' ],
                                 [ 'remove_matches'      , '^\s*Note' ],
-                                [ 'remove_inline'       , '//.*$'  ],
                                 [ 'remove_inline'       , '\&\&.*$' ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'MXML'               => [
@@ -6601,6 +9325,9 @@ sub set_constants {                          # {{{1
                                 [ 'remove_matches'      , '^\s*//' ],
                                 [ 'add_newlines'        ,          ],
                                 [ 'call_regexp_common'  , 'C'      ],
+                            ],
+    'WebAssembly'           => [
+                                [ 'remove_matches'      , '^\s*;;' ],
                             ],
     'Windows Message File'  => [
                                 [ 'remove_matches'      , '^\s*;\s*//' ],
@@ -6611,8 +9338,8 @@ sub set_constants {                          # {{{1
 #                                                         '^\s*;\s*\*/', ],
                             ],
     'Windows Resource File' => [
-#                               [ 'remove_matches'      , '^\s*//' ],
-                                [ 'remove_inline'       , '//.*$'  ],
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
                                 [ 'call_regexp_common'  , 'C++'    ],
                             ],
     'WiX source'         => [
@@ -6626,6 +9353,15 @@ sub set_constants {                          # {{{1
     'WiX string localization' => [
                                 [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
+    'WXML'               => [
+                                [ 'remove_html_comments',          ],
+                                [ 'call_regexp_common'  , 'HTML'   ],
+                            ],
+    'WXSS'               => [
+                                [ 'rm_comments_in_strings', '"', '/*', '*/' ],
+                                [ 'rm_comments_in_strings', '"', '//', '' ],
+                                [ 'call_regexp_common'  , 'C'      ],
                             ],
     'XMI'                => [
                                 [ 'remove_html_comments',          ],
@@ -6642,9 +9378,18 @@ sub set_constants {                          # {{{1
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
     'XSLT'               => [   [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
-    'NAnt script'       => [   [ 'remove_html_comments',          ],
+    'Xtend'              => [   # copy of Java, plus triple << inline
+                                # separate /* inside quoted strings with two
+                                # concatenated strings split between / and *
+                                [ 'replace_between_regex', '(["\'])(.*?/)(\*.*?)\g1',
+                                  '(.*?)' , '"$1$2$1 + $1$3$1$4"', 0],
+                                [ 'call_regexp_common'  , 'C++'    ],
+                                [ 'remove_matches'      , '^\s*\x{c2ab}{3}'  ], # doesn't work
+                                # \xCA2B is unicode << character
+                            ],
+    'NAnt script'       => [    [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
-    'MSBuild script'    => [   [ 'remove_html_comments',          ],
+    'MSBuild script'    => [    [ 'remove_html_comments',          ],
                                 [ 'call_regexp_common'  , 'HTML'   ], ],
     'zsh'                => [
                                 [ 'remove_matches'      , '^\s*#'  ],
@@ -6657,7 +9402,7 @@ sub set_constants {                          # {{{1
     'AspectJ'            =>     '\\\\$'         ,
     'Assembly'           =>     '\\\\$'         ,
     'ASP'                =>     '\\\\$'         ,
-    'ASP.Net'            =>     '\\\\$'         ,
+    'ASP.NET'            =>     '\\\\$'         ,
     'Ada'                =>     '\\\\$'         ,
     'awk'                =>     '\\\\$'         ,
     'bc'                 =>     '\\\\$'         ,
@@ -6670,18 +9415,22 @@ sub set_constants {                          # {{{1
     'D'                  =>     '\\\\$'         ,
     'Dart'               =>     '\\\\$'         ,
     'Expect'             =>     '\\\\$'         ,
+    'Gencat NLS'         =>     '\\\\$'         ,
     'Go'                 =>     '\\\\$'         ,
     'IDL'                =>     '\$\\$'         ,
-    'Java'               =>     '\\\\$'         ,
+    'Igor Pro'           =>     '\\$'           ,
+#   'Java'               =>     '\\\\$'         ,
     'JavaScript'         =>     '\\\\$'         ,
+    'JSON5'              =>     '\\\\$'         ,
     'JSX'                =>     '\\\\$'         ,
     'LESS'               =>     '\\\\$'         ,
     'Lua'                =>     '\\\\$'         ,
     'make'               =>     '\\\\$'         ,
     'MATLAB'             =>     '\.\.\.\s*$'    ,
+    'Meson'              =>     '\\\\$'         ,
     'MXML'               =>     '\\\\$'         ,
-    'Objective C'        =>     '\\\\$'         ,
-    'Objective C++'      =>     '\\\\$'         ,
+    'Objective-C'        =>     '\\\\$'         ,
+    'Objective-C++'      =>     '\\\\$'         ,
     'OCaml'              =>     '\\\\$'         ,
     'Octave'             =>     '\.\.\.\s*$'    ,
     'Qt Project'         =>     '\\\\$'         ,
@@ -6690,6 +9439,7 @@ sub set_constants {                          # {{{1
     'PowerShell'         =>     '\\\\$'         ,
     'Python'             =>     '\\\\$'         ,
     'R'                  =>     '\\\\$'         ,
+    'Rmd'                =>     '\\\\$'         ,
     'Ruby'               =>     '\\\\$'         ,
     'sed'                =>     '\\\\$'         ,
     'Swift'              =>     '\\\\$'         ,
@@ -6698,6 +9448,9 @@ sub set_constants {                          # {{{1
     'C Shell'            =>     '\\\\$'         ,
     'Kermit'             =>     '\\\\$'         ,
     'Korn Shell'         =>     '\\\\$'         ,
+    'Starlark'           =>     '\\\\$'         ,
+    'Solidity'           =>     '\\\\$'         ,
+    'Stata'              =>     '///$'          ,
     'Stylus'             =>     '\\\\$'         ,
     'Tcl/Tk'             =>     '\\\\$'         ,
     'TTCN'               =>     '\\\\$'         ,
@@ -6760,6 +9513,7 @@ sub set_constants {                          # {{{1
    'tfm'       => 1,
    'tgz'       => 1,  # gzipped tarball
    'tiff'      => 1,
+   'tsv'       => 1,  # tab separated values
    'txt'       => 1,
    'vf'        => 1,
    'wav'       => 1,
@@ -6781,6 +9535,7 @@ sub set_constants {                          # {{{1
    'CHANGES'     => 1,
    'COPYING'     => 1,
    'COPYING'     => 1,
+   'DESCRIPTION' => 1, # R packages metafile
    '.cvsignore'  => 1,
    'Entries'     => 1,
    'FAQ'         => 1,
@@ -6788,6 +9543,7 @@ sub set_constants {                          # {{{1
    'INSTALL'     => 1,
    'MAINTAINERS' => 1,
    'MD5SUMS'     => 1,
+   'NAMESPACE'   => 1, # R packages metafile
    'NEWS'        => 1,
    'readme'      => 1,
    'Readme'      => 1,
@@ -6823,6 +9579,7 @@ sub set_constants {                          # {{{1
     'ads/online'                   =>   4.00,
     'ADSO/IDSM'                    =>   3.00,
     'advantage'                    =>   2.11,
+    'Agda'                         =>   2.11,
     'ai shell default'             =>   1.63,
     'ai shells'                    =>   1.63,
     'algol 68'                     =>   0.75,
@@ -6832,7 +9589,7 @@ sub set_constants {                          # {{{1
     'AMPLE'                        =>   2.00,
     'Ant/XML'                      =>   1.90,
     'Ant'                          =>   1.90,
-    'Antlr'                        =>   2.00,
+    'ANTLR Grammar'                =>   2.00,
     'amppl ii'                     =>   1.25,
     'ansi basic'                   =>   1.25,
     'ansi cobol 74'                =>   0.75,
@@ -6841,9 +9598,8 @@ sub set_constants {                          # {{{1
     'SQL Stored Procedure'         =>   6.15,
     'SQL Data'                     =>   1.00,
     'answer/db'                    =>   6.15,
-    'apl 360/370'                  =>   2.50,
-    'apl default'                  =>   2.50,
-    'apl*plus'                     =>   2.50,
+    'Apex Class'                   =>   1.50,
+    'APL'                          =>   2.50,
     'applesoft basic'              =>   0.63,
     'application builder'          =>   4.00,
     'application manager'          =>   2.22,
@@ -6858,13 +9614,14 @@ sub set_constants {                          # {{{1
     'art enterprise'               =>   1.74,
     'artemis'                      =>   2.00,
     'artim'                        =>   1.74,
+    'AsciiDoc'                     =>   1.50,
     'AspectJ'                      =>   1.36,
     'as/set'                       =>   4.21,
     'asi/inquiry'                  =>   6.15,
     'ask windows'                  =>   1.74,
     'asa'                          =>   1.29,
     'ASP'                          =>   1.29,
-    'ASP.Net'                      =>   1.29,
+    'ASP.NET'                      =>   1.29,
     'aspx'                         =>   1.29,
     'asax'                         =>   1.29,
     'ascx'                         =>   1.29,
@@ -6885,6 +9642,7 @@ sub set_constants {                          # {{{1
     'base sas'                     =>   1.51,
     'basic'                        =>   0.75,
     'basic a'                      =>   0.63,
+    'Bazel'                        =>   1.00,
     'bc'                           =>   1.50,
     'berkeley pascal'              =>   0.88,
     'better basic'                 =>   0.88,
@@ -6894,6 +9652,7 @@ sub set_constants {                          # {{{1
     'boeingcalc'                   =>  13.33,
     'bteq'                         =>   6.15,
     'Brainfuck'                    =>   0.10,
+    'BrightScript'                 =>   2.00,
     'builder'                      =>   2.00,
     'C'                            =>   0.77,
     'c set 2'                      =>   0.88,
@@ -6908,6 +9667,7 @@ sub set_constants {                          # {{{1
     'cellsim'                      =>   1.74,
     'ColdFusion'                   =>   4.00,
     'ColdFusion CFScript'          =>   4.00,
+    'Chapel'                       =>   2.96,
     'chili'                        =>   0.75,
     'chill'                        =>   0.75,
     'cics'                         =>   1.74,
@@ -6953,8 +9713,9 @@ sub set_constants {                          # {{{1
     'csp'                          =>   1.51,
     'cssl'                         =>   1.74,
     'CSS'                          =>   1.0,
-    'culprit'                      =>   1.57,
+    'Cucumber'                     =>   3.00,
     'CUDA'                         =>   1.00,
+    'culprit'                      =>   1.57,
     'cxpert'                       =>   1.63,
     'cygnet'                       =>   4.21,
     'D'                            =>   1.70,
@@ -6965,10 +9726,12 @@ sub set_constants {                          # {{{1
     'datatrieve'                   =>   4.00,
     'dbase iii'                    =>   2.00,
     'dbase iv'                     =>   1.54,
+    'DIET'                         =>   2.00,
     'diff'                         =>   1.00,
     'decision support default'     =>   2.22,
     'decrally'                     =>   2.00,
     'delphi'                       =>   2.76,
+    'dhall'                        =>   2.11,
     'DITA'                         =>   1.90,
     'dl/1'                         =>   2.00,
     'dtrace'                       =>   2.00,
@@ -6977,6 +9740,7 @@ sub set_constants {                          # {{{1
     'DOORS Extension Language'     =>   1.50,
     'Dockerfile'                   =>   2.00,
     'DOS Batch'                    =>   0.63,
+    'Drools'                       =>   2.00,
     'dsp assembly'                 =>   0.50,
     'dtabl'                        =>   1.74,
     'dtipt'                        =>   1.74,
@@ -6991,12 +9755,14 @@ sub set_constants {                          # {{{1
     'edscheme 3.4'                 =>   1.51,
     'EEx'                          =>   2.00,
     'eiffel'                       =>   3.81,
+    'EJS'                          =>   2.50,
     'Elixir'                       =>   2.11,
     'Elm'                          =>   2.50,
     'enform'                       =>   1.74,
     'englishbased default'         =>   1.51,
     'ensemble'                     =>   2.76,
     'epos'                         =>   4.00,
+    'Embedded Crystal'             =>   2.00,
     'ERB'                          =>   2.00,
     'Erlang'                       =>   2.11,
     'esf'                          =>   2.00,
@@ -7014,6 +9780,7 @@ sub set_constants {                          # {{{1
     'facets'                       =>   4.00,
     'factorylink iv'               =>   2.76,
     'fame'                         =>   2.22,
+    'Fennel'                       =>   2.50,
     'filemaker pro'                =>   2.22,
     'flavors'                      =>   2.76,
     'flex'                         =>   1.74,
@@ -7034,6 +9801,7 @@ sub set_constants {                          # {{{1
     'framework'                    =>  13.33,
     'Freemarker Template'          =>   1.48,
     'F#'                           =>   2.50,
+    'F# Script'                    =>   2.50,
     'g2'                           =>   1.63,
     'gamma'                        =>   5.00,
     'genascript'                   =>   2.96,
@@ -7051,21 +9819,26 @@ sub set_constants {                          # {{{1
     'guru'                         =>   1.63,
     'GDScript'                     =>   2.50,
     'Go'                           =>   2.50,
+    'Gradle'                       =>   4.00,
     'Grails'                       =>   1.48,
+    'GraphQL'                      =>   4.00,
     'Groovy'                       =>   4.10,
     'gw basic'                     =>   0.82,
     'Harbour'                      =>   2.00,
     'Haskell'                      =>   2.11,
+    'HCL'                          =>   2.50,
     'high c'                       =>   0.63,
     'hlevel'                       =>   1.38,
     'hp basic'                     =>   0.63,
     'Haml'                         =>   2.50,
     'Handlebars'                   =>   2.50,
     'Haxe'                         =>   2.00,
+    'Hoon'                         =>   2.00,
     'HTML'                         =>   1.90,
     'XHTML'                        =>   1.90,
     'XMI'                          =>   1.90,
     'XML'                          =>   1.90,
+    'FXML'                         =>   1.90,
     'MXML'                         =>   1.90,
     'XSLT'                         =>   1.90,
     'DTD'                          =>   1.90,
@@ -7087,10 +9860,14 @@ sub set_constants {                          # {{{1
     'icon'                         =>   1.00,
     'ideal'                        =>   1.54,
     'idms'                         =>   2.00,
+    'Idris'                        =>   2.00,
+    'Literate Idris'               =>   2.00,
     'ief'                          =>   5.71,
     'ief/cool:gen'                 =>   2.58,
     'iew'                          =>   5.71,
     'ifps/plus'                    =>   2.50,
+    'Igor Pro'                     =>   4.00,
+    'Imba'                         =>   3.00,
     'imprs'                        =>   2.00,
     'informix'                     =>   2.58,
     'ingres'                       =>   2.00,
@@ -7103,6 +9880,7 @@ sub set_constants {                          # {{{1
     'interlisp'                    =>   1.38,
     'interpreted basic'            =>   0.75,
     'interpreted c'                =>   0.63,
+    'IPL'                          =>   2.00,
     'iqlisp'                       =>   1.38,
     'iqrp'                         =>   6.15,
     'j2ee'                         =>   1.60,
@@ -7111,7 +9889,9 @@ sub set_constants {                          # {{{1
     'Java'                         =>   1.36,
     'JavaScript'                   =>   1.48,
     'JavaServer Faces'             =>   1.5 ,
+    'Jinja Template'               =>   1.5 ,
     'JSON'                         =>   2.50,
+    'JSON5'                        =>   2.50,
     'JSP'                          =>   1.48,
     'JSX'                          =>   1.48,
     'Velocity Template Language'   =>   1.00,
@@ -7134,6 +9914,7 @@ sub set_constants {                          # {{{1
     'ladder logic'                 =>   2.22,
     'lambit/l'                     =>   1.25,
     'lattice c'                    =>   0.63,
+    'Lean'                         =>   3.00,
     'LESS'                         =>   1.50,
     'LFE'                          =>   1.25,
     'liana'                        =>   0.63,
@@ -7142,7 +9923,9 @@ sub set_constants {                          # {{{1
     'liquid'                       =>   3.00,
     'Lisp'                         =>   1.25,
     'LiveLink OScript'             =>   3.5 ,
+    'LLVM IR'                      =>   0.90,
     'loglisp'                      =>   1.38,
+    'Logos'                        =>   2.00,
     'Logtalk'                      =>   2.00,
     'loops'                        =>   3.81,
     'lotus 123 dos'                =>  13.33,
@@ -7171,6 +9954,7 @@ sub set_constants {                          # {{{1
     'mdl'                          =>   2.22,
     'mentor'                       =>   1.51,
     'mesa'                         =>   0.75,
+    'Meson'                        =>   1.00,
     'microfocus cobol'             =>   1.00,
     'microforth'                   =>   1.25,
     'microsoft c'                  =>   0.63,
@@ -7196,6 +9980,7 @@ sub set_constants {                          # {{{1
     'nexpert'                      =>   1.63,
     'nial'                         =>   1.63,
     'Nim'                          =>   2.00,
+    'Nix'                          =>   2.70,
     'nomad2'                       =>   2.00,
     'nonprocedural default'        =>   2.22,
     'notes vip'                    =>   2.22,
@@ -7205,11 +9990,12 @@ sub set_constants {                          # {{{1
     'object logo'                  =>   2.76,
     'object pascal'                =>   2.76,
     'object star'                  =>   5.00,
-    'Objective C'                  =>   2.96,
-    'Objective C++'                =>   2.96,
+    'Objective-C'                  =>   2.96,
+    'Objective-C++'                =>   2.96,
     'objectoriented default'       =>   2.76,
     'objectview'                   =>   3.20,
     'OCaml'                        =>   3.00,
+    'Odin'                         =>   2.00,
     'ogl'                          =>   1.00,
     'omnis 7'                      =>   2.00,
     'oodl'                         =>   2.76,
@@ -7235,8 +10021,9 @@ sub set_constants {                          # {{{1
     'pilot'                        =>   1.51,
     'PL/I'                         =>   1.38,
     'pl/1'                         =>   1.38,
-    'pl/m'                         =>   1.13,
+    'PL/M'                         =>   1.13,
     'pl/s'                         =>   0.88,
+    'Oracle PL/SQL'                =>   2.58,
     'pl/sql'                       =>   2.58,
     'planit'                       =>   1.51,
     'planner'                      =>   1.25,
@@ -7257,6 +10044,7 @@ sub set_constants {                          # {{{1
     'professional pascal'          =>   0.88,
     'program generator default'    =>   5.00,
     'progress v4'                  =>   2.22,
+    'ProGuard'                     =>   2.50,
     'proiv'                        =>   1.38,
     'Prolog'                       =>   1.25,
     'prose'                        =>   0.75,
@@ -7283,16 +10071,21 @@ sub set_constants {                          # {{{1
     'quickbuild'                   =>   2.86,
     'quiz'                         =>   5.33,
     'R'                            =>   3.00,
+    'Rmd'                          =>   3.00,
     'Racket'                       =>   1.50,
+    'Raku'                         =>   4.00,
     'rally'                        =>   2.00,
     'ramis ii'                     =>   2.00,
+    'RAML'                         =>   0.90,
     'rapidgen'                     =>   2.86,
     'ratfor'                       =>   0.88,
     'rdb'                          =>   2.00,
     'realia'                       =>   1.74,
     'realizer 1.0'                 =>   2.00,
     'realizer 2.0'                 =>   2.22,
+    'ReasonML'                     =>   2.50,
     'relate/3000'                  =>   2.00,
+    'reStructuredText'             =>   1.50,
     'reuse default'                =>  16.00,
     'Razor'                        =>   2.00,
     'Rexx'                         =>   1.19,
@@ -7313,16 +10106,19 @@ sub set_constants {                          # {{{1
     'sbasic'                       =>   0.88,
     'Scala'                        =>   4.10,
     'sceptre'                      =>   1.13,
-    'scheme'                       =>   1.51,
+    'Scheme'                       =>   1.51,
     'screen painter default'       =>  13.33,
     'sequal'                       =>   6.67,
     'Slim'                         =>   3.00,
+    'Solidity'                     =>   1.48,
     'Bourne Shell'                 =>   3.81,
     'Bourne Again Shell'           =>   3.81,
     'ksh'                          =>   3.81,
     'zsh'                          =>   3.81,
+    'Fish Shell'                   =>   3.81,
     'C Shell'                      =>   3.81,
     'siebel tools '                =>   6.15,
+    'SaltStack'                    =>   2.00,
     'SAS'                          =>   1.5 ,
     'Sass'                         =>   1.5 ,
     'simplan'                      =>   2.22,
@@ -7334,7 +10130,7 @@ sub set_constants {                          # {{{1
     'SKILL++'                      =>   2.00,
     'slogan'                       =>   0.98,
     'Slice'                        =>   1.50,
-    'smalltalk'                    =>   2.50,
+    'Smalltalk'                    =>   4.00,
     'smalltalk 286'                =>   3.81,
     'smalltalk 80'                 =>   3.81,
     'smalltalk/v'                  =>   3.81,
@@ -7344,6 +10140,7 @@ sub set_constants {                          # {{{1
     'softscreen'                   =>   5.71,
     'Softbridge Basic'             =>   2.76,
     'solo'                         =>   1.38,
+    'SparForte'                    =>   3.80,
     'speakeasy'                    =>   2.22,
     'spinnaker ppl'                =>   2.22,
     'splus'                        =>   2.50,
@@ -7353,16 +10150,22 @@ sub set_constants {                          # {{{1
     'Specman e'                    =>   2.00,
     'SQL'                          =>   2.29,
     'sqlwindows'                   =>   6.67,
+    'Squirrel'                     =>   2.50,
     'statistical default'          =>   2.50,
     'Standard ML'                  =>   3.00,
+    'Stata'                        =>   3.00,
     'strategem'                    =>   2.22,
     'stress'                       =>   1.13,
     'strongly typed default'       =>   0.88,
     'style'                        =>   1.74,
     'Stylus'                       =>   1.48,
+    'SugarSS'                      =>   2.50,
     'superbase 1.3'                =>   2.22,
     'surpass'                      =>  13.33,
+    'Svelte'                       =>   2.00,
+    'SVG'                          =>   1.00,
     'Swift'                        =>   2.50,
+    'SWIG'                         =>   2.50,
     'sybase'                       =>   2.00,
     'symantec c++'                 =>   2.76,
     'symbolang'                    =>   1.25,
@@ -7378,25 +10181,21 @@ sub set_constants {                          # {{{1
     'telon'                        =>   5.00,
     'tessaract'                    =>   2.00,
     'the twin'                     =>  13.33,
-    'themis'                       =>   6.15,
+    'Thrift'                       =>   2.50,
     'tiief'                        =>   5.71,
     'Titanium Style Sheet'         =>   2.00,
-    'topspeed c++'                 =>   2.76,
+    'TOML'                         =>   2.76,
     'transform'                    =>   5.33,
     'translisp plus'               =>   1.43,
     'treet'                        =>   1.25,
     'treetran'                     =>   1.25,
     'trs80 basic'                  =>   0.63,
     'true basic'                   =>   1.25,
-    'turbo c'                      =>   0.63,
-    'turbo expert'                 =>   1.63,
-    'turbo pascal >5'              =>   1.63,
-    'turbo pascal 14'              =>   1.00,
-    'turbo pascal 45'              =>   1.13,
     'turing'                       =>   1.00,
     'tutor'                        =>   1.51,
     'twaice'                       =>   1.63,
     'Twig'                         =>   2.00,
+    'TNSDL'                        =>   2.00,
     'TTCN'                         =>   2.00,
     'TITAN Project File Information' =>   1.90,
     'TypeScript'                   =>   2.00,
@@ -7447,6 +10246,7 @@ sub set_constants {                          # {{{1
     'watfiv'                       =>   0.94,
     'watfor'                       =>   0.88,
     'web scripts'                  =>   5.33,
+    'WebAssembly'                  =>   0.45,
     'whip'                         =>   0.88,
     'Windows Message File'         =>   1.00,
     'Windows Resource File'        =>   1.00,
@@ -7455,6 +10255,8 @@ sub set_constants {                          # {{{1
     'WiX include'                  =>   1.90,
     'WiX string localization'      =>   1.90,
     'wizard'                       =>   2.86,
+    'WXML'                         =>   1.90,
+    'WXSS'                         =>   1.00,
     'xBase'                        =>   2.00,
     'xBase Header'                 =>   2.00,
     'xlisp'                        =>   1.25,
@@ -7467,6 +10269,7 @@ sub set_constants {                          # {{{1
     'zim'                          =>   4.21,
     'zlisp'                        =>   1.25,
     'Expect'                       => 2.00,
+    'Gencat NLS'                   => 1.50,
     'C/C++ Header'                 => 1.00,
     'inc'                          => 1.00,
     'lex'                          => 1.00,
@@ -7479,15 +10282,33 @@ sub set_constants {                          # {{{1
     'Octave'                       => 4.00,
     'ML'                           => 3.00,
     'Modula3'                      => 2.00,
+    'Mojo'                         => 2.00,
     'PHP'                          => 3.50,
+    'Jupyter Notebook'             => 4.20,
     'Python'                       => 4.20,
     'RapydScript'                  => 4.20,
+    'Starlark'                     => 4.20,
     'Cython'                       => 3.80,
     'Ruby'                         => 4.20,
     'Ruby HTML'                    => 4.00,
     'sed'                          => 4.00,
     'Lua'                          => 4.00,
     'OpenCL'                       => 1.50,
+    'Xtend'                        => 2.00,
+    # aggregates; value is meaningless
+    'C#/Smalltalk'                    => 1.00,
+    'D/dtrace'                        => 1.00,
+    'F#/Forth'                        => 1.00,
+    'Fortran 77/Forth'                => 1.00,
+    'Lisp/Julia'                      => 1.00,
+    'Lisp/OpenCL'                     => 1.00,
+    'PHP/Pascal'                      => 1.00,
+    'Pascal/Puppet'                   => 1.00,
+    'Perl/Prolog'                     => 1.00,
+    'Raku/Prolog'                     => 1.00,
+    'Verilog-SystemVerilog/Coq'    => 1.00,
+    'MATLAB/Mathematica/Objective-C/MUMPS/Mercury' => 1.00,
+    'IDL/Qt Project/Prolog/ProGuard'     => 1.00,
 );
 # 1}}}
 %{$rh_Known_Binary_Archives} = (             # {{{1
@@ -7501,6 +10322,7 @@ sub set_constants {                          # {{{1
             '.ear'     => 1 ,  # Java
             '.war'     => 1 ,  # contained within .ear
             '.xz'      => 1 ,
+            '.whl'     => 1 ,  # Python wheel files (zip)
             );
 # 1}}}
 } # end sub set_constants()
@@ -7510,25 +10332,9 @@ sub check_scale_existence {                  # {{{1
         $rh_Language_by_Extension,
         $rh_Scale_Factor) = @_;
 
-    my %extension_collisions = (
-        # TODO:  find a better way of dealing with these
-        "PHP/Pascal"                        => 1,
-        "Lisp/OpenCL"                       => 1,
-        "Lisp/Julia"                        => 1,
-        "MATLAB/Mathematica/Objective C/MUMPS/Mercury"  => 1,
-        "Pascal/Puppet"                     => 1,
-        "Perl/Prolog"                       => 1,
-        "IDL/Qt Project/Prolog"             => 1,
-        "D/dtrace"                          => 1,
-        "Fortran 77/Forth"                  => 1,
-        "F#/Forth"                          => 1,
-        "Verilog-SystemVerilog/Coq"         => 1,
-        "TypeScript/Qt Linguist"            => 1,
-        "Qt/Glade"                          => 1,
-    );
     my $OK = 1;
     foreach my $language (sort keys %{$rhaa_Filters_by_Language}) {
-        next if defined $extension_collisions{$language};
+        next if defined $Extension_Collision{$language};
         if (!defined $rh_Scale_Factor->{$language}) {
             $OK = 0;
             warn "Missing scale factor for $language\n";
@@ -7538,7 +10344,7 @@ sub check_scale_existence {                  # {{{1
     my %seen_it = ();
     foreach my $ext (sort keys %{$rh_Language_by_Extension}) {
         my $language = $rh_Language_by_Extension->{$ext};
-        next if defined $extension_collisions{$language};
+        next if defined $Extension_Collision{$language};
         next if $seen_it{$language};
         if (!$rhaa_Filters_by_Language->{$language}) {
             $OK = 0;
@@ -9224,7 +12030,7 @@ EOAlgDiff
     eval "use Algorithm::Diff qw / sdiff /";
     $HAVE_Algorith_Diff = 1 unless $problems;
 } # 1}}}
-sub pre_post_fix {                     # {{{1
+sub pre_post_fix {                           # {{{1
     # Return the input lines prefixed and postfixed
     # by the given strings.
     my ($ra_lines, $prefix, $postfix ) = @_;
@@ -9234,6 +12040,14 @@ sub pre_post_fix {                     # {{{1
 
     print "<- pre_post_fix\n" if $opt_v > 2;
     return split("\n", $all_lines);
+} # 1}}}
+sub rm_last_line {                           # {{{1
+    # Return all but the last line.
+    my ($ra_lines, ) = @_;
+    print "-> rm_last_line\n" if $opt_v > 2;
+    print "<- rm_last_line\n" if $opt_v > 2;
+    my $n = scalar(@{$ra_lines}) - 2;
+    return @{$ra_lines}[0..$n];
 } # 1}}}
 sub call_regexp_common {                     # {{{1
     my ($ra_lines, $language ) = @_;
@@ -9266,7 +12080,7 @@ sub call_regexp_common {                     # {{{1
         #         (* This is { another } test. **)
         # Curiously, testing for "defined $1" breaks the substitution.
         no warnings;
-        # remove   comments
+        # Remove comments.
         $all_lines =~ s/$1//g;
     }
     # a bogus use of %RE to avoid:
@@ -9282,7 +12096,7 @@ sub plural_form {                            # {{{1
     else         { return ($n, "s"); }
 } # 1}}}
 sub matlab_or_objective_C {                  # {{{1
-    # Decide if code is MATLAB, Mathematica, Objective C, MUMPS, or Mercury
+    # Decide if code is MATLAB, Mathematica, Objective-C, MUMPS, or Mercury
     my ($file        , # in
         $rh_Err      , # in   hash of error codes
         $raa_errors  , # out
@@ -9294,7 +12108,7 @@ sub matlab_or_objective_C {                  # {{{1
     #   some lines start with "%"
     #   high marks for lines that start with [
     #
-    # Objective C markers:
+    # Objective-C markers:
     #   must have at least two brace characters, { }
     #   has /* ... */ style comments
     #   some lines start with @
@@ -9356,14 +12170,14 @@ printf ".m:  \\w \\w  obj C=% 2d  matlab=% 2d  mumps=% 2d  mercury= % 2d\n", $ob
 printf ".m:  ;      obj C=% 2d  matlab=% 2d  mumps=% 2d  mercury= % 2d\n", $objective_C_points, $matlab_points, $mathematica_points, $mumps_points, $mercury_points if $DEBUG;
         }
         if (m{^\s*#(include|import)}) {
-            # Objective C without a doubt
+            # Objective-C without a doubt
             $objective_C_points = 1000;
             $matlab_points      = 0;
 printf ".m: #includ obj C=% 2d  matlab=% 2d  mumps=% 2d  mercury= % 2d\n", $objective_C_points, $matlab_points, $mathematica_points, $mumps_points, $mercury_points if $DEBUG;
             $has_braces         = 2;
             last;
         } elsif (m{^\s*@(interface|implementation|protocol|public|protected|private|end)\s}o) {
-            # Objective C without a doubt
+            # Objective-C without a doubt
             $objective_C_points = 1000;
             $matlab_points      = 0;
 printf ".m: keyword obj C=% 2d  matlab=% 2d  mumps=% 2d  mercury= % 2d\n", $objective_C_points, $matlab_points, $mathematica_points, $mumps_points, $mercury_points if $DEBUG;
@@ -9396,10 +12210,10 @@ printf "END LOOP    obj C=% 2d  matlab=% 2d  mumps=% 2d  mercury= % 2d\n", $obje
     my %points = ( 'MATLAB'      => $matlab_points     ,
                    'Mathematica' => $mathematica_points     ,
                    'MUMPS'       => $mumps_points      ,
-                   'Objective C' => $objective_C_points,
+                   'Objective-C' => $objective_C_points,
                    'Mercury'     => $mercury_points    , );
 
-    ${$rs_language} = (sort { $points{$b} <=> $points{$a}} keys %points)[0];
+    ${$rs_language} = (sort { $points{$b} <=> $points{$a} or $a cmp $b } keys %points)[0];
 
     print "<- matlab_or_objective_C($file: matlab=$matlab_points, mathematica=$mathematica_points, C=$objective_C_points, mumps=$mumps_points, mercury=$mercury_points) => ${$rs_language}\n"
         if $opt_v > 2;
@@ -9486,13 +12300,19 @@ sub Perl_or_Prolog {                         # {{{1
     my $perl_points = 0;
     my $prolog_points = 0;
     while (<$IN>) {
-        ++$perl_points if  /;\s*$/;
-        ++$perl_points if  /({|})/;
-        ++$perl_points if  /^\s*sub\s+/;
-        ++$perl_points if  /\s*<<'/;  # start HERE block
-        ++$perl_points if  /\$(\w+\->|[_!])/;
+        next if /^\s*$/;
+        if ($. == 1 and /^#!.*?\bperl/) {
+            $perl_points = 100;
+            last;
+        }
+        ++$perl_points   if  /^=(head|over|item|cut)/;
+        ++$perl_points   if  /;\s*$/;
+        ++$perl_points   if  /(\{|\})/;
+        ++$perl_points   if  /^\s*sub\s+/;
+        ++$perl_points   if  /\s*<<'/;  # start HERE block
+        ++$perl_points   if  /\$(\w+\->|[_!])/;
         ++$prolog_points if !/\s*#/ and /\.\s*$/;
-        ++$prolog_points if /:-/;
+        ++$prolog_points if  /:-/;
     }
     $IN->close;
     # print "perl_points=$perl_points   prolog_points=$prolog_points\n";
@@ -9506,8 +12326,21 @@ sub Perl_or_Prolog {                         # {{{1
         $file, $perl_points, $prolog_points if $opt_v > 2;
     return $lang;
 } # 1}}}
+sub Raku_or_Prolog {                         # {{{1
+    my ($file        , # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+       ) = @_;
+
+    print "-> Raku_or_Prolog\n" if $opt_v > 2;
+    my $lang = Perl_or_Prolog($file, $rh_Err, $raa_errors);
+    $lang = "Raku" if $lang eq "Perl";
+
+    print "<- Raku_or_Prolog\n" if $opt_v > 2;
+    return $lang;
+} # 1}}}
 sub IDL_or_QtProject {                       # {{{1
-    # also Prolog
+    # IDL, QtProject, Prolog, or ProGuard
     my ($file        , # in
         $rh_Err      , # in   hash of error codes
         $raa_errors  , # out
@@ -9521,33 +12354,35 @@ sub IDL_or_QtProject {                       # {{{1
         push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
         return $lang;
     }
-    my $idl_points    = 0;
-    my $qtproj_points = 0;
-    my $prolog_points = 0;
+    my $idl_points      = 0;
+    my $qtproj_points   = 0;
+    my $prolog_points   = 0;
+    my $proguard_points = 0;
     while (<$IN>) {
-        ++$idl_points    if /^\s*;/;
-        ++$idl_points    if /plot\(/i;
-        ++$qtproj_points if /^\s*(qt|configs|sources)\s*\+?=/i;
-        ++$prolog_points if /\.\s*$/;
-        ++$prolog_points if /:-/;
+        ++$idl_points      if /^\s*;/;
+        ++$idl_points      if /plot\(/i;
+        ++$qtproj_points   if /^\s*(qt|configs|sources|template|target|targetpath|subdirs)\b/i;
+        ++$qtproj_points   if /qthavemodule/i;
+        ++$prolog_points   if /\.\s*$/;
+        ++$prolog_points   if /:-/;
+        ++$proguard_points if /^\s*#/;
+        ++$proguard_points if /^-keep/;
+        ++$proguard_points if /^-(dont)?obfuscate/;
     }
     $IN->close;
     # print "idl_points=$idl_points   qtproj_points=$qtproj_points\n";
 
-    if ($idl_points > $qtproj_points) {
-        $lang = "IDL";
-    } else {
-        $lang = "Qt Project";
-    }
+    my %points = ( 'IDL'        => $idl_points       ,
+                   'Qt Project' => $qtproj_points    ,
+                   'Prolog'     => $prolog_points    ,
+                   'ProGuard'   => $proguard_points  ,
+                 );
 
-    my %points = ( 'IDL'        => $idl_points     ,
-                   'Qt Project' => $qtproj_points  ,
-                   'Prolog'     => $prolog_points  , );
-
-    $lang = (sort { $points{$b} <=> $points{$a}} keys %points)[0];
+    $lang = (sort { $points{$b} <=> $points{$a} or $a cmp $b} keys %points)[0];
 
     print "<- IDL_or_QtProject(idl_points=$idl_points, ",
-          "qtproj_points=$qtproj_points, prolog_points=$prolog_points)\n"
+          "qtproj_points=$qtproj_points, prolog_points=$prolog_points, ",
+          "proguard_points=$proguard_points)\n"
            if $opt_v > 2;
     return $lang;
 } # 1}}}
@@ -9808,12 +12643,12 @@ sub TypeScript_or_QtLinguist {               # {{{1
     my $linguist_points = 0;
     while (<$IN>) {
         ++$linguist_points if m{\b</?(message|source|translation)>};
-        ++$tscript_points  if /^\s*(var|class|document)\b/;
+        ++$tscript_points  if /^\s*(var|const|let|class|document)\b/;
         ++$tscript_points  if /[;}]\s*$/;
         ++$tscript_points  if m{^\s*//};
     }
     $IN->close;
-    if ($tscript_points > $linguist_points) {
+    if ($tscript_points >= $linguist_points) {
         $lang = "TypeScript";
     } else {
         $lang = "Qt Linguist";
@@ -9852,6 +12687,134 @@ sub Qt_or_Glade {                            # {{{1
     }
     print "<- Qt_or_Glade\n" if $opt_v > 2;
     return $lang;
+} # 1}}}
+sub Csharp_or_Smalltalk {                    # {{{1
+    my ($file        , # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+       ) = @_;
+
+    print "-> Csharp_or_Smalltalk($file)\n" if $opt_v > 2;
+
+    my $lang = undef;
+    my $IN = new IO::File $file, "r";
+    if (!defined $IN) {
+        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
+        return $lang;
+    }
+    my $cs_points        = 0;
+    my $smalltalk_points = 0;
+    while (<$IN>) {
+        s{//.*?$}{};        # strip inline C# comments for better clarity
+        next if /^\s*$/;
+        if (/[;}{]\s*$/) {
+            ++$cs_points       ;
+        } elsif (/^(using|namespace)\s/) {
+            $cs_points += 20;
+        } elsif (/^\s*(public|private|new)\s/) {
+            $cs_points += 20;
+        } elsif (/^\s*\[assembly:/) {
+            ++$cs_points       ;
+        }
+        if (/(\!|\]\.)\s*$/) {
+            ++$smalltalk_points;
+            --$cs_points       ;
+        }
+    }
+    $IN->close;
+    if ($smalltalk_points > $cs_points) {
+        $lang = "Smalltalk";
+    } else {
+        $lang = "C#";
+    }
+    print "<- Csharp_or_Smalltalk($file)=$lang\n" if $opt_v > 2;
+    return $lang;
+} # 1}}}
+sub Visual_Basic_or_TeX_or_Apex {            # {{{1
+    my ($file        , # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+        $rs_language , # out
+       ) = @_;
+
+    print "-> Visual_Basic_or_TeX_or_Apex($file)\n" if $opt_v > 2;
+
+    my $lang = undef;
+    my $IN = new IO::File $file, "r";
+    if (!defined $IN) {
+        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
+        return $lang;
+    }
+    my $VB_points        = 0;
+    my $tex_points       = 0;
+    my $apex_points      = 0;
+    while (<$IN>) {
+        next if /^\s*$/;
+#print "$_";
+        if (/\s*%/ or /\s*\\/) {
+            ++$tex_points   ;
+        } else {
+            if (/^\s*(public|private)\s/i) {
+                ++$VB_points    ;
+                ++$apex_points  ;
+#print "+VB1 +A1";
+            } elsif (/^\s*(end|attribute|version)\s/i) {
+                ++$VB_points    ;
+#print "+VB2";
+            }
+            if (/[{}]/ or /;\s*$/) {
+                ++$apex_points  ;
+#print "+A2";
+            }
+#print "\n";
+        }
+    }
+    $IN->close;
+
+    my %points = ( 'Visual Basic'   => $VB_points   ,
+                   'TeX'            => $tex_points  ,
+                   'Apex Class'     => $apex_points ,);
+
+    ${$rs_language} = (sort { $points{$b} <=> $points{$a} or $a cmp $b } keys %points)[0];
+
+    print "<- Visual_Basic_or_TeX_or_Apex($file: VB=$VB_points, TeX=$tex_points, Apex=$apex_points\n" if $opt_v > 2;
+    return $lang;
+} # 1}}}
+sub Scheme_or_SaltStack {                    # {{{1
+    my ($file        , # in
+        $rh_Err      , # in   hash of error codes
+        $raa_errors  , # out
+       ) = @_;
+
+    print "-> Scheme_or_SaltStack($file)\n" if $opt_v > 2;
+
+    my $lang = undef;
+    my $IN = new IO::File $file, "r";
+    if (!defined $IN) {
+        push @{$raa_errors}, [$rh_Err->{'Unable to read'} , $file];
+        return $lang;
+    }
+    my $Sch_points = 0;
+    my $SS_points  = 0;
+    while (<$IN>) {
+        next if /^\s*$/;
+        if (/{\%.*%}/) {
+            $SS_points += 5;
+        } elsif (/map\.jinja\b/) {
+            $SS_points += 5;
+        } elsif (/\((define|lambda|let|cond|do)\s/) {
+            $Sch_points += 1;
+        } else {
+        }
+    }
+    $IN->close;
+
+    print "<- Scheme_or_SaltStack($file: Scheme=$Sch_points, SaltStack=$SS_points\n" if $opt_v > 2;
+    if ($Sch_points > $SS_points) {
+        return "Scheme";
+    } else {
+        return "SaltStack";
+    }
 } # 1}}}
 sub html_colored_text {                      # {{{1
     # http://www.pagetutor.com/pagetutor/makapage/pics/net216-2.gif
@@ -9974,16 +12937,9 @@ sub write_comments_to_html {                 # {{{1
 
     print "-> write_comments_to_html($filename)\n" if $opt_v > 2;
     my $file = $filename . ".html";
-#use Data::Dumper;
-#print Dumper("rah_diff_L", $rah_diff_L, "rah_diff_R", $rah_diff_R);
-    my $OUT = new IO::File $file, "w";
-    if (!defined $OUT) {
-        warn "Unable to write to $file\n";
-        print "<- write_comments_to_html\n" if $opt_v > 2;
-        return;
-    }
 
     my $approx_line_count = scalar @{$rah_diff_L};
+       $approx_line_count = 1 unless $approx_line_count;
     my $n_digits = 1 + int(log($approx_line_count)/2.30258509299405); # log_10
 
     my $html_out = html_header($filename);
@@ -10051,11 +13007,7 @@ warn "undef rah_diff_R[$i]{type} " unless defined $rah_diff_R->[$i]{type};
     $html_out .= html_end();
 
     my $out_file = "$filename.html";
-    open  OUT, ">$out_file" or die "Cannot write to $out_file $!\n";
-    print OUT $html_out;
-    close OUT;
-    print "Wrote $out_file\n" unless $opt_quiet;
-    $OUT->close;
+    write_file($out_file, {}, ( $html_out ) );
 
     print "<- write_comments_to_html\n" if $opt_v > 2;
 } # 1}}}
@@ -10118,10 +13070,6 @@ sub array_diff {                             # {{{1
         return;
     }
 
-#use Data::Dumper::Simple;
-#print Dumper($ra_lines_L, $ra_lines_R, @sdiffs);
-#die;
-
     my $n_L        = 0;
     my $n_R        = 0;
     my $n_sdiff    = 0;  # index to $rah_diff_L, $rah_diff_R
@@ -10158,65 +13106,30 @@ sub array_diff {                             # {{{1
             my @chars_L = split '', $line_L;
             my @chars_R = split '', $line_R;
 
-#XX         my @inline_sdiffs = sdiff( \@chars_L, \@chars_R );
-
-#use Data::Dumper::Simple;
-#if ($n_R == 6 or $n_R == 1 or $n_R == 2) {
-#print "L=[$line_L]\n";
-#print "R=[$line_R]\n";
-#print Dumper(@chars_L, @chars_R, @inline_sdiffs);
-#}
-#XX         my @index = ();
-#XX         foreach my $il_triple (@inline_sdiffs) {
-#XX             # make an array of u|c|+|- corresponding
-#XX             # to each character
-#XX             push @index, $il_triple->[0];
-#XX         }
-#XX#print Dumper(@index); die;
-#XX          # expect problems if arrays @index and $inline_sdiffs[1];
-#XX          # (@{$inline_sdiffs->[1]} are the characters of line_L)
-#XX          # aren't the same length
-#XX          my $prev_type = $index[0];
-#XX          my @strings   = ();  # blocks of consecutive code or comment
-#XX          my @type      = ();  # u (=code) or c (=comment)
-#XX          my $j_str     = 0;
-#XX          $strings[$j_str] .= $chars_L[0];
-#XX          $type[$j_str] = $prev_type;
-#XX          for (my $i = 1; $i < scalar @chars_L; $i++) {
-#XX              if ($index[$i] ne $prev_type) {
-#XX                  ++$j_str;
-#XX#print "change at j_str=$j_str type=$index[$i]\n";
-#XX                  $type[$j_str] = $index[$i];
-#XX                  $prev_type    = $index[$i];
-#XX              }
-#XX              $strings[$j_str] .= $chars_L[$i];
-#XX          }
-# print Dumper(@strings, @type); die;
-#XX         delete $rah_diff_R->[$n_sdiff]{char};
-#XX         @{$rah_diff_R->[$n_sdiff]{char}{strings}} = @strings;
-#XX         @{$rah_diff_R->[$n_sdiff]{char}{type}}    = @type;
             $rah_diff_L->[$n_sdiff]{desc} = "modified";
             $rah_diff_R->[$n_sdiff]{desc} = "modified";
             $rah_diff_L->[$n_sdiff]{lnum} = $n_L;
             $rah_diff_R->[$n_sdiff]{lnum} = $n_R;
-#}
 
         } elsif ($flag eq '+') {  # + = added
             ++$n_R;
             if ($COMMENT_MODE) {
-                # should never get here
-                @{$rah_diff_L} = ();
-                @{$rah_diff_R} = ();
-                push @{$raa_Errors},
-                     [ $Error_Codes{'Diff error (quoted comments?)'}, $file ];
+                # should never get here, but may due to sdiff() bug,
+                # ref https://rt.cpan.org/Public/Bug/Display.html?id=131629
+                # Rather than failing, ignore and continue.  A possible
+                # consequence is counts may be inconsistent.
+#####           @{$rah_diff_L} = ();
+#####           @{$rah_diff_R} = ();
+#####           push @{$raa_Errors},
+#####                [ $Error_Codes{'Diff error (quoted comments?)'}, $file ];
                 if ($opt_v) {
                   warn "array_diff: diff failure (diff says the\n";
                   warn "comment-free file has added lines).\n";
                   warn "$n_sdiff  $line_L\n";
                 }
-                last;
             }
-            $rah_diff_L->[$n_sdiff]{type} = "nonexist";
+####        $rah_diff_L->[$n_sdiff]{type} = "nonexist";
+            $rah_diff_L->[$n_sdiff]{type} = "comment";
             $rah_diff_L->[$n_sdiff]{desc} = "removed";
             $rah_diff_R->[$n_sdiff]{desc} = "added";
             $rah_diff_R->[$n_sdiff]{lnum} = $n_R;
@@ -10236,6 +13149,7 @@ sub array_diff {                             # {{{1
     }
 #use Data::Dumper::Simple;
 #print Dumper($rah_diff_L, $rah_diff_R);
+#print Dumper($rah_diff_L);
 
     print "<- array_diff\n" if $opt_v > 2;
 } # 1}}}
@@ -10289,9 +13203,6 @@ sub remove_leading_dir {                     # {{{1
 
     # now loop over columns until either they are all
     # eliminated or a unique column is found
-
-#use Data::Dumper::Simple;
-#print Dumper("remove_leading_dir after ", @D);
 
     my @common   = ();  # to contain the common leading directories
     my $mismatch = 0;
@@ -10443,41 +13354,69 @@ sub get_leading_dirs {                       # {{{1
     }
     return undef, undef, 0 unless %unique_filename;
 
-    my %candidate_leading_dir_L = ();
-    my %candidate_leading_dir_R = ();
+####my %candidate_leading_dir_L = ();
+####my %candidate_leading_dir_R = ();
+    my ($L_drop, $R_drop) = (undef, undef);
     foreach my $f (keys %unique_filename) {
         my $fL = $unique_filename{ $f }{'L'};
         my $fR = $unique_filename{ $f }{'R'};
+
+        my @DL = File::Spec->splitdir($fL);
+        my @DR = File::Spec->splitdir($fR);
 #printf "%-36s -> %-36s\n", $fL, $fR;
-        my $ptr_L = length($fL) - 1;
-        my $ptr_R = length($fR) - 1;
-        my @aL    = split '', $fL;
-        my @aR    = split '', $fR;
-        while ($ptr_L >= 0 and $ptr_R >= 0) {
-            last if $aL[$ptr_L] ne $aR[$ptr_R];
-            --$ptr_L;
-            --$ptr_R;
+#print Dumper(@DL, @DR);
+        # find the most number of common directories between L and R
+        if (!defined $L_drop) {
+            $L_drop = dirname $fL;
         }
-#print "ptr_L=$ptr_L   ptr_R=$ptr_R\n";
-        my $leading_dir_L = "";
-           $leading_dir_L = substr($fL, 0, $ptr_L+1) if $ptr_L >= 0;
-        my $leading_dir_R = "";
-           $leading_dir_R = substr($fR, 0, $ptr_R+1) if $ptr_R >= 0;
-#print "leading_dir_L=$leading_dir_L   leading_dir_R=$leading_dir_R\n";
-        ++$candidate_leading_dir_L{$leading_dir_L};
-        ++$candidate_leading_dir_R{$leading_dir_R};
+        if (!defined $R_drop) {
+            $R_drop = dirname $fR;
+        }
+        my $n_path_elements_L = scalar @DL;
+        my $n_path_elements_R = scalar @DR;
+        my $n_path_elem = $n_path_elements_L < $n_path_elements_R ?
+                          $n_path_elements_L : $n_path_elements_R;
+        my ($n_L_drop_this_pair, $n_R_drop_this_pair) = (0, 0);
+        for (my $i = 0; $i < $n_path_elem; $i++) {
+            last if $DL[ $#DL - $i] ne $DR[ $#DR - $i];
+            ++$n_L_drop_this_pair;
+            ++$n_R_drop_this_pair;
+        }
+        my $L_common = File::Spec->catdir( @DL[0..($#DL-$n_L_drop_this_pair)] );
+        my $R_common = File::Spec->catdir( @DR[0..($#DR-$n_R_drop_this_pair)] );
+#print "L_common=$L_common\n";
+#print "R_common=$R_common\n";
+        $L_drop = $L_common if length $L_common < length $L_drop;
+        $R_drop = $R_common if length $R_common < length $R_drop;
+
+########my $ptr_L = length($fL) - 1;
+########my $ptr_R = length($fR) - 1;
+########my @aL    = split '', $fL;
+########my @aR    = split '', $fR;
+########while ($ptr_L >= 0 and $ptr_R >= 0) {
+########    last if $aL[$ptr_L] ne $aR[$ptr_R];
+########    --$ptr_L;
+########    --$ptr_R;
+########}
+########my $leading_dir_L = "";
+########   $leading_dir_L = substr($fL, 0, $ptr_L+1) if $ptr_L >= 0;
+########my $leading_dir_R = "";
+########   $leading_dir_R = substr($fR, 0, $ptr_R+1) if $ptr_R >= 0;
+########++$candidate_leading_dir_L{$leading_dir_L};
+########++$candidate_leading_dir_R{$leading_dir_R};
     }
 #use Data::Dumper::Simple;
 #print Dumper(%candidate_leading_dir_L);
 #print Dumper(%candidate_leading_dir_R);
 #die;
-    my $best_L = (sort {
-               $candidate_leading_dir_L{$b} <=>
-               $candidate_leading_dir_L{$a}} keys %candidate_leading_dir_L)[0];
-    my $best_R = (sort {
-               $candidate_leading_dir_R{$b} <=>
-               $candidate_leading_dir_R{$a}} keys %candidate_leading_dir_R)[0];
-    return $best_L, $best_R, 1;
+    return $L_drop, $R_drop, 1;
+####my $best_L = (sort {
+####           $candidate_leading_dir_L{$b} <=>
+####           $candidate_leading_dir_L{$a}} keys %candidate_leading_dir_L)[0];
+####my $best_R = (sort {
+####           $candidate_leading_dir_R{$b} <=>
+####           $candidate_leading_dir_R{$a}} keys %candidate_leading_dir_R)[0];
+####return $best_L, $best_R, 1;
 } # 1}}}
 sub align_by_pairs {                         # {{{1
     my ($rh_file_list_L        , # in
@@ -10492,6 +13431,11 @@ sub align_by_pairs {                         # {{{1
     my @files_L = sort keys %{$rh_file_list_L};
     my @files_R = sort keys %{$rh_file_list_R};
     return () unless @files_L or  @files_R;  # at least one must have stuff
+    if ($ON_WINDOWS or $opt_ignore_case_ext) {
+        foreach (@files_L) { $_ = lc $_; }
+        foreach (@files_R) { $_ = lc $_; }
+    }
+
     if      ( @files_L and !@files_R) {
         # left side has stuff, right side is empty; everything deleted
         @{$ra_added   }     = ();
@@ -10504,17 +13448,20 @@ sub align_by_pairs {                         # {{{1
         @{$ra_removed }     = ();
         @{$ra_compare_list} = ();
         return;
+    } elsif (scalar(@files_L) == 1 and scalar(@files_R) == 1) {
+        # Special case of comparing one file against another.  In
+        # this case force the pair to be aligned with each other,
+        # otherwise the file naming logic will think one file
+        # was added and the other deleted.
+        @{$ra_added   }     = ();
+        @{$ra_removed }     = ();
+        @{$ra_compare_list} = ( [$files_L[0], $files_R[0]] );
+        return;
     }
 #use Data::Dumper::Simple;
 #print Dumper("align_by_pairs", %{$rh_file_list_L}, %{$rh_file_list_R},);
 #die;
-    if (scalar @files_L == 1 and scalar @files_R == 1) {
-        # The easy case:  compare two files.
-        push @{$ra_compare_list}, [ $files_L[0],  $files_R[0] ];
-        @{$ra_added  } = ();
-        @{$ra_removed} = ();
-        return;
-    }
+
     # The harder case:  compare groups of files.  This only works
     # if the groups are in different directories so the first step
     # is to strip the leading directory names from file lists to
@@ -10526,8 +13473,6 @@ sub align_by_pairs {                         # {{{1
     my $deepest_file_R    = find_deepest_file(@files_R);
 #print "deepest L = [$deepest_file_L]\n";
 #print "deepest R = [$deepest_file_R]\n";
-####my ($leading_dir_L, $leading_dir_R, $success) =
-####    find_uncommon_parent_dir($deepest_file_L, $deepest_file_R);
     my ($leading_dir_L, $leading_dir_R, $success) =
                 get_leading_dirs($rh_file_list_L, $rh_file_list_R);
 #print "leading_dir_L=[$leading_dir_L]\n";
@@ -10589,8 +13534,8 @@ sub html_header {                            # {{{1
     return
 '<html>
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<meta name="GENERATOR" content="cloc http://cloc.sourceforge.net">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="GENERATOR" content="cloc http://github.com/AlDanial/cloc">
 ' .
 "
 <!-- Created by $script v$VERSION -->
@@ -10721,7 +13666,26 @@ sub unicode_to_ascii {                       # {{{1
     else                   { return '' }  # neither big or little endian UTF-16
 
     my @ascii              = ();
-    for (my $i = $offset; $i < $length; $i += 2) { push @ascii, $unicode[$i]; }
+    for (my $i = $offset; $i < $length; $i += 2) {
+        # some compound characters are made of HT (9), LF (10), or CR (13)
+        # True HT, LF, CR are followed by 00; only add those.
+        my $L = $unicode[$i];
+        if (ord($L) == 9 or ord($L) == 10 or ord($L) == 13) {
+            my $companion;
+            if ($points_1) {
+                $companion = $unicode[$i+1];
+            } else {
+                $companion = $unicode[$i-1];
+            }
+            if (ord($companion) == 0) {
+                push @ascii, $L;
+            } else {
+                push @ascii, " ";  # no clue what this letter is
+            }
+        } else {
+            push @ascii, $L;
+        }
+    }
     return join("", @ascii);
 } # 1}}}
 sub uncompress_archive_cmd {                 # {{{1
@@ -10781,7 +13745,7 @@ sub uncompress_archive_cmd {                 # {{{1
         } else {
             $missing = "bzip2";
         }
-    } elsif ($archive_file =~ /\.zip$/i and !$ON_WINDOWS)    {
+    } elsif ($archive_file =~ /\.(whl|zip)$/i and !$ON_WINDOWS)    {
         if (external_utility_exists("unzip")) {
             $extract_cmd = "unzip -qq -d . '$archive_file'";
         } else {
@@ -10795,16 +13759,12 @@ sub uncompress_archive_cmd {                 # {{{1
         } else {
             $missing = "dpkg-deb";
         }
-    } elsif ($ON_WINDOWS and $archive_file =~ /\.zip$/i) {
-        # zip on Windows, guess default Winzip install location
-        $extract_cmd = "";
-        my $WinZip = '"C:\\Program Files\\WinZip\\WinZip32.exe"';
-        if (external_utility_exists($WinZip)) {
-            $extract_cmd = "$WinZip -e -o \"$archive_file\" .";
-#print "trace 5 extract_cmd=[$extract_cmd]\n";
+    } elsif ($ON_WINDOWS and $archive_file =~ /\.(whl|zip)$/i) {
+        # use unzip on Windows (comes with git-for-Windows)
+        if (external_utility_exists("unzip")) {
+             $extract_cmd = "unzip -qq -d . \"$archive_file\" ";
         } else {
-#print "trace 6\n";
-            $missing = $WinZip;
+            $missing = "unzip";
         }
     }
     print "<- uncompress_archive_cmd\n" if $opt_v > 2;
@@ -10819,21 +13779,35 @@ sub uncompress_archive_cmd {                 # {{{1
 # 1}}}
 sub read_list_file {                         # {{{1
     my ($file, ) = @_;
+    # reads filenames from a STDIN pipe if $file == "-"
 
     print "-> read_list_file($file)\n" if $opt_v > 2;
-    my $IN = new IO::File $file, "r";
-    if (!defined $IN) {
-        warn "Unable to read $file; ignoring.\n";
-        return ();
-    }
     my @entry = ();
-    while (<$IN>) {
-        next if /^\s*$/ or /^\s*#/; # skip empty or commented lines
-        s/\cM$//;  # DOS to Unix
-        chomp;
-        push @entry, $_;
+
+    if ($file eq "-") {
+        # read from a STDIN pipe
+        my $IN;
+        open($IN, $file);
+        if (!defined $IN) {
+            warn "Unable to read $file; ignoring.\n";
+            return ();
+        }
+        while (<$IN>) {
+            next if /^\s*$/ or /^\s*#/; # skip empty or commented lines
+            s/\cM$//;  # DOS to Unix
+            chomp;
+            push @entry, $_;
+        }
+        $IN->close;
+    } else {
+        # read from an actual file
+        foreach my $line (read_file($file)) {
+            next if $line =~ /^\s*$/ or $line =~ /^\s*#/;
+            $line =~ s/\cM$//;  # DOS to Unix
+            chomp $line;
+            push @entry, $line;
+        }
     }
-    $IN->close;
 
     print "<- read_list_file\n" if $opt_v > 2;
     return @entry;
@@ -10855,14 +13829,10 @@ sub external_utility_exists {                # {{{1
     return $success;
 } # 1}}}
 sub write_xsl_file {                         # {{{1
-    my $OUT = new IO::File $CLOC_XSL, "w";
-    if (!defined $OUT) {
-        warn "Unable to write $CLOC_XSL  $!\n";
-        return;
-    }
+    print "-> write_xsl_file\n" if $opt_v > 2;
     my $XSL =             # <style>  </style> {{{2
-'<?xml version="1.0" encoding="US-ASCII"?>
-<!-- XLS file by Paul Schwann, January 2009.
+'<?xml version="1.0" encoding="UTF-8"?>
+<!-- XSL file by Paul Schwann, January 2009.
      Fixes for by-file and by-file-by-lang by d_uragan, November 2010.
      -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -11013,8 +13983,8 @@ EO_XSL
 # 2}}}
 
     my $XSL_DIFF = <<'EO_DIFF_XSL'; # {{{2
-<?xml version="1.0" encoding="US-ASCII"?>
-<!-- XLS file by Blazej Kroll, November 2010 -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- XSL file by Blazej Kroll, November 2010 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:output method="html"/>
   <xsl:template match="/">
@@ -11258,11 +14228,11 @@ EO_DIFF_XSL
 EO_DIFF_XSL
 # 2}}}
     if ($opt_diff) {
-        print $OUT $XSL_DIFF;
+        write_file($CLOC_XSL, {}, ( $XSL_DIFF ) );
     } else {
-        print $OUT $XSL;
+        write_file($CLOC_XSL, {}, ( $XSL ) );
     }
-    $OUT->close();
+    print "<- write_xsl_file\n" if $opt_v > 2;
 } # 1}}}
 sub normalize_file_names {                   # {{{1
     my (@files, ) = @_;
@@ -11287,7 +14257,7 @@ sub normalize_file_names {                   # {{{1
             $F_norm =~ s{^\./}{}g;  # remove leading ./
             if ($F_norm !~ m{^/}) {
                 # looks like a relative path; prefix with cwd
-                $F_norm = lc "$cwd/$F_norm";
+                $F_norm = "$cwd/$F_norm";
             }
         }
         # Remove trailing / so it does not interfere with further regex code
@@ -11352,8 +14322,12 @@ sub combine_diffs {                          # {{{1
                     $cols[0], $cols[1], $cols[2], $cols[3]);
     $res .= sprintf("%s\n", "-" x $width);
 
+    # no inputs? %HoH will be empty
+    return $res unless %HoH;
+
     for my $sec ( keys %HoH ) {
         next if $sec =~ /SUM:/;
+        next unless defined $HoH{$sec};  # eg, the header line
         $res .= "$sec\n";
         foreach (@rows) {
             $res .= sprintf(" %-18s %14s %14s %14s %14s\n",
@@ -11392,105 +14366,319 @@ sub really_is_D {                            # {{{1
         $raa_errors  , # out
        ) = @_;
     print "-> really_is_D($file)\n" if $opt_v > 2;
-    my $possible_script = peek_at_first_line($file, $rh_Err, $raa_errors);
+    my ($possible_script, $L) = peek_at_first_line($file, $rh_Err, $raa_errors);
 
     print "<- really_is_D($file)\n" if $opt_v > 2;
     return $possible_script;    # null string if D, otherwise a language
 } # 1}}}
+sub no_autogen_files {                       # {{{1
+    # ref https://github.com/AlDanial/cloc/issues/151
+    my ($print,) = @_;
+    print "-> no_autogen($print)\n" if $opt_v > 2;
+
+    # These sometimes created manually?
+    #               acinclude.m4
+    #               configure.ac
+    #               Makefile.am
+
+    my @files = qw (
+                    aclocal.m4
+                    announce-gen
+                    autogen.sh
+                    bootstrap
+                    compile
+                    config.guess
+                    config.h.in
+                    config.rpath
+                    config.status
+                    config.sub
+                    configure
+                    configure.in
+                    depcomp
+                    gendocs.sh
+                    gitlog-to-changelog
+                    git-version-gen
+                    gnupload
+                    gnu-web-doc-update
+                    install-sh
+                    libtool
+                    libtool.m4
+                    link-warning.h
+                    ltmain.sh
+                    lt~obsolete.m4
+                    ltoptions.m4
+                    ltsugar.m4
+                    ltversion.in
+                    ltversion.m4
+                    Makefile.in
+                    mdate-sh
+                    missing
+                    mkinstalldirs
+                    test-driver
+                    texinfo.tex
+                    update-copyright
+                    useless-if-before-free
+                    vc-list-files
+                    ylwrap
+                   );
+
+    if ($print) {
+        printf "cloc will ignore these %d files with --no-autogen:\n", scalar @files;
+        foreach my $F (@files) {
+            print "    $F\n";
+        }
+        print "Additionally, Go files with '// Code generated by .* DO NOT EDIT.'\n";
+        print "on the first line are ignored.\n";
+    }
+    print "<- no_autogen()\n" if $opt_v > 2;
+    return @files;
+} # 1}}}
+sub load_from_config_file {                  # {{{1
+    # Supports all options except --config itself which would
+    # be pointless.
+    my ($config_file,
+                                                 $rs_by_file             ,
+                                                 $rs_by_file_by_lang     ,
+                                                 $rs_categorized         ,
+                                                 $rs_counted             ,
+                                                 $rs_include_ext         ,
+                                                 $rs_include_lang        ,
+                                                 $rs_exclude_content     ,
+                                                 $rs_exclude_lang        ,
+                                                 $rs_exclude_dir         ,
+                                                 $rs_exclude_list_file   ,
+                                                 $rs_explain             ,
+                                                 $rs_extract_with        ,
+                                                 $rs_found               ,
+                                                 $rs_count_diff          ,
+                                                 $rs_diff                ,
+                                                 $rs_diff_alignment      ,
+                                                 $rs_diff_timeout        ,
+                                                 $rs_timeout             ,
+                                                 $rs_html                ,
+                                                 $rs_ignored             ,
+                                                 $rs_quiet               ,
+                                                 $rs_force_lang_def      ,
+                                                 $rs_read_lang_def       ,
+                                                 $rs_show_ext            ,
+                                                 $rs_show_lang           ,
+                                                 $rs_progress_rate       ,
+                                                 $rs_print_filter_stages ,
+                                                 $rs_report_file         ,
+                                                 $ra_script_lang         ,
+                                                 $rs_sdir                ,
+                                                 $rs_skip_uniqueness     ,
+                                                 $rs_strip_comments      ,
+                                                 $rs_original_dir        ,
+                                                 $rs_sum_reports         ,
+                                                 $rs_hide_rate           ,
+                                                 $rs_processes           ,
+                                                 $rs_unicode             ,
+                                                 $rs_3                   ,
+                                                 $rs_v                   ,
+                                                 $rs_vcs                 ,
+                                                 $rs_version             ,
+                                                 $rs_write_lang_def      ,
+                                                 $rs_write_lang_def_incl_dup,
+                                                 $rs_xml                 ,
+                                                 $rs_xsl                 ,
+                                                 $ra_force_lang          ,
+                                                 $rs_lang_no_ext         ,
+                                                 $rs_yaml                ,
+                                                 $rs_csv                 ,
+                                                 $rs_csv_delimiter       ,
+                                                 $rs_json                ,
+                                                 $rs_md                  ,
+                                                 $rs_fullpath            ,
+                                                 $rs_match_f             ,
+                                                 $rs_not_match_f         ,
+                                                 $rs_match_d             ,
+                                                 $rs_not_match_d         ,
+                                                 $rs_list_file           ,
+                                                 $rs_help                ,
+                                                 $rs_skip_win_hidden     ,
+                                                 $rs_read_binary_files   ,
+                                                 $rs_sql                 ,
+                                                 $rs_sql_project         ,
+                                                 $rs_sql_append          ,
+                                                 $rs_sql_style           ,
+                                                 $rs_inline              ,
+                                                 $rs_exclude_ext         ,
+                                                 $rs_ignore_whitespace   ,
+                                                 $rs_ignore_case         ,
+                                                 $rs_ignore_case_ext     ,
+                                                 $rs_follow_links        ,
+                                                 $rs_autoconf            ,
+                                                 $rs_sum_one             ,
+                                                 $rs_by_percent          ,
+                                                 $rs_stdin_name          ,
+                                                 $rs_force_on_windows    ,
+                                                 $rs_force_on_unix       ,
+                                                 $rs_show_os             ,
+                                                 $rs_skip_archive        ,
+                                                 $rs_max_file_size       ,
+                                                 $rs_use_sloccount       ,
+                                                 $rs_no_autogen          ,
+                                                 $rs_force_git           ,
+                                                 $rs_strip_str_comments  ,
+                                                 $rs_file_encoding       ,
+                                                 $rs_docstring_as_code   ,
+                                                 $rs_stat                ,
+        ) = @_;
+        # look for runtime configuration file in
+        #    $ENV{'HOME'}/.config/cloc/options.txt         -> POSIX
+        #    $ENV{'APPDATA'} . 'cloc'
+
+    print "-> load_from_config_file($config_file)\n" if $opt_v and $opt_v > 2;
+    if (!-f $config_file) {
+        print "<- load_from_config_file() (no such file: $config_file)\n" if $opt_v and $opt_v > 2;
+        return;
+    } elsif (!-r $config_file) {
+        print "<- load_from_config_file() (unable to read $config_file)\n" if $opt_v and $opt_v > 2;
+        return;
+    }
+    print "Reading options from $config_file.\n" if defined $opt_v;
+
+    my $has_force_lang = @{$ra_force_lang};
+    my $has_script_lang = @{$ra_script_lang};
+    my @lines = read_file($config_file);
+    foreach (@lines) {
+        next if /^\s*$/ or /^\s*#/;
+        s/\s*--//;
+        s/^\s+//;
+        if      (!defined ${$rs_by_file}             and /^(by_file|by-file)/)                                { ${$rs_by_file}            = 1;
+        } elsif (!defined ${$rs_by_file_by_lang}     and /^(by_file_by_lang|by-file-by-lang)/)                { ${$rs_by_file_by_lang}    = 1;
+        } elsif (!defined ${$rs_categorized}         and /^categorized(=|\s+)(.*?)$/)                         { ${$rs_categorized}        = $2;
+        } elsif (!defined ${$rs_counted}             and /^counted(=|\s+)(.*?)$/)                             { ${$rs_counted}            = $2;
+        } elsif (!defined ${$rs_include_ext}         and /^(?:include_ext|include-ext)(=|\s+)(.*?)$/)         { ${$rs_include_ext}        = $2;
+        } elsif (!defined ${$rs_include_lang}        and /^(?:include_lang|include-lang)(=|\s+)(.*?)$/)       { ${$rs_include_lang}       = $2;
+        } elsif (!defined ${$rs_exclude_content}     and /^(?:exclude_content|exclude-content)(=|\s+)(.*?)$/) { ${$rs_exclude_content}    = $2;
+        } elsif (!defined ${$rs_exclude_lang}        and /^(?:exclude_lang|exclude-lang)(=|\s+)(.*?)$/)       { ${$rs_exclude_lang}       = $2;
+        } elsif (!defined ${$rs_exclude_dir}         and /^(?:exclude_dir|exclude-dir)(=|\s+)(.*?)$/)         { ${$rs_exclude_dir}        = $2;
+        } elsif (!defined ${$rs_explain}             and /^explain(=|\s+)(.*?)$/)                             { ${$rs_explain}            = $2;
+        } elsif (!defined ${$rs_extract_with}        and /^(?:extract_with|extract-with)(=|\s+)(.*?)$/)       { ${$rs_extract_with}       = $2;
+        } elsif (!defined ${$rs_found}               and /^found(=|\s+)(.*?)$/)                               { ${$rs_found}              = $2;
+        } elsif (!defined ${$rs_count_diff}          and /^(count_and_diff|count-and-diff)/)                  { ${$rs_count_diff}         = 1;
+        } elsif (!defined ${$rs_diff}                and /^diff/)                                             { ${$rs_diff}               = 1;
+        } elsif (!defined ${$rs_diff_alignment}      and /^(?:diff-alignment|diff_alignment)(=|\s+)(.*?)$/)   { ${$rs_diff_alignment}     = $2;
+        } elsif (!defined ${$rs_diff_timeout}        and /^(?:diff-timeout|diff_timeout)(=|\s+)i/)            { ${$rs_diff_timeout}       = $1;
+        } elsif (!defined ${$rs_timeout}             and /^timeout(=|\s+)i/)                                  { ${$rs_timeout}            = $1;
+        } elsif (!defined ${$rs_html}                and /^html/)                                             { ${$rs_html}               = 1;
+        } elsif (!defined ${$rs_ignored}             and /^ignored(=|\s+)(.*?)$/)                             { ${$rs_ignored}            = $2;
+        } elsif (!defined ${$rs_quiet}               and /^quiet/)                                            { ${$rs_quiet}              = 1;
+        } elsif (!defined ${$rs_force_lang_def}      and /^(?:force_lang_def|force-lang-def)(=|\s+)(.*?)$/)   { ${$rs_force_lang_def}     = $2;
+        } elsif (!defined ${$rs_read_lang_def}       and /^(?:read_lang_def|read-lang-def)(=|\s+)(.*?)$/)     { ${$rs_read_lang_def}      = $2;
+        } elsif (!defined ${$rs_progress_rate}       and /^(?:progress_rate|progress-rate)(=|\s+)(\d+)/)      { ${$rs_progress_rate}      = $2;
+        } elsif (!defined ${$rs_print_filter_stages} and /^(print_filter_stages|print-filter-stages)/)        { ${$rs_print_filter_stages}= 1;
+        } elsif (!defined ${$rs_report_file}         and /^(?:report_file|report-file)(=|\s+)(.*?)$/)         { ${$rs_report_file}        = $2;
+        } elsif (!defined ${$rs_report_file}         and /^out(=|\s+)(.*?)$/)                                 { ${$rs_report_file}        = $2;
+        } elsif (!defined ${$rs_sdir}                and /^sdir(=|\s+)(.*?)$/)                                { ${$rs_sdir}               = $2;
+        } elsif (!defined ${$rs_skip_uniqueness}     and /^(skip_uniqueness|skip-uniqueness)/)                { ${$rs_skip_uniqueness}    = 1;
+        } elsif (!defined ${$rs_strip_comments}      and /^(?:strip_comments|strip-comments)(=|\s+)(.*?)$/)   { ${$rs_strip_comments}     = $2;
+        } elsif (!defined ${$rs_original_dir}        and /^(original_dir|original-dir)/)                      { ${$rs_original_dir}       = 1;
+        } elsif (!defined ${$rs_sum_reports}         and /^(sum_reports|sum-reports)/)                        { ${$rs_sum_reports}        = 1;
+        } elsif (!defined ${$rs_hide_rate}           and /^(hid_rate|hide-rate)/)                             { ${$rs_hide_rate}          = 1;
+        } elsif (!defined ${$rs_processes}           and /^processes(=|\s+)(\d+)/)                            { ${$rs_processes}          = $2;
+        } elsif (!defined ${$rs_unicode}             and /^unicode/)                                          { ${$rs_unicode}            = 1;
+        } elsif (!defined ${$rs_3}                   and /^3/)                                                { ${$rs_3}                  = 1;
+        } elsif (!defined ${$rs_vcs}                 and /^vcs(=|\s+)(\S+)/)                                  { ${$rs_vcs}                = $2;
+        } elsif (!defined ${$rs_version}             and /^version/)                                          { ${$rs_version}            = 1;
+        } elsif (!defined ${$rs_write_lang_def}      and /^(?:write_lang_def|write-lang-def)(=|\s+)(.*?)$/)   { ${$rs_write_lang_def}     = $2;
+        } elsif (!defined ${$rs_write_lang_def_incl_dup} and /^(?:write_lang_def_incl_dup|write-lang-def-incl-dup)(=|\s+)(.*?)$/) { ${$rs_write_lang_def_incl_dup} = $2;
+        } elsif (!defined ${$rs_xml}                 and /^xml/)                                              { ${$rs_xml}                = 1;
+        } elsif (!defined ${$rs_xsl}                 and /^xsl(=|\s+)(.*?)$/)                                 { ${$rs_xsl}                = $2;
+        } elsif (!defined ${$rs_lang_no_ext}         and /^(?:lang_no_ext|lang-no-ext)(=|\s+)(.*?)$/)         { ${$rs_lang_no_ext}        = $2;
+        } elsif (!defined ${$rs_yaml}                and /^yaml/)                                             { ${$rs_yaml}               = 1;
+        } elsif (!defined ${$rs_csv}                 and /^csv/)                                              { ${$rs_csv}                = 1;
+        } elsif (!defined ${$rs_csv_delimiter}       and /^(?:csv_delimeter|csv-delimiter)(=|\s+)(.*?)$/)     { ${$rs_csv_delimiter}      = $2;
+        } elsif (!defined ${$rs_json}                and /^json/)                                             { ${$rs_json}               = 1;
+        } elsif (!defined ${$rs_md}                  and /^md/)                                               { ${$rs_md}                 = 1;
+        } elsif (!defined ${$rs_fullpath}            and /^fullpath/)                                         { ${$rs_fullpath}           = 1;
+        } elsif (!defined ${$rs_match_f}             and /^(?:match_f|match-f)(=|\s+)(.*?)$/)                 { ${$rs_match_f}            = $2;
+        } elsif (!defined ${$rs_not_match_f}         and /^(?:not_match_f|not-match-f)(=|\s+)(.*?)$/)         { ${$rs_not_match_f}        = $2;
+        } elsif (!defined ${$rs_match_d}             and /^(?:match_d|match-d)(=|\s+)(.*?)$/)                 { ${$rs_match_d}            = $2;
+        } elsif (!defined ${$rs_not_match_d}         and /^(?:not_match_d|not-match-d)(=|\s+)(.*?)$/)         { ${$rs_not_match_d}        = $2;
+        } elsif (!defined ${$rs_list_file}           and /^(?:list_file|list-file)(=|\s+)(.*?)$/)             { ${$rs_list_file}          = $2;
+        } elsif (!defined ${$rs_help}                and /^help/)                                             { ${$rs_help}               = 1;
+        } elsif (!defined ${$rs_skip_win_hidden}     and /^(skip_win_hidden|skip-win-hidden)/)                { ${$rs_skip_win_hidden}    = 1;
+        } elsif (!defined ${$rs_read_binary_files}   and /^(read_binary_files|read-binary-files)/)            { ${$rs_read_binary_files}  = 1;
+        } elsif (!defined ${$rs_sql}                 and /^sql(=|\s+)(.*?)$/)                                 { ${$rs_sql}                = $2;
+        } elsif (!defined ${$rs_sql_project}         and /^(?:sql_project|sql-project)(=|\s+)(.*?)$/)         { ${$rs_sql_project}        = $2;
+        } elsif (!defined ${$rs_sql_append}          and /^(sql_append|sql-append)/)                          { ${$rs_sql_append}         = 1;
+        } elsif (!defined ${$rs_sql_style}           and /^(?:sql_style|sql-style)(=|\s+)(.*?)$/)             { ${$rs_sql_style}          = $2;
+        } elsif (!defined ${$rs_inline}              and /^inline/)                                           { ${$rs_inline}             = 1;
+        } elsif (!defined ${$rs_exclude_ext}         and /^(?:exclude_ext|exclude-ext)(=|\s+)(.*?)$/)         { ${$rs_exclude_ext}        = $2;
+        } elsif (!defined ${$rs_ignore_whitespace}   and /^(ignore_whitespace|ignore-whitespace)/)            { ${$rs_ignore_whitespace}  = 1;
+        } elsif (!defined ${$rs_ignore_case_ext}     and /^(ignore_case_ext|ignore-case-ext)/)                { ${$rs_ignore_case_ext}    = 1;
+        } elsif (!defined ${$rs_ignore_case}         and /^(ignore_case|ignore-case)/)                        { ${$rs_ignore_case}        = 1;
+        } elsif (!defined ${$rs_follow_links}        and /^(follow_links|follow-links)/)                      { ${$rs_follow_links}       = 1;
+        } elsif (!defined ${$rs_autoconf}            and /^autoconf/)                                         { ${$rs_autoconf}           = 1;
+        } elsif (!defined ${$rs_sum_one}             and /^(sum_one|sum-one)/)                                { ${$rs_sum_one}            = 1;
+        } elsif (!defined ${$rs_by_percent}          and /^(?:by_percent|by-percent)(=|\s+)(.*?)$/)           { ${$rs_by_percent}         = $2;
+        } elsif (!defined ${$rs_stdin_name}          and /^(?:stdin_name|stdin-name)(=|\s+)(.*?)$/)           { ${$rs_stdin_name}         = $2;
+        } elsif (!defined ${$rs_force_on_windows}    and /^windows/)                                          { ${$rs_force_on_windows}   = 1;
+        } elsif (!defined ${$rs_force_on_unix}       and /^unix/)                                             { ${$rs_force_on_unix}      = 1;
+        } elsif (!defined ${$rs_show_os}             and /^(show_os|show-os)/)                                { ${$rs_show_os}            = 1;
+        } elsif (!defined ${$rs_skip_archive}        and /^(?:skip_archive|skip-archive)(=|\s+)(.*?)$/)       { ${$rs_skip_archive}       = $2;
+        } elsif (!defined ${$rs_max_file_size}       and /^(?:max_file_size|max-file-size)(=|\s+)(\d+)/)      { ${$rs_max_file_size}      = $2;
+        } elsif (!defined ${$rs_use_sloccount}       and /^(use_sloccount|use-sloccount)/)                    { ${$rs_use_sloccount}      = 1;
+        } elsif (!defined ${$rs_no_autogen}          and /^(no_autogen|no-autogen)/)                          { ${$rs_no_autogen}         = 1;
+        } elsif (!defined ${$rs_force_git}           and /^git/)                                              { ${$rs_force_git}          = 1;
+        } elsif (!defined ${$rs_exclude_list_file}   and /^(?:exclude_list_file|exclude-list-file)(=|\s+)(.*?)$/)
+                                                                   { ${$rs_exclude_list_file}  = $2;
+        } elsif (!defined ${$rs_v} and /(verbose|v)((=|\s+)(\d+))?/) {
+            if (!defined $4) { ${$rs_v} =  0; }
+            else             { ${$rs_v} = $4; }
+        } elsif (!$has_script_lang and /^(?:script_lang|script-lang)(=|\s+)(.*?)$/)         {
+                                                            push @{$ra_script_lang}          , $2;
+        } elsif (!$has_force_lang and /^(?:force_lang|force-lang)(=|\s+)(.*?)$/)           {
+                                                            push @{$ra_force_lang}           , $2;
+        } elsif (!defined ${$rs_show_ext}          and /^(show_ext|show-ext)((=|\s+)(.*))?$/)  {
+            if (!defined $4) { ${$rs_show_ext} =  0; }
+            else             { ${$rs_show_ext} = $4; }
+        } elsif (!defined ${$rs_show_lang}         and /^(show_lang|show-lang)((=|\s+)(.*))?s/){
+            if (!defined $4) { ${$rs_show_lang} =  0; }
+            else             { ${$rs_show_lang} = $4; }
+        } elsif (!defined ${$rs_strip_str_comments}  and /^(strip_str_comments|strip-str-comments)/)     { ${$rs_strip_str_comments} = 1;
+        } elsif (!defined ${$rs_file_encoding}       and /^(?:file_encoding|file-encoding)(=|\s+)(\S+)/) { ${$rs_file_encoding}      = $2;
+        } elsif (!defined ${$rs_docstring_as_code}   and /^(docstring_as_code|docstring-as-code)/)       { ${$rs_docstring_as_code}  = 1;
+        } elsif (!defined ${$rs_stat}                and /stat/)                                         { ${$rs_stat}               = 1;
+        }
+
+    }
+} # 1}}}
+sub trick_pp_packer_encode {                 # {{{1
+    use Encode;
+    # PAR::Packer gives 'Unknown PerlIO layer "encoding"' unless it is
+    # forced into using this module.
+    my ($OUT, $JunkFile) = tempfile(UNLINK => 1);  # delete on exit
+    open($OUT, "> :encoding(utf8)", $JunkFile);
+    close($OUT);
+}
+# 1}}}
+sub really_is_smarty {                       # {{{1
+    # Given filename, returns TRUE if its contents look like Smarty template
+    my ($filename, ) = @_;
+
+    print "-> really_is_smarty($filename)\n" if $opt_v > 2;
+
+    my @lines = read_file($filename);
+
+    my $points = 0;
+    foreach my $L (@lines) {
+        if (($L =~ /\{(if|include)\s/) or
+            ($L =~ /\{\/if\}/)         or
+            ($L =~ /(\{\*|\*\})/)      or
+            ($L =~ /\{\$\w/)) {
+            ++$points;
+        }
+        last if $points >= 2;
+    }
+    print "<- really_is_smarty(points=$points)\n" if $opt_v > 2;
+    return $points >= 2;
+} # 1}}}
 # subroutines copied from SLOCCount
-my %lex_files    = ();  # really_is_lex()
-my %expect_files = ();  # really_is_expect()
 my %php_files    = ();  # really_is_php()
-sub really_is_lex {                          # {{{1
-# Given filename, returns TRUE if its contents really is lex.
-# lex file must have "%%", "%{", and "%}".
-# In theory, a lex file doesn't need "%{" and "%}", but in practice
-# they all have them, and requiring them avoid mislabeling a
-# non-lexfile as a lex file.
-
- my $filename = shift;
- chomp($filename);
-
- my $is_lex = 0;      # Value to determine.
- my $percent_percent = 0;
- my $percent_opencurly = 0;
- my $percent_closecurly = 0;
-
- # Return cached result, if available:
- if ($lex_files{$filename}) { return $lex_files{$filename};}
-
- open(LEX_FILE, "<$filename") ||
-      die "Can't open $filename to determine if it's lex.\n";
- while(<LEX_FILE>) {
-   $percent_percent++     if (m/^\s*\%\%/);
-   $percent_opencurly++   if (m/^\s*\%\{/);
-   $percent_closecurly++   if (m/^\s*\%\}/);
- }
- close(LEX_FILE);
-
- if ($percent_percent && $percent_opencurly && $percent_closecurly)
-          {$is_lex = 1;}
-
- $lex_files{$filename} = $is_lex; # Store result in cache.
-
- return $is_lex;
-} # 1}}}
-sub really_is_expect {                       # {{{1
-# Given filename, returns TRUE if its contents really are Expect.
-# Many "exp" files (such as in Apache and Mesa) are just "export" data,
-# summarizing something else # (e.g., its interface).
-# Sometimes (like in RPM) it's just misc. data.
-# Thus, we need to look at the file to determine
-# if it's really an "expect" file.
-
- my $filename = shift;
- chomp($filename);
-
-# The heuristic is as follows: it's Expect _IF_ it:
-# 1. has "load_lib" command and either "#" comments or {}.
-# 2. {, }, and one of: proc, if, [...], expect
-
- my $is_expect = 0;      # Value to determine.
-
- my $begin_brace = 0;  # Lines that begin with curly braces.
- my $end_brace = 0;    # Lines that begin with curly braces.
- my $load_lib = 0;     # Lines with the Load_lib command.
- my $found_proc = 0;
- my $found_if = 0;
- my $found_brackets = 0;
- my $found_expect = 0;
- my $found_pound = 0;
-
- # Return cached result, if available:
- if ($expect_files{$filename}) { return expect_files{$filename};}
-
- open(EXPECT_FILE, "<$filename") ||
-      die "Can't open $filename to determine if it's expect.\n";
- while(<EXPECT_FILE>) {
-
-   if (m/#/) {$found_pound++; s/#.*//;}
-   if (m/^\s*\{/) { $begin_brace++;}
-   if (m/\{\s*$/) { $begin_brace++;}
-   if (m/^\s*\}/) { $end_brace++;}
-   if (m/\};?\s*$/) { $end_brace++;}
-   if (m/^\s*load_lib\s+\S/) { $load_lib++;}
-   if (m/^\s*proc\s/) { $found_proc++;}
-   if (m/^\s*if\s/) { $found_if++;}
-   if (m/\[.*\]/) { $found_brackets++;}
-   if (m/^\s*expect\s/) { $found_expect++;}
- }
- close(EXPECT_FILE);
-
- if ($load_lib && ($found_pound || ($begin_brace && $end_brace)))
-          {$is_expect = 1;}
- if ( $begin_brace && $end_brace &&
-      ($found_proc || $found_if || $found_brackets || $found_expect))
-          {$is_expect = 1;}
-
- $expect_files{$filename} = $is_expect; # Store result in cache.
-
- return $is_expect;
-} # 1}}}
 sub really_is_pascal {                       # {{{1
 # Given filename, returns TRUE if its contents really are Pascal.
 
