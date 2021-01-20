@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="50%" src="https://github.com/mkenney/.dotfiles/wiki/assets/images/screenshot.png">
+    <img width="75%" src="https://github.com/mkenney/.dotfiles/wiki/assets/images/screenshot.png">
 </p>
 
 # Shell Environment Configuration
