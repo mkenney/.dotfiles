@@ -12,7 +12,7 @@ filetype off
 " General configuration
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" wish i new about this sooner...
+" wish i knew about this sooner...
 set showcmd
 
 " open splits to the right
