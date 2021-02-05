@@ -79,5 +79,5 @@ link-dotfile clickhouse-client.xml
 
 # install vim plugins
 cd .dotfiles \
-    && git -c url.https://github.com/:.insteadOf=git@github.com submodule update --init --remote --recursive \
+    && git submodule update --init --recursive \
     && $VIM +PluginInstall +qall
