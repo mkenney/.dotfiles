@@ -75,6 +75,7 @@ link-dotfile .screenrc
 link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
+link-dotfile clickhouse-client.xml
 
 # install vim plugins
 cd .dotfiles \

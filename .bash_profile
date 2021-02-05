@@ -28,6 +28,11 @@ if [ -f ~/.dotfiles/bash/completion ]; then
     source ~/.dotfiles/bash/completion
 fi
 
+#echo "~/.dotfiles/common/clickhouse"
+if [ -f ~/.dotfiles/common/clickhouse ]; then
+    source ~/.dotfiles/common/clickhouse
+fi
+
 # CVS shortcuts
 #echo "~/.dotfiles/common/cvs"
 if [ -f ~/.dotfiles/common/cvs ]; then

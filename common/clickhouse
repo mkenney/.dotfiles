@@ -1,0 +1,3 @@
+#!/bin/bash
+
+alias ch="clickhouse client"
