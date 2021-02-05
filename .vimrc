@@ -493,10 +493,10 @@ Plugin 'mkenney/vim-snippets'
 Plugin 'tpope/vim-surround'
 
 " YouCompleteMe
-" Plugin 'Valloric/YouCompleteMe'
-" let g:ycm_collect_identifiers_from_tags_files = 1
-" let g:ycm_add_preview_to_completeopt = 1
-" let g:ycm_autoclose_preview_window_after_completion = 1
+Plugin 'Valloric/YouCompleteMe'
+let g:ycm_collect_identifiers_from_tags_files = 1
+let g:ycm_add_preview_to_completeopt = 1
+let g:ycm_autoclose_preview_window_after_completion = 1
 
 Plugin 'nathanaelkane/vim-indent-guides'
 let g:indent_guides_enable_on_vim_startup = 1
