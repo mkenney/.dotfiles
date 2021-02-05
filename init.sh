@@ -78,6 +78,6 @@ link-dotfile clickhouse-client.xml
 # install vim plugins
 echo $HOME/.dotfiles
 cd $HOME/.dotfiles
-$VIM +PluginInstall +qall +silent
+$VIM +silent +PluginInstall +qall
 
 link-dotfile .gitconfig
