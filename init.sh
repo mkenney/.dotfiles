@@ -78,5 +78,5 @@ link-dotfile .vimrc
 link-dotfile clickhouse-client.xml
 
 # install vim plugins
-cd .dotfiles \
+cd $HOME/.dotfiles \
     && $VIM +PluginInstall +qall
