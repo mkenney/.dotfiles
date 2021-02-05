@@ -80,4 +80,4 @@ link-dotfile clickhouse-client.xml
 # install vim plugins
 echo $HOME/.dotfiles
 cd $HOME/.dotfiles \
-    && HOME= $VIM +PluginInstall +qall
+    && $VIM +PluginInstall +qall
