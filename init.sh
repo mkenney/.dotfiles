@@ -62,6 +62,11 @@ if [ "Darwin" = "$platform" ]; then
     #fi
 fi
 
+# install vim plugins
+echo $HOME/.dotfiles
+cd $HOME/.dotfiles \
+    && $VIM +PluginInstall +qall
+
 link-dotfile .bash_profile
 link-dotfile .bashrc
 link-dotfile .gitconfig
@@ -76,8 +81,3 @@ link-dotfile .tmux.conf
 link-dotfile .vim
 link-dotfile .vimrc
 link-dotfile clickhouse-client.xml
-
-# install vim plugins
-echo $HOME/.dotfiles
-cd $HOME/.dotfiles \
-    && $VIM +PluginInstall +qall
