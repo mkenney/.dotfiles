@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+alias dev="devenv -v $HOME/clickhouse-client.xml"
 
 CONTAINER_SUFFIX=.devenv
 
