@@ -241,6 +241,6 @@ export -f kx
 #
 # '⎈ {context}::{namespace}'
 __k8s_ps1() {
-    echo "$__K8S_PS1_SYMBOL $(kx)::$(kn)"
+    echo "$__K8S_PS1_SYMBOL$(kx)::$(kn)"
 }
 export -f __k8s_ps1

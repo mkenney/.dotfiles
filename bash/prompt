@@ -28,6 +28,7 @@ __prompt_command() {
 
     local -a ps1_lines
 
+    # detect ssh sessions
     ssh=
     if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
         ssh=1
@@ -36,18 +37,35 @@ __prompt_command() {
             ssh=1;;
         esac
     fi
+
     session_type=
     if [ "1" == "$ssh" ]; then
         session_type=' \[${COLOR_DKGREEN_FADED}\](ssh)\[${COLOR_NORM}\]'
     fi
 
-    # Line 1 - host and current path
+    userprompt=
     if [ "$EUID" = "0" ]; then
         # Root
-        ps1_lines+="\n┌\[${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\]${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
+        userprompt="${COLOR_RED_BLINK}\]\u\[\e[0m\]\[${COLOR_NORM}\]"
+    elif [ "true" = "$IS_DEVENV" ]; then
+        userprompt="\[\033[38;5;88m\](devenv)\[${COLOR_NORM}\]"
     else
-        ps1_lines+="\n┌\[${COLOR_YELLOW_FADED}\]\u@\H\[${COLOR_NORM}\]${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
+        userprompt="${COLOR_YELLOW_FADED}\]\u\[${COLOR_NORM}\]"
     fi
+
+    hostprompt=
+    if [ "true" != "$IS_DEVENV" ]; then
+        hostprompt="\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\]"
+    fi
+
+    pwdprompt="\[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
+
+
+    #if [ "true" = "$IS_DEVENV" ]; then
+    #    ps1_lines+="${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
+    #else
+    #    ps1_lines+="\[${COLOR_YELLOW_FADED}\]@\H\[${COLOR_NORM}\]${session_type} - \[${COLOR_NORM_FADED}\]$PWD\[${COLOR_NORM}\]"
+    #fi
 
     # k8s status line
     k8sprompt=
@@ -63,6 +81,9 @@ __prompt_command() {
     if [ "true" = "$IN_GIT_REPO" ]; then # In a git repo
         gitprompt="\[${COLOR_BLUE_FADED}\]$(__git_status)\[${COLOR_NORM}\]"
     fi
+
+    # Line 1 - host info, current path
+    ps1_lines+="\n┌${userprompt}${hostprompt}${session_type} - ${pwdprompt}"
 
     # Line 2 - k8s / git status
     if [ "" != "$k8sprompt" ] || [ "" != "$gitprompt" ]; then
