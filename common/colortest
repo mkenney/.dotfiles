@@ -26,6 +26,7 @@ echo "Green Bold         : ${COLOR_GREEN_BOLD}The quick brown fox jumped over th
 echo "Green Highlight    : ${COLOR_GREEN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Green Faded        : ${COLOR_GREEN_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Green (dark) Faded : ${COLOR_DKGREEN_FADED}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
+echo "Green (dark) Highlight : ${COLOR_DKGREEN_HIGHLIGHT}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo
 echo "Yellow           : ${COLOR_YELLOW}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
 echo "Yellow Underline : ${COLOR_YELLOW_UNDERLINE}The quick brown fox jumped over the lazy dog.${COLOR_NORM}"
@@ -73,7 +74,7 @@ echo "White Background : ${BACKGROUND_WHITE}The quick brown fox jumped over the 
 
 for i in `seq 1 255`; do
     COLOR_TST0=$"\033[38;5;${i}m"
-    #COLOR_TST1=$"\033[38;5;${i}m"
+    COLOR_TST1=$"\033[38;3;${i}m"
     #COLOR_TST2=$"\033[38;5;${i}m"
     #COLOR_TST3=$"\033[38;5;${i}m"
     #COLOR_TST4=$"\033[38;5;${i}m"

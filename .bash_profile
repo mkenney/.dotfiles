@@ -102,9 +102,9 @@ fi
 
 # kubectl
 #echo "~/.dotfiles/common/kubectl"
-if [ -f ~/.dotfiles/common/kubectl ]; then
-    source ~/.dotfiles/common/kubectl
-fi
+#if [ -f ~/.dotfiles/common/kubectl ]; then
+#    source ~/.dotfiles/common/kubectl
+#fi
 
 # Perl
 #echo "~/.dotfiles/common/perl"
