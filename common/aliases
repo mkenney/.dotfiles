@@ -27,11 +27,10 @@ alias iv='vim'
 alias ivm='vim'
 alias l='ls -1'
 alias lcs='clear'
-alias less='less -R'
+alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --mouse --save-marks --RAW-CONTROL-CHARS"
 alias ll='ls -l'
 alias locate='locate -i'
 alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
-alias more='less'
 alias mv='mv -i'
 alias pstree='pstree -ahlpuU'
 alias rm='rm -i'
@@ -51,9 +50,12 @@ alias yes="echo no"
 #
 platform=`uname`
 if [[ $platform == 'Linux' ]]; then
+    alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS --mouse --save-marks"
     echo "nothing to override" > /dev/null
 
 elif [[ $platform == 'Darwin' ]]; then
+    alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS"
+
     if [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
         alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'
         alias vimdiff='/Applications/MacVim.app/Contents/bin/vimdiff'
