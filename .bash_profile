@@ -165,3 +165,4 @@ fi
 if [ -f ~/.dotfiles/common/tmux ]; then
     source ~/.dotfiles/common/tmux
 fi
+source "$HOME/.cargo/env"

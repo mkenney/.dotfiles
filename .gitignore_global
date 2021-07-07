@@ -13,3 +13,4 @@ node_modules
 tags.devenv
 tmp
 tmp/**/*
+.bdlmdev.*

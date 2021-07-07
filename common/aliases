@@ -7,7 +7,8 @@ function fetchproxy() {
 }
 
 alias d="docker"
-alias dc="docker-compose"
+alias dc="docker compose"
+alias docker-compose="docker compose"
 alias h="helm"
 alias t="terraform"
 
@@ -55,6 +56,7 @@ if [[ $platform == 'Linux' ]]; then
 
 elif [[ $platform == 'Darwin' ]]; then
     alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS"
+    alias cputemp="sudo powermetrics --samplers smc |grep -i 'die temperature'"
 
     if [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
         alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'
