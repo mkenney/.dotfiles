@@ -94,19 +94,19 @@ auth() {
     case "$1" in
         # Docker
         "docker")
-            echo "authenticting docker into rp-eo"
-            auth eo
-            aws ecr get-login-password --region us-east-1 | docker login \
+            echo "authenticating docker into AWS ECR"
+            old_vault=$AWS_VAULT
+            unset AWS_VAULT && aws-vault exec eo -- aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
-
-            echo "authenticting docker into vfe-prod"
-            auth vfe-prod
-            aws ecr get-login-password --region us-east-1 | docker login \
+                596297932419.dkr.ecr.us-east-1.amazonaws.com &> ${LOGFILE}
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'eo' account failed"; return exit_code; fi
+            unset AWS_VAULT && aws-vault exec vfe-prod -- aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                $(aws ecr get-authorization-token --output text --region us-east-1 --query "authorizationData[].proxyEndpoint") > /dev/null
+                616752873841.dkr.ecr.us-east-1.amazonaws.com &> ${LOGFILE}
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'vfe-prod' account failed"; return exit_code; fi
+            unset AWS_VAULT && eval "export AWS_VAULT=$old_vault"
         ;;
         # SSH keys.
         "ssh")
@@ -121,7 +121,14 @@ auth() {
         ;;
         # Default to AWS
         *)
-            $(aquaduck aws -p ${1})
+            # all this is just to authenticate the current shell without exec-ing
+            # into a new subshell which is super annoying.
+            unset AWS_VAULT
+            while read -r a; do
+                eval "export $a"
+                exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return exit_code; fi
+            done <<< "$(aws-vault exec ${1} -- env | grep ^AWS_)"
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return exit_code; fi
         ;;
     esac
 }
@@ -198,14 +205,6 @@ kx() {
             eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
             $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
         ;;
-        "vfe")
-            profile="${1}-${2}"
-            cluster="${workload}.k8s.us-east-1.${profile}.validityhq.net"
-            default_namespace="vfe"
-
-            eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
-            $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
-        ;;
         "-")
             cluster=$__K8S_LAST_CONTEXT
             eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
@@ -215,9 +214,13 @@ kx() {
             return
         ;;
         *)
-            echo "Unknown profile '$1'"
-            $(exit 2)
-            return
+            profile="${1}-${2}"
+            cluster="${workload}-us-east-1-${profile}"
+            default_namespace="vfe"
+
+            eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
+            auth $profile
+            aws eks --region us-east-1 update-kubeconfig --name $cluster
         ;;
     esac
 

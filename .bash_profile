@@ -12,10 +12,10 @@ if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
 
-# Aquaduck
-#echo "~/.dotfiles/common/aquaduck"
-if [ -f ~/.dotfiles/common/aquaduck ]; then
-    source ~/.dotfiles/common/aquaduck
+# validity-auth
+#echo "~/.dotfiles/common/validity-auth"
+if [ -f ~/.dotfiles/common/validity-auth ]; then
+    source ~/.dotfiles/common/validity-auth
 fi
 
 # Bash completion settings
