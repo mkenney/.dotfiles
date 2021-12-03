@@ -12,10 +12,10 @@ if [ -f ~/.dotfiles/common/aws ]; then
     source ~/.dotfiles/common/aws
 fi
 
-# validity-auth
-#echo "~/.dotfiles/common/validity-auth"
-if [ -f ~/.dotfiles/common/validity-auth ]; then
-    source ~/.dotfiles/common/validity-auth
+# validity-auth.sh
+#echo "~/.dotfiles/common/validity-auth.sh"
+if [ -f ~/.dotfiles/common/validity-auth.sh ]; then
+    source ~/.dotfiles/common/validity-auth.sh
 fi
 
 # Bash completion settings
