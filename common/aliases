@@ -8,10 +8,11 @@ function fetchproxy() {
 
 alias d="docker"
 alias dc="docker compose"
-alias docker-compose="docker compose"
+#alias docker-compose="docker compose"
 alias h="helm"
 alias t="terraform"
 
+alias :qa="echo 'stop it'"
 alias a="cal"
 alias alien="docker run --rm -t -v $(pwd):/rpm mkenney/alien"
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
@@ -33,6 +34,7 @@ alias ll='ls -l'
 alias locate='locate -i'
 alias ls='ls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
 alias mv='mv -i'
+alias pip='pip3'
 alias pstree='pstree -ahlpuU'
 alias rm='rm -i'
 alias rsync='rsync --progress'

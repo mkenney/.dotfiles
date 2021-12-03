@@ -2,8 +2,10 @@
 
 function __ext_kubectl_get {
     if [ "$1" == "all" ]; then
-        /usr/bin/env kubectl get namespace,replicaset,secret,job,daemonset,statefulset,ingress,configmap,pv,pvc,service,deployment,pod,nodes
+        all="cronjob,job,namespace,replicaset,secret,job,daemonset,horizontalpodautoscaler,statefulset,ingress,configmap,pv,pvc,service,deployment,pod,serviceaccount,nodes"
+        echo " - kubectl get ${all} ${@:2}"
+        eval "/usr/bin/env kubectl get ${all} ${@:2}"
     else
-        /usr/bin/env kubectl get "${@:1}"
+        eval "/usr/bin/env kubectl get ${@:1}"
     fi
 }

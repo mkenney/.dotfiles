@@ -26,7 +26,8 @@ __ext_cmd() {
 
     # execute matching function, else execute the default command
     if [ "1" = "$found" ]; then
-        echo "executing extension '$(echo $cmd ${@:$shift_to})'"
+        echo "executing '$1 $2' middleware"
+        #echo "executing middleware '$(echo $1 $2 ${@:$shift_to} | xargs)'"
         $(echo $cmd ${@:$shift_to})
     else
         /usr/bin/env $1 "${@:2}"
