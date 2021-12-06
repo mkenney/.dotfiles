@@ -11,17 +11,6 @@ source ~/.dotfiles/common/color
 export LAST_PWD=$PWD
 export IN_GIT_REPO=$(git rev-parse --is-inside-work-tree 2> /dev/null)
 
-kp() {
-    if [ "enabled" = "$K8S_STATUS_LINE" ]; then
-        eval "export K8S_STATUS_LINE="
-    else
-        eval "export K8S_STATUS_LINE=enabled"
-    fi
-}
-if [ "" != "$(which kubectl)" ]; then
-    export K8S_STATUS_LINE=enabled
-fi
-
 __prompt_command() {
     # always first to capture the last shell error
     local last_status=$?

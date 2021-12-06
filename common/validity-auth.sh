@@ -3,15 +3,14 @@
 # Place this file in your home directory and add this line to your ~/.bash_profile
 # or ~/.bashrc:
 #
-#   source $HOME/.aquaduck
+#   source $HOME/validity-auth.sh
 #
 #
-# auth() - Authenticate against AWS roles using aquaduck. If no arguments are
-# passed, authenticate into aws and the docker repository, and generate SSH keys
-# for gateway servers.
+# auth() - Authenticate against AWS roles using aquaduck or aws-vault.
 #
 #   auth [eo|vfe-test|vfe-prod]
-#       Authenticate into AWS. Needed for aws-cli and terraform commands.
+#       Authenticate into the specified AWS account. Needed for aws-cli and
+#       terraform commands.
 #   auth ssh [eo-test|eo-prod|vfe-test|vfe-prod]
 #       Create SSH keys for gateway servers. Needed to create local SSH tunnels
 #       to AWS services.
@@ -71,15 +70,17 @@ if [ -d "$HOME/.kube" ]; then
     export -A __K8S_LAST_NAMESPACE
     export -A __K8S_CURR_NAMESPACE
 
-    current_context=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
-    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${currrent_context}\")].context.namespace}" 2> /dev/null)
-    if [ "" != "$current_ns" ]; then
-        current_ns="default"
-    fi
-
+    current_context="$(kx)"
     if [ "" != "$current_context" ]; then
-        export -A __K8S_LAST_NAMESPACE=([$current_context]=default)
-        export -A __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
+        current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${current_context}\")].context.namespace}" 2> /dev/null)
+        if [ "" != "$current_ns" ]; then
+            current_ns="default"
+        fi
+
+        if [ "" != "$current_context" ]; then
+            export -A __K8S_LAST_NAMESPACE=([$current_context]=default)
+            export -A __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
+        fi
     fi
 fi
 
@@ -88,8 +89,8 @@ fi
 # for gateway servers.
 #
 # - authenticate docker:  `auth docker`
-# - authenticate SSH:     `auth ssh vfe-test`
-# - authenticate aws-cli: `auth eo`
+# - authenticate SSH:     `auth ssh vfe-test` (uses aquaduck)
+# - authenticate aws-cli: `auth vfe-test`
 auth() {
     case "$1" in
         # Docker
@@ -140,36 +141,40 @@ export -f auth
 # i.e. `kn infrastructure`
 # i.e. `kn -` // switches back
 kn() {
-    currrent_context="$(kx)"
-    if [ "" == "$currrent_context" ]; then
-        >&2 echo "kubernetes context is not set"
+    current_context="$(kx)"
+    if [ "" = "$current_context" ]; then
+        if [ "" != "$1" ]; then
+            >&2 echo "kubernetes context is not set"
+        fi
         $(exit 1)
         return
     fi
 
-    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${currrent_context}\")].context.namespace}" 2> /dev/null)
+    if [ "" != "$current_context" ]; then
+        current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$(kx)\")].context.namespace}" 2> /dev/null)
+    fi
     if [ "" = "$current_ns" ]; then
         current_ns="default"
     fi
-
-    if [ "" == "${__K8S_LAST_NAMESPACE[$currrent_context]}" ]; then
-        __K8S_LAST_NAMESPACE[$currrent_context]=$current_ns
+    ctxkey=$(basename $current_context)
+    if [ "" == "${__K8S_LAST_NAMESPACE[$ctxkey]}" ]; then
+        __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
     fi
-    if [ "" == "${__K8S_CURR_NAMESPACE[$currrent_context]}" ]; then
-        __K8S_CURR_NAMESPACE[$currrent_context]=$current_ns
+    if [ "" == "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
+        __K8S_CURR_NAMESPACE[$ctxkey]=$current_ns
     fi
 
     if [ "" == "$1" ]; then
         echo $current_ns
     elif [ "-" == "$1" ]; then
-        kubectl config set-context "${currrent_context}" --namespace="${__K8S_LAST_NAMESPACE[$currrent_context]}" > /dev/null
-        __K8S_LAST_NAMESPACE[$currrent_context]=$current_ns
-        __K8S_CURR_NAMESPACE[$currrent_context]=${__K8S_LAST_NAMESPACE[$currrent_context]}
+        kubectl config set-context $(kx) --namespace="${__K8S_LAST_NAMESPACE[$ctxkey]}" > /dev/null
+        __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
+        __K8S_CURR_NAMESPACE[$ctxkey]=${__K8S_LAST_NAMESPACE[$ctxkey]}
         __k8s_ps1
     else
-        kubectl config set-context "${currrent_context}" --namespace="$1" > /dev/null
-        __K8S_LAST_NAMESPACE[$currrent_context]=$current_ns
-        __K8S_CURR_NAMESPACE[$currrent_context]=$1
+        kubectl config set-context $(kx) --namespace="$1" > /dev/null
+        __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
+        __K8S_CURR_NAMESPACE[$ctxkey]=$1
         __k8s_ps1
     fi
 
@@ -194,6 +199,14 @@ kx() {
     fi
 
     case "$1" in
+        "")
+            echo $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+            return
+        ;;
+        "-")
+            cluster=$__K8S_LAST_CONTEXT
+            eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
+        ;;
         "eo")
             profile=$1
             if [ "test" == "$2" ]; then
@@ -205,37 +218,32 @@ kx() {
             eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
             $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
         ;;
-        "-")
-            cluster=$__K8S_LAST_CONTEXT
-            eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
-        ;;
-        "")
-            echo $(kubectl config view -o=jsonpath='{.current-context}')
-            return
-        ;;
         *)
             profile="${1}-${2}"
             cluster="${workload}-us-east-1-${profile}"
             default_namespace="vfe"
 
+            env cp -f ~/.kube/config ~/.kube/config.${cluster}
+            eval "export KUBECONFIG=${HOME}/.kube/config.${cluster}"
             eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
+
             auth $profile
-            aws eks --region us-east-1 update-kubeconfig --name $cluster
+            aws eks --region us-east-1 update-kubeconfig --name $cluster &> /dev/null
         ;;
     esac
 
     # Switch to the specified context
-    kubectl config use-context $cluster > /dev/null
-    current_context=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+    ctxkey=$(basename $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) 2> /dev/null)
     if [ "" != "$default_namespace" ]; then
-        if [ "" == "${__K8S_CURR_NAMESPACE[$current_context]}" ]; then
-            __K8S_CURR_NAMESPACE[$current_context]=$default_namespace
+        if [ "" == "${__K8S_CURR_NAMESPACE}" ] || [ "" == "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
+            __K8S_CURR_NAMESPACE[$ctxkey]=$default_namespace
             eval "export -A __K8S_CURR_NAMESPACE"
         fi
     fi
 
     # Make sure it lands in the expected namespace
-    kn ${__K8S_CURR_NAMESPACE[$current_context]}
+    kn ${__K8S_CURR_NAMESPACE[$ctxkey]}
+    kp on
 }
 export -f kx
 
@@ -244,6 +252,34 @@ export -f kx
 #
 # '⎈ {context}::{namespace}'
 __k8s_ps1() {
-    echo "$__K8S_PS1_SYMBOL$(kx)::$(kn)"
+    if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+        kx=$(basename $(kx) 2> /dev/null)
+        if [ "" != "$kx" ]; then
+            echo "$__K8S_PS1_SYMBOL ${kx}::$(kn)"
+        fi
+    fi
 }
 export -f __k8s_ps1
+
+# kp() - enable, disable, or toggle __k8s_ps1() status line output
+kp() {
+    if [ "" != "$1" ]; then
+        if [ "on" = "$1" ]; then
+            eval "export K8S_STATUS_LINE=enabled"
+        else
+            eval "export K8S_STATUS_LINE="
+        fi
+    else
+        if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+            eval "export K8S_STATUS_LINE="
+        else
+            eval "export K8S_STATUS_LINE=enabled"
+        fi
+    fi
+}
+
+if [ "" = "$(which kubectl)" ] || [ "" = "$(kx)" ]; then
+    export K8S_STATUS_LINE=
+else
+    export K8S_STATUS_LINE=enabled
+fi
