@@ -28,7 +28,7 @@
     changed = yellow bold
     untracked = red
 [core]
-    pager = less
+    pager = less -+$LESS
     whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore_global
     editor = vim

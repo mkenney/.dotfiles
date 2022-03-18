@@ -8,7 +8,7 @@ __didyoumean() {
     "$@" 2> $tmpfile
     exit_code=$?
     dym_errors=$(cat $tmpfile)
-    rm -f $tmpfile
+    #rm -f $tmpfile
     if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
         # Display a menu for "did you mean" error suggestions
         if [ "" != "$(echo "$dym_errors" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
@@ -28,7 +28,10 @@ __didyoumean() {
             done <<< "$dym_errors"
 
             # rebuild error output
-            bad_command=$(echo "$dym_errors" | awk -F "'" '{print $2}')
+            bad_command=$(echo "$dym_errors" | awk -F '"' '$0=$2' | xargs)
+            if [ "" == "$bad_command" ]; then
+                bad_command=$(echo "$dym_errors" | awk -F "'" '$0=$2' | xargs)
+            fi
             >&2 echo "$2: '$bad_command' is not a $2 command. See '$2 --help'."
             >&2 echo
 
@@ -89,6 +92,9 @@ __didyoumean() {
             echo "$dym_errors"
             return $exit_code
         fi
+    else
+        echo "$dym_errors"
+        return $exit_code
     fi
 }
 export -f __didyoumean

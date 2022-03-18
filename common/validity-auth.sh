@@ -77,9 +77,11 @@ if [ -d "$HOME/.kube" ]; then
             current_ns="default"
         fi
 
+        ctxkey=$(basename $current_context)
+        ctxkey=${ctxkey//./_}
         if [ "" != "$current_context" ]; then
-            export -A __K8S_LAST_NAMESPACE=([$current_context]=default)
-            export -A __K8S_CURR_NAMESPACE=([$current_context]=$current_ns)
+            export -A __K8S_LAST_NAMESPACE=([$ctxkey]=default)
+            export -A __K8S_CURR_NAMESPACE=([$ctxkey]=$current_ns)
         fi
     fi
 fi
@@ -100,13 +102,13 @@ auth() {
             unset AWS_VAULT && aws-vault exec eo -- aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                596297932419.dkr.ecr.us-east-1.amazonaws.com &> ${LOGFILE}
-            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'eo' account failed"; return exit_code; fi
+                596297932419.dkr.ecr.us-east-1.amazonaws.com
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'eo' account failed"; return $exit_code; fi
             unset AWS_VAULT && aws-vault exec vfe-prod -- aws ecr get-login-password --region us-east-1 | docker login \
                 --username AWS \
                 --password-stdin \
-                616752873841.dkr.ecr.us-east-1.amazonaws.com &> ${LOGFILE}
-            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'vfe-prod' account failed"; return exit_code; fi
+                616752873841.dkr.ecr.us-east-1.amazonaws.com
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'vfe-prod' account failed"; return $exit_code; fi
             unset AWS_VAULT && eval "export AWS_VAULT=$old_vault"
         ;;
         # SSH keys.
@@ -127,9 +129,9 @@ auth() {
             unset AWS_VAULT
             while read -r a; do
                 eval "export $a"
-                exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return exit_code; fi
+                exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return $exit_code; fi
             done <<< "$(aws-vault exec ${1} -- env | grep ^AWS_)"
-            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return exit_code; fi
+            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return $exit_code; fi
         ;;
     esac
 }
@@ -157,6 +159,7 @@ kn() {
         current_ns="default"
     fi
     ctxkey=$(basename $current_context)
+    ctxkey=${ctxkey//./_}
     if [ "" == "${__K8S_LAST_NAMESPACE[$ctxkey]}" ]; then
         __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
     fi
@@ -186,7 +189,7 @@ export -f kn
 # kx() - Authenticate into a kubernetes cluster and set the appropriate context.
 # If no arguments are passed, print the current context.
 #
-# i.e. `kx eo test 1`
+# i.e. `kx vfe test 2`
 kx() {
     cluster=
     env=
