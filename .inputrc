@@ -1,28 +1,32 @@
 $include /etc/inputrc
 
-"\e[1~": beginning-of-line
-"\e[4~": end-of-line
-"\e[5~": history-search-backward
-"\e[6~": history-search-forward
+# history search
+"\er": "\C-r"                    # alias meta-r to ctrl-r
+"\e[5~": history-search-backward # page up
+"\e[6~": history-search-forward  # page down
+"\e[A": history-search-backward  # up arrow search
+"\e[B": history-search-forward   # down arrow search
 
-# fn+backspace
-"\e[3~": delete-char
+# kill keys
+"\e[3~": delete-char        # fn+backspace
+"\ew":   backward-kill-word # M-w on OSX, makes M-w / M-d the combos for both directions
 
-# have to map this in iterm (it's the "insert" key...)
-# option+return
-# just use ctrl+v instead
-"\e[2~": quoted-insert
+# movement keys
+"\e[1~":  beginning-of-line # home
+"\e[4~":  end-of-line       # end
+"\e[5D":  backward-word     # ctrl+left
+"\e\e[D": backward-word     # ctrl+left
+"\e[5C":  forward-word      # ctrl+right
+"\e\e[C": forward-word      # ctrl+right
 
-# ctrl+left
-"\e[5C": forward-word
-"\e\e[C": forward-word
+# prefs
+set colored-stats on              # tab-completion color
+set mark-symlinked-directories on # tab-completion adds a `/` character to the end of symlinked directories
+set expand-tilde on               #
+set completion-ignore-case off    #
+set show-all-if-ambiguous on      # show possible matches on the first tab instead of the second
+set revert-all-at-newline on      # don't edit history when editing a previous command, add the edited command to history instead
+set show-all-if-ambiguous on      #
+set visible-stats on              #
 
-# ctrl+right
-"\e[5D": backward-word
-"\e\e[D": backward-word
-
-set colored-stats On
-set mark-symlinked-directories On
-set expand-tilde on
-set completion-ignore-case off
-set show-all-if-ambiguous on
+set show-all-if-unmodified on     #
