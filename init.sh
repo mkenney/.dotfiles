@@ -46,7 +46,11 @@ if [ "Darwin" = "$platform" ]; then
     brew install openssh
 
     # set bash as the login shell. also need to set it your the terminal emulator.
-    chsh -s /usr/local/bin/bash
+    if [ -f "/usr/local/bin/bash" ]; then
+        chsh -s /usr/local/bin/bash
+    else
+        chsh -s /opt/homebrew/bin/bash
+    fi
     sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
 
     # dnsmasq isn't started by default

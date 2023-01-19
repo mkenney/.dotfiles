@@ -1,4 +1,6 @@
 # ./.bash_profile
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Aliases
 #echo "~/.dotfiles/common/aliases"

@@ -5,7 +5,7 @@
 [user]
     email = michael.kenney@validity.com
     name = Michael Kenney
-	signingkey = 8567EA55C95FE11B
+    signingkey = 9FE716BB5213A379
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 [diff]
@@ -61,6 +61,6 @@
 [push]
     default = matching
 [commit]
-	gpgsign = true
+#	gpgsign = true
 [pull]
 	rebase = false
