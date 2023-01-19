@@ -1,7 +1,11 @@
+#[user]
+#    email = mkenney@webbedlam.com
+#    name = Michael Kenney
+#	signingkey = 9FE716BB5213A379
 [user]
-    email = mkenney@webbedlam.com
+    email = michael.kenney@validity.com
     name = Michael Kenney
-	signingkey = 9FE716BB5213A379
+	signingkey = 8567EA55C95FE11B
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 [diff]
