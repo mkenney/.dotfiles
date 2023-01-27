@@ -6,7 +6,7 @@ export GOPATH
 export GOPRIVATE=github.com/ReturnPath,github.com/validityhq,github.com/bdlm
 
 # path
-PATH=/usr/local/go/bin:/usr/local/bin:$PATH
+PATH=/usr/local/go/bin:/usr/local/bin:/opt/homebrew/bin:$PATH
 PATH=$HOME/bin:$PATH
 PATH=$HOME/.dotfiles/bin:$PATH
 PATH=$GOPATH/bin:$PATH
