@@ -52,7 +52,12 @@ nnoremap <tab><tab> <c-w><c-w>
 
 " mouse support
 set mouse=a
-set ttymouse=xterm2
+" set ttymouse=xterm2
+if has("mouse_sgr")
+    set ttymouse=sgr
+else
+    set ttymouse=xterm2
+end
 
 " enable showing matching enclosing characters
 set showmatch
@@ -454,14 +459,14 @@ Bundle 'scrooloose/syntastic'
 let g:syntastic_php_checkers = ['php', 'phpcs']
 
 " Snippet plugin
-Plugin 'SirVer/ultisnips'
+" Plugin 'SirVer/ultisnips'
 " Snippet trigger configuration. Do not use <tab> if you use
 " https://github.com/Valloric/YouCompleteMe.
-let g:UltiSnipsExpandTrigger="<c-p>"
-let g:UltiSnipsJumpForwardTrigger="<c-b>"
-let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+" let g:UltiSnipsExpandTrigger="<c-p>"
+" let g:UltiSnipsJumpForwardTrigger="<c-b>"
+" let g:UltiSnipsJumpBackwardTrigger="<c-z>"
 " If you want :UltiSnipsEdit to split your window.
-let g:UltiSnipsEditSplit="vertical"
+" let g:UltiSnipsEditSplit="vertical"
 
 " Taglist
 Plugin 'vim-scripts/taglist.vim'

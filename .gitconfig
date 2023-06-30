@@ -1,11 +1,7 @@
-#[user]
-#    email = mkenney@webbedlam.com
-#    name = Michael Kenney
-#	signingkey = 9FE716BB5213A379
 [user]
     email = michael.kenney@validity.com
     name = Michael Kenney
-    signingkey = 9FE716BB5213A379
+    signingkey = 7E2A4B4FBCD546FD
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 [diff]
@@ -43,11 +39,11 @@
     first = log --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n' --all --diff-filter=A --
 
 
-    l = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all
+    l = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)'
     #l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)--------------------------------------------------------------------------------%C(reset)%n' --all
-    ll = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n' --all
+    ll = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n'
     #l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n' --all
-    committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
+    #committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
 
     # based on: https://gist.github.com/intel352/9761288
     show-closest-branch = rev-parse --abbrev-ref HEAD
@@ -61,6 +57,6 @@
 [push]
     default = matching
 [commit]
-#	gpgsign = true
+	gpgsign = true
 [pull]
-	rebase = false
+#	rebase = true

@@ -7,7 +7,7 @@ function fetchproxy() {
 }
 
 alias d="docker"
-alias dc="docker compose"
+alias dc="env docker compose"
 #alias docker-compose="docker compose"
 alias h="helm"
 alias t="terraform"

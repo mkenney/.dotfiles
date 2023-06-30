@@ -1,5 +1,7 @@
 #!env bash
 
+export SSH_USERNAME=mkenney
+
 # Place this file in your home directory and add this line to your ~/.bash_profile
 # or ~/.bashrc:
 #
@@ -65,10 +67,10 @@ fi
 # init k8s context management variables
 if [ -d "$HOME/.kube" ]; then
     export __K8S_LAST_CONTEXT=
-    export __KUBECONFIG_DEFAULT=$HOME/.kube/config
+    export __KUBECONFIG_DEFAULT=$KUBECONFIG
     export KUBECONFIG=$__KUBECONFIG_DEFAULT
-    export -A __K8S_LAST_NAMESPACE
-    export -A __K8S_CURR_NAMESPACE
+    export -A __K8S_LAST_NAMESPACE=()
+    export -A __K8S_CURR_NAMESPACE=()
 
     current_context="$(kx)"
     if [ "" != "$current_context" ]; then
@@ -155,14 +157,17 @@ kn() {
     if [ "" != "$current_context" ]; then
         current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$(kx)\")].context.namespace}" 2> /dev/null)
     fi
+
     if [ "" = "$current_ns" ]; then
         current_ns="default"
     fi
     ctxkey=$(basename $current_context)
     ctxkey=${ctxkey//./_}
+
     if [ "" == "${__K8S_LAST_NAMESPACE[$ctxkey]}" ]; then
         __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
     fi
+
     if [ "" == "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
         __K8S_CURR_NAMESPACE[$ctxkey]=$current_ns
     fi
@@ -269,7 +274,7 @@ kx() {
             cluster="${workload}-us-east-1-${profile}"
             default_namespace="vfe"
 
-            env cp -f ~/.kube/config ~/.kube/config.${cluster}
+            #env cp -f ~/.kube/config ~/.kube/config.${cluster}
             eval "export KUBECONFIG=${HOME}/.kube/config.${cluster}"
             eval "export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)"
 
