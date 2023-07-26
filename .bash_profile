@@ -114,6 +114,12 @@ if [ -f ~/.dotfiles/common/perl ]; then
     source ~/.dotfiles/common/perl
 fi
 
+# NVM
+#echo "~/.dotfiles/common/nvm"
+if [ -f ~/.dotfiles/common/nvm ]; then
+    source ~/.dotfiles/common/nvm
+fi
+
 # Prompt
 #echo "~/.dotfiles/bash/prompt"
 if [ -f ~/.dotfiles/bash/prompt ]; then
