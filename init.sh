@@ -85,4 +85,4 @@ git submodule init && git submodule update
 $VIM +silent +PluginInstall +qall
 
 cd $HOME
-link-dotfile .gitconfig
+link-dotfile conf/.gitconfig .gitconfig
