@@ -6,3 +6,5 @@
 .viminfo
 /_*
 .git.*
+*.bak
+*.tmp
