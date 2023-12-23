@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [ "" = "$1" ]; then
+    echo "a shell must be specified (.zshrc, .bashrc. .tcshrc, etc)"
+    exit 1
+fi
+SHELLRC=".${1}rc"
+
 ##############################################################################
 #
 # WARNING about this script
@@ -18,70 +24,65 @@
 #   ~/.vimrc
 #
 ##############################################################################
-platform=`uname`
+PLATFORM=`uname`
 VIM='vim'
+TYPE=$(basename $SHELL)
 link-dotfile() {
     DOTFILE=$1
-    if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-        rm -rf $HOME/$DOTFILE
-        ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
+    DESTINATION=$2
+    if [ ! -L "$HOME/$DESTINATION" ] || [ "$(readlink $HOME/$DESTINATION)" != "$HOME/.dotfiles/$DOTFILE" ]; then
+        rm -f $HOME/$DESTINATION
+        ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DESTINATION
     fi
 }
 
-if [ "Darwin" = "$platform" ]; then
+if [ "Darwin" = "$PLATFORM" ]; then
     if [ "" = "$(which brew)" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     fi
 
-    brew install bash
-    brew install bash-completion
-    brew install coreutils
-    brew install dnsmasq
-    brew install gnu-sed
-    brew install gnutils
-    brew install kubernetes-cli
-    brew install kubernetes-helm
-    brew install awscli
-    brew install tmux
-    brew install openssh
+    # brew install bash
+    # brew install bash-completion
+    # brew install coreutils
+    # brew install dnsmasq
+    # brew install gnu-sed
+    # brew install gnutils
+    # brew install kubernetes-cli
+    # brew install kubernetes-helm
+    # brew install awscli
+    # brew install tmux
+    # brew install openssh
+
+    # # dnsmasq isn't started by default
+    # sudo brew services start dnsmasq
 
     # set bash as the login shell. also need to set it your the terminal emulator.
-    if [ -f "/usr/local/bin/bash" ]; then
-        chsh -s /usr/local/bin/bash
-    else
-        chsh -s /opt/homebrew/bin/bash
-    fi
-    sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
-
-    # dnsmasq isn't started by default
-    sudo brew services start dnsmasq
-
-    ## My solarized-dark theme for Visual Studio Code
-    #if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
-    #    rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    #    cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    #fi
-    #if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
-    #    VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
-    #fi
+    # if [ -f "/usr/local/bin/bash" ]; then
+    #     chsh -s /usr/local/bin/bash
+    # else
+    #     chsh -s /opt/homebrew/bin/bash
+    # fi
+    #sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
 fi
 
-link-dotfile .bash_profile
-link-dotfile .bashrc
-link-dotfile .gitignore_global
-link-dotfile .inputrc
-link-dotfile .my.cnf
-link-dotfile .phpcs_rules.xml
-link-dotfile .psqlrc
-link-dotfile .screenrc
-link-dotfile .tmux.conf
-link-dotfile .vim
-link-dotfile .vimrc
-link-dotfile clickhouse-client.xml
+
+link-dotfile shell/.shellrc         $SHELLRC
+link-dotfile conf/.gitignore_global .gitignore_global
+link-dotfile conf/.inputrc          .inputrc
+link-dotfile conf/.my.cnf           .my.cnf
+link-dotfile conf/.phpcs_rules.xml  .phpcs_rules.xml
+link-dotfile conf/.psqlrc           .psqlrc
+link-dotfile conf/.screenrc         .screenrc
+link-dotfile conf/.spacemacs        .spacemacs
+link-dotfile conf/.tmux.conf        .tmux.conf
+link-dotfile conf/.vim              .vim
+link-dotfile conf/.vimrc            .vimrc
 
 # install vim plugins
 echo $HOME/.dotfiles
 cd $HOME/.dotfiles
+git submodule init && git submodule update
 $VIM +silent +PluginInstall +qall
 
+cd $HOME
 link-dotfile .gitconfig

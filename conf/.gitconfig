@@ -5,7 +5,7 @@
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 [diff]
-    external = ~/.dotfiles/.vimdiff_wrapper
+    external = ~/.dotfiles/bin/git_vimdiff_wrapper
 [pager]
     diff =
 [color]
