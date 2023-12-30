@@ -2,7 +2,7 @@ source ~/.dotfiles/shell/prompt/git-status
 autoload -U colors && colors
 autoload -U promptinit && promptinit
 autoload -Uz vcs_info
-gitprompt=
+export gitprompt=
 
 precmd() {
     vcs_info
@@ -10,10 +10,10 @@ precmd() {
 chpwd() {
     IN_GIT_REPO=$(git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$IN_GIT_REPO" ]; then # In a git repo
-        gitprompt="
+        export gitprompt="
 │ ${COLOR_BLUE_FADED}$(echo $(__git_status))${COLOR_NORM}"
     else
-        gitprompt=
+        export gitprompt=
     fi
  }
 zstyle ':vcs_info:git:*' formats '%b '
