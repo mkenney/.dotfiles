@@ -5,9 +5,6 @@ autoload -Uz vcs_info
 export gitprompt=
 
 precmd() {
-    vcs_info
-}
-chpwd() {
     IN_GIT_REPO=$(git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$IN_GIT_REPO" ]; then # In a git repo
         export gitprompt="
@@ -15,6 +12,8 @@ chpwd() {
     else
         export gitprompt=
     fi
+}
+chpwd() {
  }
 zstyle ':vcs_info:git:*' formats '%b '
 setopt PROMPT_SUBST
