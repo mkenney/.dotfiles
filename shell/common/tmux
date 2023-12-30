@@ -7,5 +7,5 @@ __tmux() {
         tmux $@
     fi
 }
-export -f __tmux
+#export -f __tmux
 alias tmux="__tmux"

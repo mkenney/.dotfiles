@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-golintnovendor() {
-    echo $(golint $@ | grep -v "^vendor/*")
-}
-export -f golintnovendor
-alias golint="golintnovendor"

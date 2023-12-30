@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# k8s status line
+# Displays a UTF-8 icon and the current kubectl context and namespace:
+# ⎈ docker-for-desktop/default
+if [ "" = "$K8S_PS1_SYMBOL" ]; then
+    export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
+fi
+if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+    now=$(date '+%s')
+    echo "$K8S_PS1_SYMBOL $K8S_CURRENT_CONTEXT:$(kn)"
+fi

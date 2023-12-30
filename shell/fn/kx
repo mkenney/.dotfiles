@@ -1,0 +1,65 @@
+# set the k8s config path and executable, defining the current context. Assumes
+# the path to the config files is `$HOME/.kube/<path argument here>/config` and
+# the path to the executable is `$HOME/.kube/<path argument here>/kubectl`
+#
+# different executables because of version differences across clusters... :(
+K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
+eval "export -l K8S_LAST_NAMESPACE"
+
+if [ "-" = "$1" ]; then
+    a=$KUBECONFIG
+    eval "export KUBECONFIG=$__LAST_KUBECONFIG"
+    eval "export __LAST_KUBECONFIG=$a"
+#elif [ "" != "$1" -a \( -d "~/.kube/$1" -o -L "~/.kube/$1" \) ]; then
+elif [ "" != "$1" ] && [ -d "$HOME/.kube/$1" ]; then
+    conf_path="$HOME/.kube/$1"
+    cluster=$1
+    if [ -L "$HOME/.kube/$1" ]; then
+        conf_path=$(readlink "$HOME/.kube/$1")
+        cluster=$(basename $conf_path)
+    fi
+
+    if [ "vfe.prod" == "$1" ]; then
+        eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n vfe -p vfe-prod)
+    elif [ "vfe.tst" == "$1" ]; then
+        eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n vfe -p vfe-test)
+    else
+        eval $(aquaduck auth kube $cluster --k8s-auth-type kops -n eo -p eo)
+    fi
+
+    if [ -f "$HOME/.kube/$conf_path/config.vault" ]; then
+        eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+        eval "export KUBECONFIG=$HOME/.kube/$conf_path/config.vault"
+    elif [ -f "$HOME/.kube/$conf_path/config" ]; then
+        eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+        eval "export KUBECONFIG=$HOME/.kube/$conf_path/config"
+    elif [ -f "$HOME/.kube/$conf_path/config.kops" ]; then
+        eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+        eval "export KUBECONFIG=$HOME/.kube/$conf_path/config.kops"
+    else
+        >&2 echo "File not found: $HOME/.kube/$conf_path/config"
+        return 1
+    fi
+else
+    eval "export __LAST_KUBECONFIG=$KUBECONFIG"
+    eval "export KUBECONFIG=$KUBECONFIG_DEFAULT"
+fi
+if [ "$KUBECONFIG_DEFAULT" != "$KUBECONFIG" ]; then
+    eval "export __KUBECONFIG_UPDATED_AT=$(date '+%s')"
+fi
+K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
+
+eval "export K8S_CURRENT_CONTEXT=$K8S_CURRENT_CONTEXT"
+eval "export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")"
+if [ "" != "${K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]}" ]; then
+    K8S_NAMESPACES[$K8S_CURRENT_CONTEXT]=$(kubectl get namespaces | grep -vE 'NAME.*STATUS.*AGE.*' | awk '{print $1}')
+    eval "export -l K8S_NAMESPACES"
+fi
+
+if [ "" = "${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}" ]; then
+    K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE
+else
+    K8S_CURRENT_NAMESPACE=${K8S_LAST_NAMESPACE[$K8S_CURRENT_CONTEXT]}
+    kubectl config set-context "$K8S_CURRENT_CONTEXT" --namespace="$K8S_CURRENT_NAMESPACE"
+fi
+eval "export -l K8S_LAST_NAMESPACE"

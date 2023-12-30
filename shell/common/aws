@@ -10,4 +10,4 @@ __awsume() {
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
-complete -F __awsume awsume
+#complete -F __awsume awsume

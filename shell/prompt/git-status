@@ -40,6 +40,7 @@
 
 # Because doing this sequentially in bash is slow
 platform=`uname`
+__git_status_cmd=
 if [ "Darwin" = "$platform" ]; then
     which git-status-darwin-amd64 &> /dev/null; exit_code=$?
     if [ "0" = "$exit_code" ]; then
@@ -56,9 +57,20 @@ export __git_status_cmd
 
 __git_status() {
     # Because doing this sequentially in bash is slow
-    if [ "" != "$__git_status_cmd" ]; then
-        echo $($__git_status_cmd $@)
-        return
+    platform=`uname`
+    if [ "Darwin" = "$platform" ]; then
+        which git-status-darwin-amd64 &> /dev/null; exit_code=$?
+        if [ "0" = "$exit_code" ]; then
+            echo $(git-status-darwin-amd64)
+            return
+        fi
+    fi
+    if [ "Linux" = "$platform" ]; then
+        which git-status-linux-amd64 &> /dev/null; exit_code=$?
+        if [ "0" = "$exit_code" ]; then
+            echo $(git-status-linux-amd64)
+            return
+        fi
     fi
 
     # Fallback to the bash script
@@ -149,7 +161,7 @@ __git_status() {
     # Branch information
     compare_ref="HEAD"
     if [ "origin" = "$ref_source" ]; then
-        compare_ref="${ref_source}/${ref_name}"
+        compare_ref="${ref_source}: ${ref_name}"
     fi
 
     rev_list=$(git rev-list --left-right --count $hash...$compare_ref); exit_code=$?
@@ -239,4 +251,4 @@ EOF
         echo "⎇ ${ref_source}/${ref_name}"
     fi
 }
-export -f __git_status
+#export -f __git_status

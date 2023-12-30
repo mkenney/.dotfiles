@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# Enable or disable the k8s status line output
+# `kp`                - show the current status
+# `kp off`             - disable status output
+# `kp <anything else>` - enable status output
+
+if [ "" = "$1" ]; then
+    if [ "enabled" = "$__K8S_STATUS_LINE" ]; then
+        eval 'export __K8S_STATUS_LINE=disabled'
+    else
+        eval 'export __K8S_STATUS_LINE=enabled'
+    fi
+elif [ "off" != "$1" ]; then
+    eval 'export __K8S_STATUS_LINE=enabled'
+else
+    eval 'export __K8S_STATUS_LINE=disabled'
+fi

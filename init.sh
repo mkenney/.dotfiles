@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ "" = "$1" ]; then
-    echo "a shell must be specified (.zshrc, .bashrc. .tcshrc, etc)"
+    echo "a shell must be specified (zsh, bash, tcsh, etc)"
     exit 1
 fi
 SHELLRC=".${1}rc"
@@ -42,7 +42,7 @@ if [ "Darwin" = "$PLATFORM" ]; then
     fi
 
     # brew install bash
-    # brew install bash-completion
+    brew install bash-completion
     # brew install coreutils
     # brew install dnsmasq
     # brew install gnu-sed
@@ -56,13 +56,13 @@ if [ "Darwin" = "$PLATFORM" ]; then
     # # dnsmasq isn't started by default
     # sudo brew services start dnsmasq
 
-    # set bash as the login shell. also need to set it your the terminal emulator.
+    # set bash as the login shell. also need to set it in your terminal emulator.
     # if [ -f "/usr/local/bin/bash" ]; then
     #     chsh -s /usr/local/bin/bash
     # else
     #     chsh -s /opt/homebrew/bin/bash
     # fi
-    #sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
+    # sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
 fi
 
 
@@ -77,6 +77,7 @@ link-dotfile conf/.spacemacs        .spacemacs
 link-dotfile conf/.tmux.conf        .tmux.conf
 link-dotfile conf/.vim              .vim
 link-dotfile conf/.vimrc            .vimrc
+link-dotfile .zshenv                .zshenv
 
 # install vim plugins
 echo $HOME/.dotfiles
