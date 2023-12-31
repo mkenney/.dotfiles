@@ -10,19 +10,7 @@ SHELLRC=".${SHELL}rc"
 ##############################################################################
 #
 # WARNING about this script
-# It WILL overwrite some of your dotfiles without asking, including but not
-# limited to:
-#
-#   ~/.bash_profile
-#   ~/.bashrc
-#   ~/.gitconfig
-#   ~/.gitignore_global
-#   ~/.inputrc
-#   ~/.my.cnf
-#   ~/.phpcs_rules.xml
-#   ~/.screenrc
-#   ~/.tmux.conf
-#   ~/.vimrc
+# It WILL overwrite some of your dotfiles without asking
 #
 ##############################################################################
 PLATFORM=`uname`
@@ -42,20 +30,20 @@ if [ "Darwin" = "$PLATFORM" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     fi
 
-    # brew install bash
+    brew install bash
     brew install bash-completion
-    # brew install coreutils
-    # brew install dnsmasq
-    # brew install gnu-sed
-    # brew install gnutils
-    # brew install kubernetes-cli
-    # brew install kubernetes-helm
-    # brew install awscli
-    # brew install tmux
-    # brew install openssh
+    brew install coreutils
+    brew install dnsmasq
+    brew install gnu-sed
+    brew install gnutils
+    brew install kubernetes-cli
+    brew install kubernetes-helm
+    brew install awscli
+    brew install tmux
+    brew install openssh
 
-    # # dnsmasq isn't started by default
-    # sudo brew services start dnsmasq
+    # dnsmasq isn't started by default
+    sudo brew services start dnsmasq
 
     # set bash as the login shell. also need to set it in your terminal emulator.
     # if [ -f "/usr/local/bin/bash" ]; then
