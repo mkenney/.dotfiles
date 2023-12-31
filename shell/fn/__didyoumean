@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # didyoumean error manager
 tmpfile=$(mktemp)
@@ -11,7 +11,7 @@ dym_errors=$(cat $tmpfile)
 if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
     # Display a menu for "did you mean" error suggestions
     if [ "" != "$(echo "$dym_errors" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
-        options=()
+        declare -a options
         reading_options=0
         while read -r line; do
             line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -28,20 +28,20 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
 
         # rebuild error output
         bad_command=$(echo "$dym_errors" | awk -F '"' '$0=$2' | xargs)
-        if [ "" == "$bad_command" ]; then
+        if [ "" = "$bad_command" ]; then
             bad_command=$(echo "$dym_errors" | awk -F "'" '$0=$2' | xargs)
         fi
         >&2 echo "$2: '$bad_command' is not a $2 command. See '$2 --help'."
         >&2 echo
 
-        # build error screen
+        # print error message
         if [ 1 -eq "${#options[@]}" ]; then
             >&2 echo "    Did you mean this?"
         else
             >&2 echo "    Did you mean one of these?"
         fi
 
-        # build menu items
+        # print input menu
         cnt=0
         for a in "${options[@]}"; do
             if [ 1 -eq "${#options[@]}" ]; then
@@ -49,33 +49,34 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
             else
                 opt_key="$((cnt + 1)):"
             fi
-            >&2 echo "        $opt_key ${options[$cnt]}"
+            >&2 echo "        $opt_key $a"
             cnt=$((cnt + 1))
         done
         >&2 echo
-
-        # prompt for input
-        old_IFS=$IFS
-        IFS='%'
         if [ 1 -eq $cnt ]; then
-            prompt="[Y/n] > "
+            prmpt="[Y/n] > "
         else
             >&2 echo "        0: quit"
             >&2 echo
-            prompt="[1] > "
+            prmpt="[1] > "
         fi
-        read -e -p $prompt -t 60 option
-        IFS=$old_IFS
 
-        # if input is not no/quit
+        # prompt for input
+        tmpIFS=$IFS
+        IFS='%'
+        option=$(bash -c "read -e -p \"$prmpt\" -t 60 tmp; echo \$tmp")
+        IFS=$tmpIFS
+        tmpIFS=
+
+        # process no/quit
         if [ "0" = "$option" ] || [ "n" = "$option" ] || [ "N" = "$option" ] || [ "q" = "$option" ]; then
             option="quit"
-            # set default option if none given
+        # set default option
         elif [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
-            option=0
+            option=1
+        # map input to array index
         elif [ "$option" ] && [ -z "${option//[0-9]}" ]; then
-            # exec
-            option=$((option - 1))
+            #option=$((option - 1)) # indexing from 1 in zsh?
         else
             option="quit"
         fi
@@ -87,11 +88,12 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
             $1 $2 ${options[$option]} ${@:4}
             thatswhatimeant=1
         fi
+        echo "options: $options[1] (${options[$option]})"
     else
         echo "$dym_errors"
-        exit $exit_code
+        return $exit_code
     fi
 else
     echo "$dym_errors"
-    exit $exit_code
+    return $exit_code
 fi

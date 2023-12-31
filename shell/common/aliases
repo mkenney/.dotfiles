@@ -16,7 +16,7 @@ alias :qa="echo 'stop it'"
 alias a="cal"
 alias alien="docker run --rm -t -v $(pwd):/rpm mkenney/alien"
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
-alias cloc="perl ~/.dotfiles/cloc.pl"
+alias cloc="perl ~/.dotfiles/bin/cloc.pl"
 alias cls='clear'
 alias cp='cp -i'
 alias csl='clear'

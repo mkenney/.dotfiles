@@ -10,6 +10,7 @@ autoload -Uz compinit
 compinit
 
 fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
+autoload -Uz __didyoumean
 autoload -Uz __k8s_status
 autoload -Uz k
 autoload -Uz k8s
@@ -87,8 +88,6 @@ fi
 
 #echo "~/.dotfiles/shell/ext/cmd"
 if [ -d ~/.dotfiles/shell/ext/cmd ]; then
-    #fpath=(~/.dotfiles/shell/ext/cmd "${fpath[@]}")
-    echo "fpath: '$fpath'"
     source ~/.dotfiles/shell/ext/cmd/init.sh
 fi
 
@@ -113,12 +112,6 @@ if [[ -n ${ZSH_VERSION-} && -z ${GIT_SOURCING_ZSH_COMPLETION-} ]] && [ -f ~/.dot
 elif [ -f ~/.dotfiles/shell/completion/git-completion.bash ]; then
     source ~/.dotfiles/shell/completion/git-completion.bash
 fi
-
-# Git prompt
-#echo "~/.dotfiles/shell/git-status"
-# if [ -f ~/.dotfiles/shell/git-status ]; then
-#     source ~/.dotfiles/shell/git-status
-# fi
 
 # Go
 #echo "~/.dotfiles/shell/common/go"

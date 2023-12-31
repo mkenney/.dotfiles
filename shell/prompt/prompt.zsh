@@ -1,35 +1,44 @@
 
 source ~/.dotfiles/shell/prompt/git-status
-autoload -U colors && colors
-autoload -U promptinit && promptinit
-autoload -Uz vcs_info
-export gitprompt=
-export lastline=
+source ~/.dotfiles/shell/prompt/k8s-status
+source ~/.dotfiles/shell/common/color
 
+topline="┌ ${COLOR_YELLOW_FADED}%n@%m${COLOR_NORM} - %d${midline}"
+midline=
+statusline=
 precmd() {
-    last_status=$?
+    last_exit_code=$?
 
-    IN_GIT_REPO=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
-    if [ "true" = "$IN_GIT_REPO" ]; then # In a git repo
-        export gitprompt="
-│ ${COLOR_BLUE_FADED}$(echo $(__git_status))${COLOR_NORM}"
-    else
-        export gitprompt=
+    declare -a tool_states
+    statusline=
+
+    # k8s status
+    k8s_status=$(__k8s_status)
+    if [ "" != "$k8s_status" ]; then
+        tool_states+=("${COLOR_DKGREEN_FADED}${k8s_status}${COLOR_NORM}")
     fi
 
-    if [ "0" = "$last_status" ] || [ "" = "$last_status" ]; then
-        export lastline="${COLOR_GREEN_FADED}%*${COLOR_NORM} → "
+    # git status
+    in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
+    if [ "true" = "$in_git_repo" ]; then # In a git repo
+        tool_states+=("${COLOR_BLUE_FADED}$(echo $(__git_status))${COLOR_NORM}")
+    fi
+
+    # define midline (tool states)
+    if [ "" != "$tool_states" ]; then midline=$(printf "\n│ ${tool_states}");
+    else midline=; fi
+
+    if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
+        statusline="└ ${COLOR_GREEN_FADED}%*${COLOR_NORM} → "
     else
-        export lastline="${COLOR_GREEN_FADED}%*${COLOR_NORM} (${COLOR_RED_FADED}${last_status}${COLOR_NORM}) ⤳ "
+        statusline="└ ${COLOR_GREEN_FADED}%*${COLOR_NORM} (${COLOR_RED_FADED}${last_exit_code}${COLOR_NORM}) ⤳ "
     fi
 }
-chpwd() {
- }
-zstyle ':vcs_info:git:*' formats '%b '
+
+#chpwd() {}
+
 setopt PROMPT_SUBST
-prompt fade red
-source ~/.dotfiles/shell/common/color
 PROMPT='
-┌ ${COLOR_YELLOW_FADED}%n@%m${COLOR_NORM} - %d${gitprompt}
-└ ${lastline}'
+${topline}${midline}
+${statusline}'
 

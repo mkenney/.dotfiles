@@ -13,7 +13,7 @@ tst=$cmd
 for part in "${@}"; do
     ((arg=arg+1))
     tst="${tst}_${part}"
-    if [ "function" = "$(type -t "${tst}")" ] && [ "${#cmd}" -lt "${#tst}" ]; then
+    if [ "" != "$(which $tst)" ] && [ "${#cmd}" -lt "${#tst}" ]; then
         shift_to=$arg
         cmd=$tst
         found=1
@@ -22,8 +22,8 @@ done
 
 # execute matching function, else execute the default command
 if [ "1" = "$found" ]; then
-    echo "executing '$1 $2' middleware"
-    #echo "executing middleware '$(echo $1 $2 ${@:$shift_to} | xargs)'"
+    #echo "executing middleware '$cmd'"
+    echo "executing middleware '$(echo $1 $2 ${@:$shift_to})'"
     $(echo $cmd ${@:$shift_to})
 else
     /usr/bin/env $1 "${@:2}"
