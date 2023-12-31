@@ -3,7 +3,7 @@ source ~/.dotfiles/shell/prompt/git-status
 source ~/.dotfiles/shell/prompt/k8s-status
 source ~/.dotfiles/shell/common/color
 
-topline="┌ ${COLOR_YELLOW_FADED}%n@%m${COLOR_NORM} - %d${midline}"
+topline="┌ ${COLOR_YELLOW_FADED}%n@%m${COLOR_NORM} - %d"
 midline=
 statusline=
 precmd() {
@@ -25,13 +25,17 @@ precmd() {
     fi
 
     # define midline (tool states)
-    if [ "" != "$tool_states" ]; then midline=$(printf "\n│ ${tool_states}");
-    else midline=; fi
-
-    if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
-        statusline="└ ${COLOR_GREEN_FADED}%*${COLOR_NORM} → "
+    if [ "" != "$tool_states" ]; then
+        midline=$(printf "\n│ ${tool_states}")
     else
-        statusline="└ ${COLOR_GREEN_FADED}%*${COLOR_NORM} (${COLOR_RED_FADED}${last_exit_code}${COLOR_NORM}) ⤳ "
+        midline=
+    fi
+
+    # define command prompt
+    if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
+        statusline="└ %{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} → %{$(echo -e -n "\x1b[\x35 q")%}"
+    else
+        statusline="└ %{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ⤳ %{$(echo -e -n "\x1b[\x35 q")%}"
     fi
 }
 

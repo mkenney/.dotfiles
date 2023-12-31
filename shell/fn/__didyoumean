@@ -88,7 +88,6 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
             $1 $2 ${options[$option]} ${@:4}
             thatswhatimeant=1
         fi
-        echo "options: $options[1] (${options[$option]})"
     else
         echo "$dym_errors"
         return $exit_code

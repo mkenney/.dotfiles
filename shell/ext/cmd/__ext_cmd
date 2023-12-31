@@ -23,7 +23,7 @@ done
 # execute matching function, else execute the default command
 if [ "1" = "$found" ]; then
     #echo "executing middleware '$cmd'"
-    echo "executing middleware '$(echo $1 $2 ${@:$shift_to})'"
+    #echo "executing middleware '$(echo $1 $2 ${@:$shift_to})'"
     $(echo $cmd ${@:$shift_to})
 else
     /usr/bin/env $1 "${@:2}"

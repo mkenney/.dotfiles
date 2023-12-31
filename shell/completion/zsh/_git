@@ -1,7 +1,7 @@
 #compdef git gitk
 
-# 2024-01-01 https://github.com/git/git/blob/master/contrib/completion/git-completion.zsh
 # zsh completion wrapper for git
+# 2024-01-01 https://github.com/git/git/blob/master/contrib/completion/git-completion.zsh
 #
 # Copyright (c) 2012-2020 Felipe Contreras <felipe.contreras@gmail.com>
 #

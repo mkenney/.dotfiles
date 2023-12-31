@@ -4,7 +4,8 @@ if [ "" = "$1" ]; then
     echo "a shell must be specified (zsh, bash, tcsh, etc)"
     exit 1
 fi
-SHELLRC=".${1}rc"
+SHELL=$1
+SHELLRC=".${SHELL}rc"
 
 ##############################################################################
 #
@@ -77,7 +78,6 @@ link-dotfile conf/.spacemacs        .spacemacs
 link-dotfile conf/.tmux.conf        .tmux.conf
 link-dotfile conf/.vim              .vim
 link-dotfile conf/.vimrc            .vimrc
-link-dotfile .zshenv                .zshenv
 
 # install vim plugins
 echo $HOME/.dotfiles

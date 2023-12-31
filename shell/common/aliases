@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 
-function fetchproxy() {
-    docker stop fetch-proxy
-    docker rm fetch-proxy
-    docker run -d -p 80:80 -v /var/run/docker.sock:/var/run/docker.sock --restart=always --name fetch-proxy -e DOCKER_API_VERSION=1.18 kcmerrill/fetch-proxy --dev --containerized
-}
-
 alias d="docker"
 alias dc="env docker compose"
-#alias docker-compose="docker compose"
 alias h="helm"
 alias t="terraform"
 
@@ -54,7 +47,6 @@ alias yes="echo no"
 platform=`uname`
 if [[ $platform == 'Linux' ]]; then
     alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS --mouse --save-marks"
-    echo "nothing to override" > /dev/null
 
 elif [[ $platform == 'Darwin' ]]; then
     alias less="less --quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS"
