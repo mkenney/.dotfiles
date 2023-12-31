@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # k8s status line
 # Displays a UTF-8 icon and the current kubectl context and namespace:
 # ⎈ docker-for-desktop/default

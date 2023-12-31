@@ -1,6 +1,29 @@
-# ./.bash_profile
+zstyle :compinstall filename '/Users/mkenney/.zshrc'
+zstyle ':completion:*' completer _expand _complete _ignored _prefix
+zstyle ':completion:*' format '%d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' matcher-list '' 'm:{[:lower:]}={[:upper:]}' 'r:|[._-]=* r:|=*'
+zstyle ':completion:*' menu yes select
+
+autoload -Uz compinit
+compinit
+
+fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
+autoload -Uz __k8s_status
+autoload -Uz k
+autoload -Uz k8s
+autoload -Uz kn
+autoload -Uz kp
+autoload -Uz kx
+
+source ~/.dotfiles/shell/common/env
+
+# ./.profile
 export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
+export PATH="~/.dotfiles/shell/fn:$PATH"
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
 
 # Aliases
 #echo "~/.dotfiles/shell/common/aliases"
@@ -25,9 +48,9 @@ if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)
     #echo "$(brew --prefix)/etc/profile.d/bash_completion.sh"
     source $(brew --prefix)/etc/profile.d/bash_completion.sh
 fi
-#echo "~/.dotfiles/bash/completion"
+#echo "~/.dotfiles/shell/completion"
 # if [ -f ~/.dotfiles/shell/common ]; then
-#     source ~/.dotfiles/bash/completion
+#     source ~/.dotfiles/shell/completion
 # fi
 
 #echo "~/.dotfiles/shell/common/clickhouse"
@@ -41,11 +64,11 @@ if [ -f ~/.dotfiles/shell/common/cvs ]; then
     source ~/.dotfiles/shell/common/cvs
 fi
 
-# devenv
-#echo "~/.dotfiles/bash/devenv"
-if [ -f ~/.dotfiles/bash/devenv ]; then
-    source ~/.dotfiles/bash/devenv
-fi
+# # devenv
+# #echo "~/.dotfiles/shell/devenv"
+# if [ -f ~/.dotfiles/shell/devenv ]; then
+#     source ~/.dotfiles/shell/devenv
+# fi
 
 # ENV
 #echo "~/.dotfiles/shell/common/env"
@@ -57,13 +80,16 @@ if [ -f ~/.dotfiles/shell/common/env_platform ]; then
     source ~/.dotfiles/shell/common/env_platform
 fi
 
-# Command extensions
-if [ -f ~/.dotfiles/bash/didyoumean ]; then
-    source ~/.dotfiles/bash/didyoumean
-fi
-#echo "~/.dotfiles/bash/ext/cmd"
-if [ -f ~/.dotfiles/bash/ext/cmd ]; then
-    source ~/.dotfiles/bash/ext/cmd
+# # Command extensions
+# if [ -f ~/.dotfiles/shell/didyoumean ]; then
+#     source ~/.dotfiles/shell/didyoumean
+# fi
+
+#echo "~/.dotfiles/shell/ext/cmd"
+if [ -d ~/.dotfiles/shell/ext/cmd ]; then
+    #fpath=(~/.dotfiles/shell/ext/cmd "${fpath[@]}")
+    echo "fpath: '$fpath'"
+    source ~/.dotfiles/shell/ext/cmd/init.sh
 fi
 
 # Functions
@@ -76,9 +102,9 @@ fi
 if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/profile.d/bash_completion.sh ]; then
     source $(brew --prefix)/etc/profile.d/bash_completion.sh
 fi
-#echo "~/.dotfiles/bash/completion"
+#echo "~/.dotfiles/shell/completion"
 if [ -f ~/.dotfiles/shell/common ]; then
-    source ~/.dotfiles/bash/completion
+    source ~/.dotfiles/shell/completion
 fi
 # Git completion
 #echo "~/.dotfiles/shell/common/git-completion"
@@ -131,11 +157,11 @@ if [ -f ~/.dotfiles/shell/common/nvm ]; then
 fi
 
 # Prompt
-#echo "~/.dotfiles/bash/prompt"
-if [ -f ~/.dotfiles/bash/prompt ]; then
-    source ~/.dotfiles/bash/prompt
+#echo "~/.dotfiles/shell/prompt"
+if [ -f ~/.dotfiles/shell/prompt ]; then
+    source ~/.dotfiles/shell/prompt
 fi
-#echo "~/.dotfiles/bash/prompt"
+#echo "~/.dotfiles/shell/prompt"
 if [ -f ~/.dotfiles/shell/prompt/prompt.zsh ]; then
     source ~/.dotfiles/shell/prompt/prompt.zsh
 fi
@@ -153,10 +179,10 @@ if [ -f ~/.dbtunnels ]; then
 fi
 
 # Tmuxinator-completion
-#echo "~/.dotfiles/bash/tmuxinator-completion"
-if [ -f ~/.dotfiles/bash/tmuxinator-completion ]; then
-    source ~/.dotfiles/bash/tmuxinator-completion
-fi
+# #echo "~/.dotfiles/shell/tmuxinator-completion"
+# if [ -f ~/.dotfiles/shell/tmuxinator-completion ]; then
+#     source ~/.dotfiles/shell/tmuxinator-completion
+# fi
 
 # Terraform
 #echo "~/.dotfiles/shell/common/terraform"
@@ -184,23 +210,3 @@ fi
 
 source "$HOME/.cargo/env"
 
-# The following lines were added by compinstall
-
-zstyle :compinstall filename '/Users/mkenney/.zshrc'
-zstyle ':completion:*' completer _expand _complete _ignored _prefix
-zstyle ':completion:*' format '%d'
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' matcher-list '' 'm:{[:lower:]}={[:upper:]}' 'r:|[._-]=* r:|=*'
-zstyle ':completion:*' menu yes select
-
-autoload -Uz compinit
-compinit
-
-fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
-autoload -Uz __k8s_status
-autoload -Uz k
-autoload -Uz k8s
-autoload -Uz kn
-autoload -Uz kp
-autoload -Uz kx

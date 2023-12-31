@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 now=$(date '+%s')
 diff=$((now - __KUBECONFIG_UPDATED_AT))
 eval "export __KUBECONFIG_UPDATED_AT=$now"

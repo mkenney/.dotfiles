@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # get/set the namespace for the current k8s context
 # `kn`             - print the current namespace
 # `kn <namespace>` - set the current namespace to <namespace>

@@ -1,0 +1,1 @@
+fpath=(~/.dotfiles/shell/ext/cmd "${fpath[@]}")
