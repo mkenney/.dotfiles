@@ -16,7 +16,7 @@ precmd() {
     # k8s status
     k8s_status=$(__k8s_status)
     if [ "" != "$k8s_status" ]; then
-        tool_states+=("%{${COLOR_DKGREEN_FADED}%}${z}%{${COLOR_NORM}%}")
+        tool_states+=("%{${COLOR_DKGREEN_FADED}%}${k8s_status}%{${COLOR_NORM}%}")
     fi
 
     # git status
