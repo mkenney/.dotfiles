@@ -45,9 +45,13 @@ if [ "Darwin" = "$PLATFORM" ]; then
     # dnsmasq isn't started by default
     sudo brew services start dnsmasq
 
+    # set zsh as the login shell.
+    chsh -s /bin/zsh
+    sudo bash -c 'echo /bin/zsh >> /etc/shells'
+
     # set bash as the login shell. also need to set it in your terminal emulator.
     # if [ -f "/usr/local/bin/bash" ]; then
-    #     chsh -s /usr/local/bin/bash
+    #     chsh -s /usr/bin/env zsh
     # else
     #     chsh -s /opt/homebrew/bin/bash
     # fi
