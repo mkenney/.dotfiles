@@ -1,0 +1,7 @@
+__tmux() {
+    if [ "" = "$1" ]; then
+        $HOME/.dotfiles/bin/tmux.sh
+    else
+        tmux $@
+    fi
+}
