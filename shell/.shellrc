@@ -1,3 +1,6 @@
+# always use emacs mode
+bindkey -e
+
 zstyle :compinstall filename '/Users/mkenney/.zshrc'
 zstyle ':completion:*' completer _expand _complete _ignored _prefix
 zstyle ':completion:*' format '%d'
@@ -13,7 +16,7 @@ compinit
 fpath=(~/.dotfiles/shell/completion/zsh "${fpath[@]}")
 fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
 autoload -Uz __didyoumean
-autoload -Uz __k8s_status
+autoload -Uz __tmux
 autoload -Uz k
 autoload -Uz k8s
 autoload -Uz kn

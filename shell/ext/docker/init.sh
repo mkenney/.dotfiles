@@ -8,7 +8,7 @@ export _docker_commands="checkpoint config container image network node plugin s
 
 # List of custom commands, space delimited.  This var should be
 # updated by your resources/lib/[docker-command] files
-export _docker_custom_commands=""
+export _docker_custom_commands="clean containers control"
 
 # #
 # # Return the list of standard and custom commands as well as current

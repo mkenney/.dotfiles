@@ -1,11 +1,3 @@
 #!/usr/bin/env bash
 
-__tmux() {
-    if [ "" = "$1" ]; then
-        $HOME/.dotfiles/.tmux.sh
-    else
-        tmux $@
-    fi
-}
-#export -f __tmux
 alias tmux="__tmux"

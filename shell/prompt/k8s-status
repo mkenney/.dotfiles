@@ -10,6 +10,8 @@ fi
 __k8s_status() {
     if [ "" != "$KUBECONFIG" ]; then
         context=$(echo $(\kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) | grep -v error)
-        echo "$K8S_PS1_SYMBOL $context:$(kn)"
+        if [ "" != "$context" ]; then
+            echo "$K8S_PS1_SYMBOL $context:$(kn)"
+        fi
     fi
 }

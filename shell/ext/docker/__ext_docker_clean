@@ -8,10 +8,6 @@ export _docker_custom_commands="${_docker_custom_commands} clean"
 # http://stackoverflow.com/questions/17236796/how-to-remove-old-docker-containers
 #
 
-EXITED=$(docker ps -a -q -f "status=exited")
-DANGLING=$(docker images -q -f "dangling=true")
-EXECUTE="N"
-
 if [ "-h" == "${1}" ] || [ "--help" == "${1}" ]; then
 	echo
 	echo "    \`docker clean\`"
@@ -22,6 +18,9 @@ if [ "-h" == "${1}" ] || [ "--help" == "${1}" ]; then
 	return
 fi
 
+EXITED=$(docker ps -a -q -f "status=exited")
+DANGLING=$(docker images -q -f "dangling=true")
+EXECUTE="N"
 
 if [ "" != "${EXITED}" ]; then
 	echo

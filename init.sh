@@ -4,8 +4,8 @@ if [ "" = "$1" ]; then
     echo "a shell must be specified (zsh, bash, tcsh, etc)"
     exit 1
 fi
-SHELL=$1
-SHELLRC=".${SHELL}rc"
+shell=$1
+shellrc=".${shell}rc"
 
 ##############################################################################
 #
@@ -15,7 +15,7 @@ SHELLRC=".${SHELL}rc"
 ##############################################################################
 PLATFORM=`uname`
 VIM='vim'
-TYPE=$(basename $SHELL)
+TYPE=$(basename $shell)
 link-dotfile() {
     DOTFILE=$1
     DESTINATION=$2
@@ -47,7 +47,6 @@ if [ "Darwin" = "$PLATFORM" ]; then
 
     # set zsh as the login shell.
     chsh -s /bin/zsh
-    sudo bash -c 'echo /bin/zsh >> /etc/shells'
 
     # set bash as the login shell. also need to set it in your terminal emulator.
     # if [ -f "/usr/local/bin/bash" ]; then
@@ -59,7 +58,7 @@ if [ "Darwin" = "$PLATFORM" ]; then
 fi
 
 
-link-dotfile shell/.shellrc         $SHELLRC
+link-dotfile shell/.shellrc         $shellrc
 link-dotfile conf/.gitignore_global .gitignore_global
 link-dotfile conf/.inputrc          .inputrc
 link-dotfile conf/.my.cnf           .my.cnf
