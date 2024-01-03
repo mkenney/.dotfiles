@@ -3,15 +3,13 @@
 # k8s status line
 # Displays a UTF-8 icon and the current kubectl context and namespace:
 # ⎈ docker-for-desktop/default
-if [ "" = "$K8S_PS1_SYMBOL" ]; then
-    export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
-fi
+export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
 
 __k8s_status() {
     if [ "" != "$KUBECONFIG" ]; then
         context=$(echo $(\kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) | grep -v error)
         if [ "" != "$context" ]; then
-            echo "$K8S_PS1_SYMBOL $context:$(kn)"
+            echo "$context:$(kn)"
         fi
     fi
 }

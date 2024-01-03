@@ -3,20 +3,21 @@ source ~/.dotfiles/shell/prompt/git-status
 source ~/.dotfiles/shell/prompt/k8s-status
 source ~/.dotfiles/shell/common/color
 
-topline="┌ %d"
-midline=
-statusline=
 # surround escape sequences in '%{${sequences_here}%}' to ignore their width properly
+topline="┌ %{${COLOR_YELLOW_FADED}%}20%D%{${COLOR_NORM}%} %d"
+midline=
+promptline=
+
 precmd() {
     last_exit_code=$?
 
     declare -a tool_states
-    statusline=
+    promptline=
 
     # k8s status
     k8s_status=$(__k8s_status)
     if [ "" != "$k8s_status" ]; then
-        tool_states+=("%{${COLOR_DKGREEN_FADED}%}${k8s_status}%{${COLOR_NORM}%}")
+        tool_states+=("%{${COLOR_DKGREEN_FADED}%}%{${K8S_PS1_SYMBOL}%G%} ${k8s_status}%{${COLOR_NORM}%}")
     fi
 
     # git status
@@ -27,17 +28,17 @@ precmd() {
 
     # define midline (tool states)
     if [ "" != "$tool_states" ]; then
-        #midline=$(printf "\n│ ${tool_states}")
-        midline=" ${tool_states}"
+        #statusline=$(printf "\n│ ${tool_states}")
+        statusline=" ${tool_states}"
     else
-        midline=
+        statusline=
     fi
 
     # define command prompt
     if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
-        statusline="└ %{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}${midline} → %{$(echo -e -n "\x1b[\x35 q")%}"
+        promptline="└ %{${COLOR_GREEN_FADED}%}%D{%H:%M:%S}%{${COLOR_NORM}%}${statusline} → %{$(echo -e -n "\x1b[\x35 q")%}"
     else
-        statusline="└ %{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}${midline} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ⤳ %{$(echo -e -n "\x1b[\x35 q")%}"
+        promptline="└ %{${COLOR_GREEN_FADED}%}%D{%H:%M:%S}%{${COLOR_NORM}%}${statusline} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ⤳ %{$(echo -e -n "\x1b[\x35 q")%}"
     fi
 }
 
@@ -46,5 +47,5 @@ precmd() {
 setopt PROMPT_SUBST
 PROMPT='
 ${topline}
-${statusline}'
+${promptline}'
 
