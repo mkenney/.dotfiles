@@ -16,7 +16,7 @@ PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
 PATH=/usr/local/opt/grep/libexec/gnubin:$PATH
 PATH=$PATH:~/Library/Python/3.4/bin
 # brew install libxmlsec1
-PATH=$PATH:/usr/local/opt/openssl/bin
+PATH=$PATH:/usr/local/opt/openssl/bin:/opt/homebrew/opt/mysql-client/bin
 # brew install grep
 #PATH=/opt/homebrew/opt/grep/libexec/gnubin:$PATH
 # Python 3.4 on OS X

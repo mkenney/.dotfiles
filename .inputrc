@@ -2,10 +2,10 @@ $include /etc/inputrc
 
 # history search
 "\er": "\C-r"                    # alias meta-r to ctrl-r
-"\e[5~": history-search-backward # page up
-"\e[6~": history-search-forward  # page down
-"\e[A": history-search-backward  # up arrow search
-"\e[B": history-search-forward   # down arrow search
+#"\e[5~": history-search-backward # page up
+#"\e[6~": history-search-forward  # page down
+#"\e[A": history-search-backward  # up arrow search
+#"\e[B": history-search-forward   # down arrow search
 
 # kill keys
 "\e[3~": delete-char        # fn+backspace
