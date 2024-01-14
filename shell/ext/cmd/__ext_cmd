@@ -14,8 +14,6 @@ pwd=$(pwd)
 for part in "${@}"; do
     ((arg=arg+1))
     tst="${tst}_${part}"
-    which "$tst" 2&> /dev/null
-    e=$?
     if [ -f ~/.dotfiles/shell/ext/$1/${tst} ]; then
         shift_to=$arg
         cmd=$tst
