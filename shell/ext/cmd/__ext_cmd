@@ -8,12 +8,15 @@ cmd="__ext"
 found=0
 shift_to=1
 tst=$cmd
+pwd=$(pwd)
 
 # search for matching exported function
 for part in "${@}"; do
     ((arg=arg+1))
     tst="${tst}_${part}"
-    if [ "" != "$(which $tst)" ] && [ "${#cmd}" -lt "${#tst}" ]; then
+    which "$tst" 2&> /dev/null
+    e=$?
+    if [ -f ~/.dotfiles/shell/ext/$1/${tst} ]; then
         shift_to=$arg
         cmd=$tst
         found=1
