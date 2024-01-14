@@ -9,7 +9,7 @@ __k8s_status() {
     if [ "" != "$KUBECONFIG" ]; then
         context=$(echo $(\kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) | grep -v error)
         if [ "" != "$context" ]; then
-            echo "$context:$(kn)"
+            echo "$(basename $context):$(kn)"
         fi
     fi
 }

@@ -9,6 +9,7 @@ which kubectl &> /dev/null; exit_code=$?
 if [ "0" = "$exit_code" ]; then
     kubectl version &> /dev/null; exit_code=$?
 fi
+declare -A K8S_NAMESPACES
 export -l K8S_NAMESPACES
 export KUBECONFIG_DEFAULT=$HOME/.kube/config
 export KUBECONFIG=$KUBECONFIG_DEFAULT

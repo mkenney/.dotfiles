@@ -140,9 +140,9 @@ fi
 
 # kubectl
 #echo "~/.dotfiles/shell/common/kubectl"
-# if [ -f ~/.dotfiles/shell/common/kubectl ]; then
-#    source ~/.dotfiles/shell/common/kubectl
-# fi
+if [ -f ~/.dotfiles/shell/common/kubectl ]; then
+   source ~/.dotfiles/shell/common/kubectl
+fi
 
 # Perl
 #echo "~/.dotfiles/shell/common/perl"
@@ -174,9 +174,9 @@ fi
 
 # SSH tunnel aliases
 #echo "~/.dbtunnels"
-if [ -f ~/.dbtunnels ]; then
-    source ~/.dbtunnels
-fi
+# if [ -f ~/.dbtunnels ]; then
+#     source ~/.dbtunnels
+# fi
 
 # Tmuxinator-completion
 # #echo "~/.dotfiles/shell/tmuxinator-completion"
@@ -208,5 +208,6 @@ if [ -f ~/.dotfiles/shell/common/tmux ]; then
     source ~/.dotfiles/shell/common/tmux
 fi
 
-source "$HOME/.cargo/env"
-
+if [ -f ~/.cargo/env ]; then
+    source ~/.cargo/env
+fi
