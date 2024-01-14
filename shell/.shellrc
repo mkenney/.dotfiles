@@ -1,6 +1,8 @@
 # always use emacs mode
 bindkey -e
 
+setopt histignorealldups
+
 zstyle :compinstall filename '/Users/mkenney/.zshrc'
 zstyle ':completion:*' completer _expand _complete _ignored _prefix
 zstyle ':completion:*' format '%d'
