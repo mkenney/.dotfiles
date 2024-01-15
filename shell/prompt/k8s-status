@@ -6,10 +6,10 @@
 export K8S_PS1_SYMBOL=$'\xE2\x8E\x88'
 
 __k8s_status() {
-    if [ "" != "$KUBECONFIG" ]; then
-        context=$(echo $(\kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) | grep -v error)
-        if [ "" != "$context" ]; then
-            echo "$(basename $context):$(kn)"
+    if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+        kx=$(basename $(kx) 2> /dev/null)
+        if [ "" != "$kx" ]; then
+            echo "${__K8S_PS1_SYMBOL}${kx}:$(kn)"
         fi
     fi
 }

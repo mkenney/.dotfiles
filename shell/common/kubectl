@@ -1,22 +1,53 @@
-#!/usr/bin/env bash
+export __K8S_LAST_CONTEXT=
+export __KUBECONFIG_DEFAULT=$KUBECONFIG
+#export KUBECONFIG=$__KUBECONFIG_DEFAULT
+declare -A __K8S_LAST_NAMESPACE
+declare -A __K8S_CURR_NAMESPACE
+export -l __K8S_LAST_NAMESPACE=()
+export -l __K8S_CURR_NAMESPACE=()
+export K8S_STATUS_LINE=
 
-# idle time in seconds before switching to the default context
-if [ "" = "$__KUBECONFIG_TTL" ]; then
-    export __KUBECONFIG_TTL=300
+current_context="$(kx)"
+if [ "" != "$current_context" ]; then
+    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${current_context}\")].context.namespace}" 2> /dev/null)
+    if [ "" != "$current_ns" ]; then
+        current_ns="default"
+    fi
+
+    ctxkey=$(basename $current_context)
+    ctxkey=${ctxkey//./_}
+    if [ "" != "$current_context" ]; then
+        export -l __K8S_LAST_NAMESPACE=([$ctxkey]=default)
+        export -l __K8S_CURR_NAMESPACE=([$ctxkey]=$current_ns)
+    fi
 fi
 
-which kubectl &> /dev/null; exit_code=$?
-if [ "0" = "$exit_code" ]; then
-    kubectl version &> /dev/null; exit_code=$?
-fi
-declare -A K8S_NAMESPACES
-export -l K8S_NAMESPACES
-export KUBECONFIG_DEFAULT=$HOME/.kube/config
-export KUBECONFIG=$KUBECONFIG_DEFAULT
-export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
-export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
-export __KUBECONFIG_UPDATED_AT=$(date '+%s')
-export -l K8S_LAST_NAMESPACE=([$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE)
-export -l K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=default)
 
-alias k=__k8sctl
+
+
+
+
+
+
+
+
+# # idle time in seconds before switching to the default context
+# if [ "" = "$__KUBECONFIG_TTL" ]; then
+#     export __KUBECONFIG_TTL=300
+# fi
+
+# which kubectl &> /dev/null; exit_code=$?
+# if [ "0" = "$exit_code" ]; then
+#     kubectl version &> /dev/null; exit_code=$?
+# fi
+# declare -A K8S_NAMESPACES
+# export -l K8S_NAMESPACES
+# export KUBECONFIG_DEFAULT=$HOME/.kube/config
+# export KUBECONFIG=$KUBECONFIG_DEFAULT
+# export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')
+# export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$K8S_CURRENT_CONTEXT\")].context.namespace}")
+# export __KUBECONFIG_UPDATED_AT=$(date '+%s')
+# export -l K8S_LAST_NAMESPACE=([$K8S_CURRENT_CONTEXT]=$K8S_CURRENT_NAMESPACE)
+# export -l K8S_NAMESPACES=([$K8S_CURRENT_CONTEXT]=default)
+
+# alias k=__k8sctl

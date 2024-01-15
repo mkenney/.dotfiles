@@ -1,21 +1,21 @@
 #!/bin/bash
 
-now=$(date '+%s')
-diff=$((now - __KUBECONFIG_UPDATED_AT))
-eval "export __KUBECONFIG_UPDATED_AT=$now"
-if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "$__KUBECONFIG_TTL" -lt "$diff" ]; then
-    (
-        ORNG=$'\033[38;5;172m'
-        NORM=$'\033[0m'
-        >&2 echo "
-${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in over $__KUBECONFIG_TTL seconds,
-switching to the default context.${NORM}
-    "
-        exit 1
-    )
-    eval "export KUBECONFIG=$KUBECONFIG_DEFAULT"
-    eval "export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')"
-    eval "export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath=\"{.contexts[?(@.name==\\\"$K8S_CURRENT_CONTEXT\\\")].context.namespace}\")"
-else
+# now=$(date '+%s')
+# diff=$((now - __KUBECONFIG_UPDATED_AT))
+# eval "export __KUBECONFIG_UPDATED_AT=$now"
+# if [ "$KUBECONFIG" != "$KUBECONFIG_DEFAULT" ] && [ "$__KUBECONFIG_TTL" -lt "$diff" ]; then
+#     (
+#         ORNG=$'\033[38;5;172m'
+#         NORM=$'\033[0m'
+#         >&2 echo "
+# ${ORNG}WARNING: Context '$K8S_CURRENT_CONTEXT' has not been used in over $__KUBECONFIG_TTL seconds,
+# switching to the default context.${NORM}
+#     "
+#         exit 1
+#     )
+#     eval "export KUBECONFIG=$KUBECONFIG_DEFAULT"
+#     eval "export K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}')"
+#     eval "export K8S_CURRENT_NAMESPACE=$(kubectl config view -o=jsonpath=\"{.contexts[?(@.name==\\\"$K8S_CURRENT_CONTEXT\\\")].context.namespace}\")"
+# else
     kubectl $@
-fi
+# fi
