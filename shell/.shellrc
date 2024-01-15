@@ -19,6 +19,7 @@ fpath=(~/.dotfiles/shell/completion/zsh "${fpath[@]}")
 fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
 autoload -Uz __didyoumean
 autoload -Uz __tmux
+autoload -Uz auth
 autoload -Uz k
 autoload -Uz k8s
 autoload -Uz kn

@@ -36,12 +36,10 @@ elif [ "-" = "$1" ]; then
     kubectl config set-context $(kx) --namespace="${__K8S_LAST_NAMESPACE[$ctxkey]}" > /dev/null
     __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
     __K8S_CURR_NAMESPACE[$ctxkey]=${__K8S_LAST_NAMESPACE[$ctxkey]}
-    __k8s_ps1
 else
     kubectl config set-context $(kx) --namespace="$1" > /dev/null
     __K8S_LAST_NAMESPACE[$ctxkey]=$current_ns
     __K8S_CURR_NAMESPACE[$ctxkey]=$1
-    __k8s_ps1
 fi
 
 export -l __K8S_LAST_NAMESPACE

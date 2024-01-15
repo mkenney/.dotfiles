@@ -14,16 +14,16 @@ precmd() {
     declare -a tool_states
     promptline=
 
-    # k8s status
-    k8s_status=$(__k8s_status)
-    if [ "" != "$k8s_status" ]; then
-        tool_states+=("%{${COLOR_DKGREEN_FADED}%}| %{${K8S_PS1_SYMBOL}%G%} ${k8s_status}%{${COLOR_NORM}%}")
-    fi
-
     # git status
     in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$in_git_repo" ]; then # In a git repo
-        tool_states+=("%{${COLOR_BLUE_FADED}%}| $(echo $(__git_status))%{${COLOR_NORM}%}")
+        tool_states+=("%{${COLOR_BLUE_FADED}%}$(echo $(__git_status))%{${COLOR_NORM}%}")
+    fi
+
+    # k8s status
+    k8s_status=$(__k8s_status)
+    if [ "" != "$k8s_status" ]; then
+        tool_states+=("%{${COLOR_DKGREEN_FADED}%}%{${K8S_PS1_SYMBOL}%G%} ${k8s_status}%{${COLOR_NORM}%}")
     fi
 
     # define midline (tool states)

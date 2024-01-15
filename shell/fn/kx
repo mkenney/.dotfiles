@@ -95,8 +95,10 @@ ctxkey=$(basename $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev
 if [ "" != "$default_namespace" ]; then
     if [ "" = "${__K8S_CURR_NAMESPACE}" ] || [ "" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
         __K8S_CURR_NAMESPACE[$ctxkey]=$default_namespace
-        export -A __K8S_CURR_NAMESPACE
+        export -l __K8S_CURR_NAMESPACE
+        kn $default_namespace
     fi
+    kp on
 fi
 
 # Make sure it lands in the expected namespace
