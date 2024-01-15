@@ -5,7 +5,7 @@ declare -A __K8S_LAST_NAMESPACE
 declare -A __K8S_CURR_NAMESPACE
 export -l __K8S_LAST_NAMESPACE=()
 export -l __K8S_CURR_NAMESPACE=()
-export K8S_STATUS_LINE=
+export K8S_STATUS_LINE=enabled
 
 current_context="$(kx)"
 if [ "" != "$current_context" ]; then
