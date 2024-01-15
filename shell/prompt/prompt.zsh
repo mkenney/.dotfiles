@@ -4,16 +4,12 @@ source ~/.dotfiles/shell/prompt/k8s-status
 source ~/.dotfiles/shell/common/color
 
 # surround escape sequences in '%{${sequences_here}%}' to ignore their width properly
-topline="┌ %{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%} $(pwd)"
-midline=
-promptline=
-
 precmd() {
+    prompt_topline="┌ %{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%} $(pwd)"
     last_exit_code=$?
 
     declare -a tool_states
     declare -a lines
-    promptline=
 
     # git status
     in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
@@ -29,27 +25,21 @@ precmd() {
 
     # define tool states lines
     if [ "" = "$tool_states" ]; then
-        lines+=($topline)
+        lines+=($prompt_topline)
     else
         window_padding=2 # columns of padding in the terminal window width
-        width="$(($(tput cols) - $window_padding))"
-        line="${topline} ${tool_states}"
+        width="$(($COLUMNS - $window_padding))" # COLUMNS is the terminal width tracked by zsh, instead of `tput cols`
+        line="${prompt_topline} ${tool_states}"
         rawline="$(echo "${line}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
-#echo "- 1. full line 1 ${#rawline} ~ $width "
         if [ "${#rawline}" -lt "$width" ]; then
-#echo "- 2. full line 1  ${#rawline} < $width "
             lines+=("${line}")
         else
-#echo "- 3. full line 1  ${#rawline} > $width "
-            lines+=($topline)
+            lines+=($prompt_topline)
             line="│ ${tool_states}"
             rawline="$(echo "${line}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
-#echo "- 4.state line 1 ${#rawline} ~ $width "
             if [ "${#rawline}" -lt "$width" ]; then
-#echo "- 5.state line 1 ${#rawline} < $width "
                 lines+=("${line}")
             else
-#echo "- 6.state line 1 ${#rawline} > $width "
                 for state in $tool_states; do
                     lines+=("│ ${state}")
                 done
@@ -68,6 +58,13 @@ precmd() {
     IFS=$'\n'
     prompttext="$lines"
     IFS=$OLDIFS
+}
+
+# trap SIGWINCH when the terminal is resized
+TRAPWINCH () {
+    precmd
+    PROMPT='
+${prompttext}'
 }
 
 #chpwd() {}
