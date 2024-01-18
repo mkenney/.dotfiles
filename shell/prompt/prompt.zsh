@@ -9,7 +9,7 @@ precmd() {
 
     prompt_beg="┌ "
     prompt_mid="├ "
-    prompt_end="└ "
+    prompt_end="└"
     #prompt_sep=" ⋅ "
     #prompt_sep=" ⎖"
     #prompt_sep=" ⦀ "
@@ -66,7 +66,7 @@ precmd() {
     if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
         lines+=("${prompt_end}${prompt_std} %{$(echo -e -n "\x1b[\x35 q")%}")
     else
-        lines+=("${prompt_end}(%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ${prompt_err} %{$(echo -e -n "\x1b[\x35 q")%}")
+        lines+=("${prompt_end}(%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%})${prompt_err} %{$(echo -e -n "\x1b[\x35 q")%}")
     fi
 
     OLDIFS=$IFS
