@@ -15,13 +15,16 @@ if [ "" != "$4" ]; then
     region=$4
 fi
 
+if [ "" = "$__K8S_CURRENT_CONTEXT" ]; then
+    export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+fi
 if [ "" = "$__K8S_LAST_CONTEXT" ]; then
     export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
 fi
 
 case "$1" in
     "")
-        echo $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+        echo $__K8S_CURRENT_CONTEXT
         return
     ;;
     "-")
@@ -37,7 +40,7 @@ case "$1" in
         else
             aws eks --region us-east-1 update-kubeconfig --name $cluster
         fi
-        export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
     ;;
     "eo")
         if [ "tst" = "$env" ]; then
@@ -48,9 +51,10 @@ case "$1" in
         default_namespace="eo"
 
         auth $profile
+        export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
         aws eks --region us-east-1 update-kubeconfig --name $cluster
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
 
-        export __K8S_LAST_CONTEXT=$last
     ;;
 #     "kops")
 #         profile='eo'
@@ -84,26 +88,25 @@ case "$1" in
         #env cp -f ~/.kube/config ~/.kube/config.${cluster}
         export KUBECONFIG=${HOME}/.kube/config.${cluster}
         export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
-
         auth $profile
         aws eks --region us-east-1 update-kubeconfig --name $cluster
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
     ;;
 esac
 
 # Switch to the specified context
 ctxkey=$(basename $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) 2> /dev/null)
 if [ "" != "$default_namespace" ]; then
-    if [ "" = "${__K8S_CURR_NAMESPACE}" ] || [ "" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
+    if [ "" = "${__K8S_CURR_NAMESPACE}" ] || [ "" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ] || [ "default" = "${__K8S_CURR_NAMESPACE}" ] || [ "default" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
         __K8S_CURR_NAMESPACE[$ctxkey]=$default_namespace
         export -l __K8S_CURR_NAMESPACE
-        kn $default_namespace
+        kn $__K8S_CURR_NAMESPACE[$ctxkey]
     fi
-    kp on
 fi
 
 # Make sure it lands in the expected namespace
-#kn ${__K8S_CURR_NAMESPACE[$ctxkey]}
-#kp on
+kn ${__K8S_CURR_NAMESPACE[$ctxkey]}
+kp on
 
 
 

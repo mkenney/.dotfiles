@@ -5,6 +5,8 @@ GOPATH=$HOME/go
 export GOPATH
 export GOPRIVATE=github.com/ReturnPath,github.com/validityhq,github.com/bdlm
 
+SSH_USERNAME=mkenney
+
 # path
 PATH=/usr/local/go/bin:/usr/local/bin:/opt/homebrew/bin:$PATH
 PATH=$HOME/bin:$PATH
