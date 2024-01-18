@@ -2,6 +2,17 @@
 bindkey -e
 bindkey \^U backward-kill-line # make ctrl-u work like bash
 
+# movement keys
+bindkey "\e[1~"  beginning-of-line # home
+bindkey "\e[4~"  end-of-line       # end
+bindkey "\e[5D"  backward-word     # opt+left
+bindkey "\e\e[D" backward-word     # opt+left
+bindkey "^[[1;5D" backward-word    # ctrl+left
+bindkey "\e[5C"  forward-word      # opt+right
+bindkey "\e\e[C" forward-word      # opt+right
+bindkey "^[[1;5C" forward-word     # ctrl+right
+
+
 setopt histignorealldups
 setopt noautomenu
 setopt nomenucomplete
