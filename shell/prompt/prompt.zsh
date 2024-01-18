@@ -13,11 +13,13 @@ precmd() {
     #prompt_sep=" ⋅ "
     #prompt_sep=" ⎖"
     #prompt_sep=" ⦀ "
-    prompt_sep=" ჻ "
+    #prompt_sep=" ჻ "
+    prompt_sep=" • "
     prompt_std="→"
     #prompt_err="⤳"
     #prompt_err="↯"
-    prompt_err="⇨"
+    #prompt_err="⇨"
+    prompt_err="→"
     #"↷ ↹ ↻ ↺ ⇉ ⇌ ⇢ ⇛ ⇝ ⇨ ⇰ ⇸"
     #prompt_topline="┌ %{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%}"
     window_padding=4 # columns of padding in the terminal window width
@@ -27,7 +29,8 @@ precmd() {
     declare -a lines
 
     # Line 1, date
-    header=("%{${COLOR_YELLOW_FADED}%}%D%{${COLOR_NORM}%}")
+    #header=("%{${COLOR_YELLOW_FADED}%}%D%{${COLOR_NORM}%}")
+    header=("%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}")
 
     # State 1, pwd
     tool_states+=("$(pwd)")
@@ -61,9 +64,9 @@ precmd() {
 
     # define command prompt
     if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
-        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} ${prompt_std} %{$(echo -e -n "\x1b[\x35 q")%}")
+        lines+=("${prompt_end}${prompt_std} %{$(echo -e -n "\x1b[\x35 q")%}")
     else
-        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ${prompt_err} %{$(echo -e -n "\x1b[\x35 q")%}")
+        lines+=("${prompt_end}(%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ${prompt_err} %{$(echo -e -n "\x1b[\x35 q")%}")
     fi
 
     OLDIFS=$IFS
