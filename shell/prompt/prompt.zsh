@@ -5,12 +5,21 @@ source ~/.dotfiles/shell/common/color
 
 # surround escape sequences in '%{${sequences_here}%}' to ignore their width properly
 precmd() {
+    last_exit_code=$?
+
     prompt_beg="┌ "
     prompt_mid="├ "
     prompt_end="└ "
-    prompt_sep=" ⋅ "
+    #prompt_sep=" ⋅ "
+    #prompt_sep=" ⎖"
+    #prompt_sep=" ⦀ "
+    prompt_sep=" ჻ "
+    prompt_std="→"
+    #prompt_err="⤳"
+    #prompt_err="↯"
+    prompt_err="⇨"
+    #"↷ ↹ ↻ ↺ ⇉ ⇌ ⇢ ⇛ ⇝ ⇨ ⇰ ⇸"
     #prompt_topline="┌ %{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%}"
-    last_exit_code=$?
     window_padding=4 # columns of padding in the terminal window width
     width="$(($COLUMNS - $window_padding))" # COLUMNS is the terminal width tracked by zsh, instead of `tput cols`
 
@@ -18,7 +27,7 @@ precmd() {
     declare -a lines
 
     # Line 1, date
-    header=("%{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%}")
+    header=("%{${COLOR_YELLOW_FADED}%}%D%{${COLOR_NORM}%}")
 
     # State 1, pwd
     tool_states+=("$(pwd)")
@@ -50,33 +59,11 @@ precmd() {
     done
     if [ "" != "$str" ]; then lines+=("${prefix}${str}"); fi
 
-    # # define tool states lines
-    # if [ "" = "$tool_states" ]; then
-    #     lines+=($prompt_topline)
-    # else
-    #     line="${prompt_topline} ${tool_states}"
-    #     rawline="$(echo "${line}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
-    #     if [ "${#rawline}" -lt "$width" ]; then
-    #         lines+=("${line}")
-    #     else
-    #         lines+=($prompt_topline)
-    #         line="│ ${tool_states}"
-    #         rawline="$(echo "${line}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
-    #         if [ "${#rawline}" -lt "$width" ]; then
-    #             lines+=("${line}")
-    #         else
-    #             for state in $tool_states; do
-    #                 lines+=("│ ${state}")
-    #             done
-    #         fi
-    #     fi
-    # fi
-
     # define command prompt
     if [ "0" = "$last_exit_code" ] || [ "" = "$last_exit_code" ]; then
-        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%D{%H:%M:%S}%{${COLOR_NORM}%} → %{$(echo -e -n "\x1b[\x35 q")%}")
+        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} ${prompt_std} %{$(echo -e -n "\x1b[\x35 q")%}")
     else
-        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%D{%H:%M:%S}%{${COLOR_NORM}%} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ⤳ %{$(echo -e -n "\x1b[\x35 q")%}")
+        lines+=("${prompt_end}%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%} (%{${COLOR_RED_FADED}%}${last_exit_code}%{${COLOR_NORM}%}) ${prompt_err} %{$(echo -e -n "\x1b[\x35 q")%}")
     fi
 
     OLDIFS=$IFS
