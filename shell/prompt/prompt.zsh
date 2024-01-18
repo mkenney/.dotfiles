@@ -16,7 +16,7 @@ precmd() {
     #prompt_sep=" ჻ "
     prompt_sep=" • "
     #prompt_std="→"
-    prompt_std="►"
+    prompt_std=">"
     #prompt_err="⤳"
     #prompt_err="↯"
     #prompt_err="⇨"
