@@ -5,7 +5,8 @@ GOPATH=$HOME/go
 export GOPATH
 export GOPRIVATE=github.com/ReturnPath,github.com/validityhq,github.com/bdlm
 
-SSH_USERNAME=mkenney
+export SSH_USERNAME=mkenney
+export SSH_PRIVATE_KEY=/Users/michael.kenney/.ssh/validity-ansible-accounts-rsa
 
 # path
 PATH=/usr/local/go/bin:/usr/local/bin:/opt/homebrew/bin:$PATH
