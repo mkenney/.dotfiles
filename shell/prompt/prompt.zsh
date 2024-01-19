@@ -34,11 +34,15 @@ precmd() {
     #header=("%{${COLOR_YELLOW_FADED}%}%D%{${COLOR_NORM}%}")
     header=("%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}")
 
-    # State 1, pwd
-    tool_states+=("$(pwd)")
+    # State 1, pwd relative in git repo
+    pwd="$(pwd)"
+    in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
+    if [ "true" = "$in_git_repo" ]; then # In a git repo
+        pwd=$(echo $pwd | sed -r 's#.*/(github\.com\/.*).*#\1#')
+    fi
+    tool_states+=("$pwd")
 
     # State 2, git
-    in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$in_git_repo" ]; then # In a git repo
         tool_states+=("%{${COLOR_BLUE_FADED}%}$(echo $(__git_status))%{${COLOR_NORM}%}")
     fi
