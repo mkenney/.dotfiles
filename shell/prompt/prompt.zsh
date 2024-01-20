@@ -23,15 +23,13 @@ precmd() {
     #prompt_err="▷"
     prompt_err=">"
     #"↷ ↹ ↻ ↺ ⇉ ⇌ ⇢ ⇛ ⇝ ⇨ ⇰ ⇸"
-    #prompt_topline="┌ %{${COLOR_YELLOW_FADED}%}$(date '+%Y-%m-%d')%{${COLOR_NORM}%}"
-    window_padding=4 # columns of padding in the terminal window width
+    window_padding=8 # columns of padding in the terminal window width
     width="$(($COLUMNS - $window_padding))" # COLUMNS is the terminal width tracked by zsh, instead of `tput cols`
 
     declare -a tool_states
     declare -a lines
 
     # Line 1, date
-    #header=("%{${COLOR_YELLOW_FADED}%}%D%{${COLOR_NORM}%}")
     header=("%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}")
 
     # State 1, pwd relative in git repo
