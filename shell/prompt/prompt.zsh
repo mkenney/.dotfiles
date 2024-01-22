@@ -23,8 +23,8 @@ precmd() {
     #prompt_err="▷"
     prompt_err=">"
     #"↷ ↹ ↻ ↺ ⇉ ⇌ ⇢ ⇛ ⇝ ⇨ ⇰ ⇸"
-    window_padding=8 # columns of padding in the terminal window width
-    width="$(($COLUMNS - $window_padding))" # COLUMNS is the terminal width tracked by zsh, instead of `tput cols`
+    #window_padding=8 # columns of padding in the terminal window width
+    width="$((($COLUMNS / 3) * 2))" # COLUMNS is the terminal width tracked by zsh, instead of `tput cols`
 
     declare -a tool_states
     declare -a lines
@@ -32,7 +32,7 @@ precmd() {
     # Line 1, date
     header=("%{${COLOR_GREEN_FADED}%}%*%{${COLOR_NORM}%}")
 
-    # State 1, pwd relative in git repo
+    # State 1, pwd relative in src directories
     pwd="$(pwd)"
     in_git_repo=$(/usr/bin/env git rev-parse --is-inside-work-tree 2> /dev/null)
     if [ "true" = "$in_git_repo" ]; then # In a git repo
@@ -51,11 +51,10 @@ precmd() {
         tool_states+=("%{${COLOR_DKGREEN_FADED}%}%{${K8S_PS1_SYMBOL}%G%} ${k8s_status}%{${COLOR_NORM}%}")
     fi
 
-
     str=$header
     prefix=$prompt_beg
     for state in $tool_states; do
-        raw_str="$(echo "${str} ${state}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
+        raw_str="$(echo "${str}${prompt_sep}${state}" | sed 's/[^[:print:]]\[[^a-zA-Z]*[a-zA-Z]//g' | sed 's/\(%{\|%}\|%G\)//g')"
         if [ "${#raw_str}" -lt "$width" ]; then
             str="${str}${prompt_sep}${state}"
         else
