@@ -1,42 +1,7 @@
 #!/usr/bin/env bash
 
-# go
-GOPATH=$HOME/go
-export GOPATH
-export GOPRIVATE=github.com/ReturnPath,github.com/validityhq,github.com/bdlm
-
 export SSH_USERNAME=mkenney
 export SSH_PRIVATE_KEY=/Users/michael.kenney/.ssh/validity-ansible-accounts-rsa
-
-# path
-PATH=/usr/local/go/bin:/usr/local/bin:/opt/homebrew/bin:$PATH
-PATH=$HOME/bin:$PATH
-PATH=$HOME/.dotfiles/bin:$PATH
-PATH=$GOPATH/bin:$PATH
-PATH=$(go env GOROOT)/misc/wasm:$PATH
-PATH=$HOME/.local/bin:$PATH
-PATH=/usr/local/opt/coreutils/libexec/gnubin:$PATH
-PATH=/usr/local/opt/grep/libexec/gnubin:$PATH
-PATH=$PATH:~/Library/Python/3.4/bin
-# brew install libxmlsec1
-PATH=$PATH:/usr/local/opt/openssl/bin
-# brew install grep
-#PATH=/opt/homebrew/opt/grep/libexec/gnubin:$PATH
-# Python 3.4 on OS X
-if [ -d "/Library/Frameworks/Python.framework/Versions/3.4/bin" ]; then
-    PATH=$PATH:/Library/Frameworks/Python.framework/Versions/3.4/bin
-fi
-export PATH
-
-# brew install openssl
-export PKG_CONFIG_PATH="/opt/homebrew/opt/openssl@3/lib/pkgconfig"
-
-# docker
-export DOCKER_DEFAULT_PLATFORM=linux/amd64
-
-# editors
-export VISUAL=vim
-export EDITOR=vim
 
 # history
 export HISTSIZE="1000000"
@@ -66,11 +31,6 @@ if [ "Darwin" = "$(uname)" ]; then
 elif [ "Linux" = "$(uname)" ]; then
     export LESS="--quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS --mouse --save-marks"
 fi
-
-#export K8S_STATUS_LINE_CONTEXTS="dev eo-test eo-prod kubtst1 kubden1"
-
-# vagrant
-#export VAGRANT_EXPERIMENTAL="disks"
 
 # notify immediatly on background job completion
 set -o notify

@@ -1,3 +1,2 @@
-#!/usr/bin/env bash
 
 export CDPATH=:$HOME/src/github.com/mkenney:$HOME/src/github.com:$HOME

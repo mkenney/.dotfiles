@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # https://wiki.archlinux.org/index.php/Color_Bash_Prompt
 . ~/.dotfiles/bash_resources/color
 

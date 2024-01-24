@@ -46,13 +46,21 @@ autoload -Uz kn
 autoload -Uz kp
 autoload -Uz kx
 
-source ~/.dotfiles/shell/common/env
+# path
+#echo "~/.dotfiles/shell/common/path"
+if [ -f ~/.dotfiles/shell/common/path ]; then
+    source ~/.dotfiles/shell/common/path
+fi
 
-# ./.profile
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
-export PATH="~/.dotfiles/shell/fn:$PATH"
-eval "$(/opt/homebrew/bin/brew shellenv)"
-
+# env
+#echo "~/.dotfiles/shell/common/env"
+if [ -f ~/.dotfiles/shell/common/env ]; then
+    source ~/.dotfiles/shell/common/env
+fi
+#echo "~/.dotfiles/shell/common/env_platform"
+if [ -f ~/.dotfiles/shell/common/env_platform ]; then
+    source ~/.dotfiles/shell/common/env_platform
+fi
 
 # Aliases
 #echo "~/.dotfiles/shell/common/aliases"
@@ -60,23 +68,39 @@ if [ -f ~/.dotfiles/shell/common/aliases ]; then
     source ~/.dotfiles/shell/common/aliases
 fi
 
-# AWS
-#echo "~/.dotfiles/shell/common/aws"
-if [ -f ~/.dotfiles/shell/common/aws ]; then
-    source ~/.dotfiles/shell/common/aws
+# ./.profile
+export PATH="~/.dotfiles/shell/fn:$PATH"
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# brew
+#echo "~/.dotfiles/shell/common/brew"
+if [ -f ~/.dotfiles/shell/common/brew ]; then
+    source ~/.dotfiles/shell/common/brew
 fi
 
-# # validity-auth.sh
-# #echo "~/.dotfiles/shell/common/validity-auth.sh"
-# if [ -f ~/.dotfiles/shell/common/validity-auth.sh ]; then
-#     source ~/.dotfiles/shell/common/validity-auth.sh
-# fi
+# docker
+#echo "~/.dotfiles/shell/common/docker"
+if [ -f ~/.dotfiles/shell/common/docker ]; then
+    source ~/.dotfiles/shell/common/docker
+fi
+
+# go
+#echo "~/.dotfiles/shell/common/go"
+if [ -f ~/.dotfiles/shell/common/go ]; then
+    source ~/.dotfiles/shell/common/go
+fi
+
+# terraform
+#echo "~/.dotfiles/shell/common/terraform"
+if [ -f ~/.dotfiles/shell/common/terraform ]; then
+    source ~/.dotfiles/shell/common/terraform
+fi
 
 # Bash completion settings
-if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/profile.d/bash_completion.sh ]; then
-    #echo "$(brew --prefix)/etc/profile.d/bash_completion.sh"
-    source $(brew --prefix)/etc/profile.d/bash_completion.sh
-fi
+# if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/profile.d/bash_completion.sh ]; then
+#     #echo "$(brew --prefix)/etc/profile.d/bash_completion.sh"
+#     source $(brew --prefix)/etc/profile.d/bash_completion.sh
+# fi
 #echo "~/.dotfiles/shell/completion"
 # if [ -f ~/.dotfiles/shell/common ]; then
 #     source ~/.dotfiles/shell/completion
@@ -99,21 +123,8 @@ fi
 #     source ~/.dotfiles/shell/devenv
 # fi
 
-# ENV
-#echo "~/.dotfiles/shell/common/env"
-if [ -f ~/.dotfiles/shell/common/env ]; then
-    source ~/.dotfiles/shell/common/env
-fi
-#echo "~/.dotfiles/shell/common/env_platform"
-if [ -f ~/.dotfiles/shell/common/env_platform ]; then
-    source ~/.dotfiles/shell/common/env_platform
-fi
 
-# # Command extensions
-# if [ -f ~/.dotfiles/shell/didyoumean ]; then
-#     source ~/.dotfiles/shell/didyoumean
-# fi
-
+# shell extensions
 #echo "~/.dotfiles/shell/ext/cmd"
 if [ -d ~/.dotfiles/shell/ext/cmd ]; then
     source ~/.dotfiles/shell/ext/cmd/init.sh
@@ -125,32 +136,12 @@ if [ -f ~/.dotfiles/shell/common/functions ]; then
     source ~/.dotfiles/shell/common/functions
 fi
 
-# Bash completion settings
-if [ "Darwin" = "$(uname)" ] && [ "" != $(which brew) ] && [ -f $(brew --prefix)/etc/profile.d/bash_completion.sh ]; then
-    source $(brew --prefix)/etc/profile.d/bash_completion.sh
-fi
-#echo "~/.dotfiles/shell/completion"
-if [ -f ~/.dotfiles/shell/common ]; then
-    source ~/.dotfiles/shell/completion
-fi
 # Git completion
 #echo "~/.dotfiles/shell/common/git-completion"
 if [[ -n ${ZSH_VERSION-} && -z ${GIT_SOURCING_ZSH_COMPLETION-} ]] && [ -f ~/.dotfiles/shell/completion/zsh/_git ]; then
     fpath=(~/.dotfiles/shell/completion/zsh $fpath)
 elif [ -f ~/.dotfiles/shell/completion/git-completion.bash ]; then
     source ~/.dotfiles/shell/completion/git-completion.bash
-fi
-
-# Go
-#echo "~/.dotfiles/shell/common/go"
-if [ -f ~/.dotfiles/shell/common/go ]; then
-    source ~/.dotfiles/shell/common/go
-fi
-
-# helm
-#echo "~/.dotfiles/shell/common/helm"
-if [ -f ~/.dotfiles/shell/common/helm ]; then
-    source ~/.dotfiles/shell/common/helm
 fi
 
 # Java
@@ -179,36 +170,8 @@ fi
 
 # Prompt
 #echo "~/.dotfiles/shell/prompt"
-if [ -f ~/.dotfiles/shell/prompt ]; then
-    source ~/.dotfiles/shell/prompt
-fi
-#echo "~/.dotfiles/shell/prompt"
 if [ -f ~/.dotfiles/shell/prompt/prompt.zsh ]; then
     source ~/.dotfiles/shell/prompt/prompt.zsh
-fi
-
-# Screen aliases
-#echo "~/.dotfiles/shell/common/screen"
-if [ -f ~/.dotfiles/shell/common/screen ]; then
-    source ~/.dotfiles/shell/common/screen
-fi
-
-# SSH tunnel aliases
-#echo "~/.dbtunnels"
-# if [ -f ~/.dbtunnels ]; then
-#     source ~/.dbtunnels
-# fi
-
-# Tmuxinator-completion
-# #echo "~/.dotfiles/shell/tmuxinator-completion"
-# if [ -f ~/.dotfiles/shell/tmuxinator-completion ]; then
-#     source ~/.dotfiles/shell/tmuxinator-completion
-# fi
-
-# Terraform
-#echo "~/.dotfiles/shell/common/terraform"
-if [ -f ~/.dotfiles/shell/common/terraform ]; then
-    source ~/.dotfiles/shell/common/terraform
 fi
 
 # VIM
@@ -229,6 +192,7 @@ if [ -f ~/.dotfiles/shell/common/tmux ]; then
     source ~/.dotfiles/shell/common/tmux
 fi
 
+# cargo
 if [ -f ~/.cargo/env ]; then
     source ~/.cargo/env
 fi
