@@ -1,5 +1,6 @@
 alias h="helm"
 alias t="terraform"
+alias vim="vim -S ~/.vimrc"
 
 alias :qa="echo 'stop it 👀'"
 alias a="cal"
@@ -49,8 +50,8 @@ elif [[ $platform == 'Darwin' ]]; then
     alias cputemp="sudo powermetrics --samplers smc |grep -i 'die temperature'"
 
     if [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
-        alias vim='/Applications/MacVim.app/Contents/MacOS/Vim'
-        alias vimdiff='/Applications/MacVim.app/Contents/bin/vimdiff'
+        alias vim='/Applications/MacVim.app/Contents/MacOS/Vim -S ~/.vimrc'
+        alias vimdiff='/Applications/MacVim.app/Contents/bin/vimdiff -S ~/.vimrc'
     fi
 
     # `brew install coreutils` to get gls

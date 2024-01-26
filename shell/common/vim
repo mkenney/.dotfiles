@@ -4,3 +4,7 @@ export VIMHOME='~/.vim'
 # editors
 export VISUAL=vim
 export EDITOR=vim
+
+alias iv='vim'
+alias ivm='vim'
+alias vi='vim'
