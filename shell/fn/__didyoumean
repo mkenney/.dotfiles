@@ -83,7 +83,7 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
         if [ "quit" = "$option" ]; then
             echo "quit."
         else
-            echo "executing $1 $2 ${options[$option]} ${@:4}"
+            #echo "executing $1 $2 ${options[$option]} ${@:4}"
             echo
             $1 $2 ${options[$option]} ${@:4}
             thatswhatimeant=1
