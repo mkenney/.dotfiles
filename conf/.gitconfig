@@ -54,6 +54,10 @@
     pb = !git show-closest-parent-branch
     committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
 	nthcheckout = "!nthlastcheckout() {\n        git reflog |\n        awk '$3==\"checkout:\" {++n}\n             n=='${1-1}' {print $NF; exit}\n             END {exit n!='${1-1}'}'\n}; nthlastcheckout \"$@\""
+
+    cherrypick-file = "!f() { \
+        git diff --no-ext-diff HEAD...$1 -- $2 | git apply --ignore-whitespace --unidiff-zero -; \
+    }; f"
 [push]
     default = matching
 [commit]
