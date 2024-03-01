@@ -76,7 +76,6 @@
     added = green bold
     changed = yellow bold
     untracked = red
-
 [alias]
     # blame a function or similar
     blame = blame -w -c -c -c
@@ -91,14 +90,14 @@
     #l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n' --all
     #committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
 
+    # closest branch
     # based on: https://gist.github.com/intel352/9761288
-    show-closest-branch = rev-parse --abbrev-ref HEAD
+    cb = rev-parse --abbrev-ref HEAD
+    # parent branch
     # based on: http://stackoverflow.com/questions/3161204/find-the-parent-branch-of-a-git-branch
-    show-closest-parent-branch = !"git show-branch -a --no-color 2> /dev/null | awk -F '[]^~[]' -v current_branch=`git show-closest-branch 2> /dev/null || true` 'BEGIN { rc=1 ; if ( length( current_branch ) == 0 ) { exit } } ( ( index( $1, \"*\" ) > 0 ) && ( length( $2 ) > 0 ) && ( $2 != current_branch ) ) { print $2 ; rc=0 ; exit } END { exit rc }'"
-    # short versions
-    cb = !git show-closest-branch
-    pb = !git show-closest-parent-branch
-    committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
+    pb = !"git show-branch -a --no-color 2> /dev/null | awk -F '[]^~[]' -v current_branch=`git cb 2> /dev/null || true` 'BEGIN { rc=1 ; if ( length( current_branch ) == 0 ) { exit } } ( ( index( $1, \"*\" ) > 0 ) && ( length( $2 ) > 0 ) && ( $2 != current_branch ) ) { print $2 ; rc=0 ; exit } END { exit rc }'"
+
+    committers = !git log --abbrev-commit --decorate --format=format:'%h - %an %ai (%ae)' --all | less
 	nthcheckout = "!nthlastcheckout() {\n        git reflog |\n        awk '$3==\"checkout:\" {++n}\n             n=='${1-1}' {print $NF; exit}\n             END {exit n!='${1-1}'}'\n}; nthlastcheckout \"$@\""
 
     cherrypick-file = "!f() { \

@@ -28,6 +28,7 @@ case "$1" in
         # all this is just to authenticate the current shell without exec-ing
         # into a new subshell which is super annoying.
         unset AWS_VAULT
+        echo "aws-vault exec ${1}"
         while read -r a; do
             eval "export $a"
             exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return $exit_code; fi
