@@ -1,5 +1,4 @@
 [user]
     email = michael.kenney@validity.com
     name = Michael Kenney
-[commit]
-    gpgsign = true
+    signingkey = ~/.ssh/github.validity.pub

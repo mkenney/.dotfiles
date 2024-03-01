@@ -1,6 +1,0 @@
-[user]
-    email = mkenney@webbedlam.com
-    name = Michael Kenney
-    signingkey = 7E2A4B4FBCD546FD
-[commit]
-    gpgsign = true
