@@ -1,13 +1,62 @@
 [user]
-    email = michael.kenney@validity.com
+    email = mkenney@webbedlam.com
     name = Michael Kenney
-#    signingkey = 7E2A4B4FBCD546FD
+    signingkey = ~/.ssh/github_macbook_pro_2022.pub
+[gpg]
+    format = ssh
+[commit]
+    gpgsign = true
 [url "git@github.com:"]
 	insteadOf = https://github.com/
+
+[includeIf "gitdir:~/src/github.com/validityhq/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/ReturnPath/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/250ok/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+
+[push]
+    default = matching
+[rerere] # remember conflict resolution steps for next time
+	enabled = true
+[branch]
+	sort = -committerdate
+    format = %(committerdate:short) %(refname:short)
+[core]
+    pager = delta
+    whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
+    excludesfile = ~/.gitignore_global
+    editor = vim
+
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    pager = less -r
+    navigate = true
+    side-by-side = true
+    syntax-theme = Monokai Extended
+    features = line-numbers decorations
+    line-numbers = true
+    decorations = true
+    whitespace-error-style = 22 reverse
+    whitespace-error-color = 196
+    hyperlinks = true
+    hyperlinks-file-link-format = "vscode://file/{path}:{line}"
+
+[merge]
+    conflictstyle = diff3
 [diff]
-    external = ~/.dotfiles/bin/git_vimdiff_wrapper
+    colorMoved = default
+    features = my-dark-theme zebra-dark
+
+[apply]
+    whitespace = fix
+
 [pager]
-    diff =
+    diff = delta
+    #blame = delta
+
 [color]
     diff = auto
     status = auto
@@ -27,14 +76,11 @@
     added = green bold
     changed = yellow bold
     untracked = red
-[core]
-    pager = less -+$LESS
-    whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
-    excludesfile = ~/.gitignore_global
-    editor = vim
-[apply]
-    whitespace = fix
+
 [alias]
+    # blame a function or similar
+    blame = blame -w -c -c -c
+
     #first = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all --diff-filter=A --
     first = log --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n' --all --diff-filter=A --
 
@@ -58,11 +104,3 @@
     cherrypick-file = "!f() { \
         git diff --no-ext-diff HEAD...$1 -- $2 | git apply --ignore-whitespace --unidiff-zero -; \
     }; f"
-[push]
-    default = matching
-[commit]
-#	gpgsign = true
-[pull]
-#	rebase = true
-[rerere]
-	enabled = true

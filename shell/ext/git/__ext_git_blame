@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+#
+# Change the default blame
+#
+git blame -w -c -c -c $@
