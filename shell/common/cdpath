@@ -1,2 +1,2 @@
 
-export CDPATH=:$HOME/src/github.com/mkenney:$HOME/src/github.com:$HOME
+export CDPATH=:$HOME/src/github.com/mkenney:$HOME/src/github.com:$HOME/src:$HOME
