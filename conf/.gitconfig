@@ -1,14 +1,9 @@
 [user]
     email = mkenney@webbedlam.com
     name = Michael Kenney
-    signingkey = ~/.ssh/github_macbook_pro_2022.pub
-[gpg]
-    format = ssh
-[commit]
-    gpgsign = true
-[url "git@github.com:"]
-	insteadOf = https://github.com/
+    signingkey = ~/.ssh/github.com.pub
 
+# work
 [includeIf "gitdir:~/src/github.com/validityhq/**"]
     path = ~/.dotfiles/conf/.gitconfig.work
 [includeIf "gitdir:~/src/github.com/ReturnPath/**"]
@@ -16,46 +11,46 @@
 [includeIf "gitdir:~/src/github.com/250ok/**"]
     path = ~/.dotfiles/conf/.gitconfig.work
 
+# use ssh, not https
+[url "git@github.com:"]
+	insteadOf = https://github.com/
+
+# sign all commits
+[gpg]
+    format = ssh
+[commit]
+    gpgsign = true
+
 [push]
     default = matching
-[rerere] # remember conflict resolution steps for next time
-	enabled = true
 [branch]
 	sort = -committerdate
     format = %(committerdate:short) %(refname:short)
 [core]
-    pager = delta
+    pager = less
     whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore_global
     editor = vim
 
-[interactive]
-    diffFilter = delta --color-only
-[delta]
-    pager = less -r
-    navigate = true
-    side-by-side = true
-    syntax-theme = Monokai Extended
-    features = line-numbers decorations
-    line-numbers = true
-    decorations = true
-    whitespace-error-style = 22 reverse
-    whitespace-error-color = 196
-    hyperlinks = true
-    hyperlinks-file-link-format = "vscode://file/{path}:{line}"
-
-[merge]
-    conflictstyle = diff3
+# diff / merge
+[pager]
+    diff =
 [diff]
-    colorMoved = default
-    features = my-dark-theme zebra-dark
-
+	external = ~/.dotfiles/bin/git_vimdiff_wrapper
+    tool = vimdiff
+[difftool]
+	prompt = false
+[merge]
+    tool = vimdiff
+    conflictstyle = diff3
+[mergetool]
+    prompt = false
 [apply]
     whitespace = fix
+[rerere]
+	enabled = true # remember conflict resolution steps for next time
 
-[pager]
-    diff = delta
-    #blame = delta
+################################################################################
 
 [color]
     diff = auto

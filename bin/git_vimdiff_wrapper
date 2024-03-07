@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-echo -e "    $5                                                 \c"
-
-# because MacVim is more better
-if [ "Darwin" = "$(uname)" ] && [ -f "/Applications/MacVim.app/Contents/bin/vimdiff" ]; then
-    /Applications/MacVim.app/Contents/bin/vimdiff -S ~/.vimrc -R "$2" "$5"
-    exit $?
-else
-    vimdiff -S ~/.vimrc -R "$2" "$5"
-    exit $?
-fi
+echo -e "    $5 - \c"
+vimdiff -S ~/.vimrc -R "$2" "$5"
+exit $?
