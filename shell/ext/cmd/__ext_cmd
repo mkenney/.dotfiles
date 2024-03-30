@@ -14,10 +14,11 @@ pwd=$(pwd)
 for part in "${@}"; do
     ((arg=arg+1))
     tst="${tst}_${part}"
-    if [ -f "~/.dotfiles/shell/ext/${1}/${tst}" ]; then
+    if [ -f "$(realpath ~/.dotfiles/shell/ext/${1}/${tst})" ]; then
         shift_to=$arg
         cmd=$tst
         found=1
+        echo "adding: $cmd"
     fi
 done
 
