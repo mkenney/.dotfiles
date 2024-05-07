@@ -15,4 +15,7 @@ PATH=$PATH:/usr/local/opt/openssl/bin
 if [ -d "/Library/Frameworks/Python.framework/Versions/3.4/bin" ]; then
     PATH=$PATH:/Library/Frameworks/Python.framework/Versions/3.4/bin
 fi
+if [ -d "/opt/homebrew/opt/mysql-client/bin" ]; then
+    PATH=$PATH:/opt/homebrew/opt/mysql-client/bin
+fi
 export PATH
