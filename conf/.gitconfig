@@ -3,14 +3,6 @@
     name = Michael Kenney
     signingkey = ~/.ssh/github.com.pub
 
-# work
-[includeIf "gitdir:~/src/github.com/validityhq/**"]
-    path = ~/.dotfiles/conf/.gitconfig.work
-[includeIf "gitdir:~/src/github.com/ReturnPath/**"]
-    path = ~/.dotfiles/conf/.gitconfig.work
-[includeIf "gitdir:~/src/github.com/250ok/**"]
-    path = ~/.dotfiles/conf/.gitconfig.work
-
 # use ssh, not https
 [url "git@github.com:"]
 	insteadOf = https://github.com/
@@ -27,6 +19,7 @@
 	sort = -committerdate
     format = %(committerdate:short) %(refname:short)
 [core]
+    sshCommand = ssh -i ~/.ssh/github.com.pub
     pager = less -+$LESS -FRX
     whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore_global
@@ -98,3 +91,12 @@
     cherrypick-file = "!f() { \
         git diff --no-ext-diff HEAD...$1 -- $2 | git apply --ignore-whitespace --unidiff-zero -; \
     }; f"
+
+# work
+[includeIf "gitdir:~/src/github.com/validityhq/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/ReturnPath/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/250ok/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+

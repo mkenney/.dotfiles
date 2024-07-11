@@ -2,5 +2,13 @@
     email = michael.kenney@validity.com
     name = Michael Kenney
     signingkey = ~/.ssh/github.com.validity.pub
+
 [core]
     sshCommand = ssh -i ~/.ssh/github.com.validity.pub
+
+# use ssh, not https
+[url "git@github.com-validity:"]
+	insteadOf = https://github.com/
+
+[url "git@github.com-validity:"]
+	insteadOf = git@github.com:
