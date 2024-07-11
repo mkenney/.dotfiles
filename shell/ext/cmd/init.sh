@@ -12,7 +12,11 @@ setopt COMPLETE_ALIASES
 for ext in $(find $__EXT_DIR -maxdepth 1 -type d -and -not -name '.*'); do
     if [ "$ext" != "$__EXT_DIR" ] && [ "$ext" != "$__EXT_DIR/cmd" ]; then
         # alias the command to the __ext_cmd wrapper method
-        alias $(basename $ext)="__didyoumean __ext_cmd $(basename $ext)"
+        if [ "docker" != "$(basename $ext)" ]; then
+            alias $(basename $ext)="__didyoumean __ext_cmd $(basename $ext)"
+        elif [ "docker" = "$(basename $ext)" ]; then
+            alias $(basename $ext)="__ext_cmd $(basename $ext)"
+        fi
         source $ext/init.sh
     fi
 done

@@ -27,7 +27,7 @@
 	sort = -committerdate
     format = %(committerdate:short) %(refname:short)
 [core]
-    pager = less
+    pager = less -+$LESS -FRX
     whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore_global
     editor = vim

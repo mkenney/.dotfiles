@@ -1,2 +1,6 @@
 [user]
     email = michael.kenney@validity.com
+    name = Michael Kenney
+    signingkey = ~/.ssh/github.com.validity.pub
+[core]
+    sshCommand = ssh -i ~/.ssh/github.com.validity.pub
