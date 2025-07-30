@@ -6,6 +6,7 @@ alias :qa="echo 'stop it 👀'"
 alias a="cal"
 alias alien="docker run --rm -t -v $(pwd):/rpm mkenney/alien"
 alias busy='while [ TRUE ]; do head -n 100 /dev/urandom; sleep .05; done | hexdump -C | grep --color=none "ca fe"'
+alias cla="cal"
 alias cloc="perl ~/.dotfiles/bin/cloc.pl"
 alias cls='clear'
 alias cp='cp -i'
@@ -37,6 +38,8 @@ alias top='htop -d 5'
 alias vg='vagrant'
 alias vi='vim'
 alias yes="echo no"
+alias vpn_fix='sudo scutil <<< "remove State:/Network/Service/com.cisco.anyconnect/IPv6"'
+alias vpn_fix_more='sudo networksetup -setv6off Wi-Fi'
 
 #
 # Platform specific aliases
@@ -60,7 +63,7 @@ elif [[ $platform == 'Darwin' ]]; then
         alias ls='gls -aF --time-style=+"%a %Y-%m-%d %T" --color=auto'
         alias realpath='grealpath'
 
-    # bash 3 (os x default...). fails to show broken symlinks
+    # bash 3 (os x) fails to show broken symlinks
     else
         alias ls='ls -aFG'
     fi

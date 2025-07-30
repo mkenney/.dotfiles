@@ -1,38 +1,105 @@
-# auth() - Authenticate against AWS roles using aquaduck. If no arguments are
-# passed, authenticate into aws and the docker repository, and generate SSH keys
-# for gateway servers.
+# auth() - Authenticate against AWS roles using SSO.
 #
-# - authenticate docker:  `auth docker`
-# - authenticate SSH:     `auth ssh vfe-test` (uses aquaduck)
-# - authenticate aws-cli: `auth vfe-test`
+# - Authenticate the aws-cli: `auth aws [profile]`
+#       I.E. `auth aws vfe-test`
+# - authenticate docker:  `auth docker [profile]`
+
+# AWS Account IDs
+declare -A ACCOUNTS
+ACCOUNTS[250ok]="076921442345"
+ACCOUNTS[briteverify]="156750344219"
+ACCOUNTS[bv-sandbox]="024716640333"
+ACCOUNTS[demandtools-test]="387626261093"
+ACCOUNTS[eo]="596297932419"
+ACCOUNTS[gbcloud-prod]="531910124294"
+ACCOUNTS[gbcloud-test]="571805033261"
+ACCOUNTS[threatwave-test]="854104426171"
+ACCOUNTS[threatwave]="739148047862"
+ACCOUNTS[validity-dev]="744761879425"
+ACCOUNTS[vfe-prod]="616752873841"
+ACCOUNTS[vfe-test]="057963531503"
+
+# Get the account id from the account name
+get_account_id() {
+    if [[ -z $ACCOUNTS[$1] ]]; then
+        echo "Unknown account $1"
+        exit 1
+    fi
+    echo $ACCOUNTS[$1]
+}
+
+# Get the account name from the account id
+get_account_name() {
+    for key val in "${(@kv)ACCOUNTS}"; do
+        if [[ $val == $1 ]]; then
+            echo $key
+        fi
+    done
+}
+
+# Set the default AWS account for the aws-cli. Accepts either an account name or
+# an account id. If nothing is passed, prints the current account id.
+set_aws_account() {
+    if [[ -z $ACCOUNTS[$1] ]]; then
+        # assume a literal account id was passed
+        account_id=$1
+    else
+        account_id=$ACCOUNTS[$1]
+    fi
+    aws configure set default.sso_account_id $account_id
+}
+
+# main
+rm -f ~/.aws/config
+ln -s ~/.aws/config.sso ~/.aws/config
 case "$1" in
     # Docker
     "docker")
-        echo "authenticating docker into AWS ECR"
-        old_vault=$AWS_VAULT
-        unset AWS_VAULT && aws-vault exec eo -- aws ecr get-login-password --region us-east-1 | docker login \
+        if [ "" = "$2" ]; then
+            echo "Usage: auth docker [account]"
+            return 1
+        fi
+
+        echo "Authenticating docker into the '$2' ECR: $(get_account_id $2).dkr.ecr.us-east-1.amazonaws.com"
+        current_account_id=$(aws configure get default.sso_account_id)
+        set_aws_account $2
+        aws ecr get-login-password --region us-east-1 | docker login \
             --username AWS \
             --password-stdin \
-            596297932419.dkr.ecr.us-east-1.amazonaws.com
-        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'eo' account failed"; return $exit_code; fi
-        unset AWS_VAULT && aws-vault exec vfe-prod -- aws ecr get-login-password --region us-east-1 | docker login \
-            --username AWS \
-            --password-stdin \
-            616752873841.dkr.ecr.us-east-1.amazonaws.com
-        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the 'vfe-prod' account failed"; return $exit_code; fi
-        unset AWS_VAULT && eval "export AWS_VAULT=$old_vault"
+            $(get_account_id $2).dkr.ecr.us-east-1.amazonaws.com
+        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the '$2' account failed"; return $exit_code; fi
+        set_aws_account $current_account_id
     ;;
 
-    # Default to AWS
+    # AWS account
     *)
-        # all this is just to authenticate the current shell without exec-ing
-        # into a new subshell which is super annoying.
-        unset AWS_VAULT
-        echo "aws-vault exec ${1}"
-        while read -r a; do
-            eval "export $a"
-            exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return $exit_code; fi
-        done <<< "$(aws-vault exec ${1} -- env | grep ^AWS_)"
-        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating into the '${1}' account failed"; return $exit_code; fi
+        account_name=$1
+        if [ "" = "$account_name" ]; then
+            account_name="vfe-test" # default to vfe-test
+        fi
+
+        account_id=$(get_account_id $account_name)
+        exit_code=$?; # on error check for a literal account ID
+        if [ "0" != "$exit_code" ]; then
+            account_name=$(get_account_name $1)
+            exit_code=$?; # if there's still an error the argument is invalid
+            if [ "0" != "$exit_code" ]; then
+                echo "Unknown account '${1}'"
+                return $exit_code
+            fi
+
+            account_id=$(get_account_id $account_name)
+        fi
+
+        aws sso login
+        exit_code=$?;
+        if [ "0" != "$exit_code" ]; then
+            echo "Authenticating into the '${1}' account failed"
+            return $exit_code
+        fi
+        aws configure set default.sso_account_id $account_id
     ;;
+
 esac
+# rm -f ~/.aws/config
+# ln -s ~/.aws/config.vault ~/.aws/config
