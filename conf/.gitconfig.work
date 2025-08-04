@@ -7,8 +7,8 @@
     sshCommand = ssh -i ~/.ssh/github.com.validity.pub
 
 # use ssh, not https
-[url "git@github.com-validity:"]
+[url "git@validity-github:"]
 	insteadOf = https://github.com/
 
-[url "git@github.com-validity:"]
+[url "git@validity-github:"]
 	insteadOf = git@github.com:
