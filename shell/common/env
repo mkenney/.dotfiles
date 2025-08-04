@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+export SSH_USERNAME=mkenney
+export SSH_PRIVATE_KEY=/Users/michael.kenney/.ssh/validity-ansible-accounts-rsa
+
+# history
+export HISTSIZE="1000000"
+export HISTTIMEFORMAT="%d/%m/%y %T: "
+export HISTCONTROL=erasedups
+
+# oracle
+export ORACLE_HOME=/oracle/product/latest
+export TNS_ADMIN=$HOME/.oracle/network/admin
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
+export PATH=$ORACLE_HOME/bin:$PATH
+
+# perl
+export PERLLIB=$PERLLIB:$HOME/perl
+export PERL5LIB=$PERLLIB
+
+#
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+export PAGER=less
+export TERM='xterm-256color'
+export CLICOLOR=1
+export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+export LESS_IS_MORE=0
+if [ "Darwin" = "$(uname)" ]; then
+    export LESS="--quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS"
+elif [ "Linux" = "$(uname)" ]; then
+    export LESS="--quit-if-one-screen --ignore-case --status-column --quit-on-intr --LONG-PROMPT --silent --tilde --RAW-CONTROL-CHARS --mouse --save-marks"
+fi
+
+# notify immediatly on background job completion
+set -o notify

@@ -1,0 +1,2 @@
+
+alias perlshell="perl -MCPAN -e \"shell\""

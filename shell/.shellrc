@@ -1,0 +1,170 @@
+# always use emacs mode
+bindkey -e
+bindkey \^U backward-kill-line # make ctrl-u work like bash
+
+# remove special characters from being word characters in movement and editing
+export WORDCHARS="|"
+
+# movement keys
+bindkey "\e[1~"  beginning-of-line # home
+bindkey "\e[4~"  end-of-line       # end
+bindkey "\e[5D"  backward-word     # opt+left
+bindkey "\e\e[D" backward-word     # opt+left
+bindkey "^[[1;5D" backward-word    # ctrl+left
+bindkey "\e[5C"  forward-word      # opt+right
+bindkey "\e\e[C" forward-word      # opt+right
+bindkey "^[[1;5C" forward-word     # ctrl+right
+
+
+setopt histignorealldups
+setopt noautomenu
+setopt nomenucomplete
+setopt LIST_PACKED
+setopt AUTO_PARAM_SLASH
+
+zstyle :compinstall filename '/Users/mkenney/.zshrc'
+zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*' squeeze-slashes true
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "$XDG_CACHE_HOME/zsh/.zcompcache"
+zstyle ':completion:*' completer _expand _complete _ignored _prefix
+zstyle ':completion:*' format '%d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' matcher-list '' 'm:{[:lower:]}={[:upper:]}' 'r:|[._-]=* r:|=*'
+zstyle ':completion:*' menu interactive
+zstyle ':completion:*:*:git:*' script ~/.dotfiles/shell/completion/bash/git-completion.bash
+#
+autoload -Uz compinit
+compinit
+
+fpath=(~/.dotfiles/shell/completion/zsh "${fpath[@]}")
+fpath=(~/.dotfiles/shell/fn "${fpath[@]}")
+autoload -Uz __didyoumean
+autoload -Uz __tmux
+autoload -Uz auth
+autoload -Uz k
+autoload -Uz k8s
+autoload -Uz kn
+autoload -Uz kp
+autoload -Uz kx
+
+# path
+if [ -f ~/.dotfiles/shell/common/path ]; then
+    source ~/.dotfiles/shell/common/path
+fi
+
+# env
+if [ -f ~/.dotfiles/shell/common/env ]; then
+    source ~/.dotfiles/shell/common/env
+fi
+if [ -f ~/.dotfiles/shell/common/env_platform ]; then
+    source ~/.dotfiles/shell/common/env_platform
+fi
+
+# Aliases
+if [ -f ~/.dotfiles/shell/common/aliases ]; then
+    source ~/.dotfiles/shell/common/aliases
+fi
+
+# ./.profile
+export PATH="~/.dotfiles/shell/fn:$PATH"
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# brew
+if [ -f ~/.dotfiles/shell/common/brew ]; then
+    source ~/.dotfiles/shell/common/brew
+fi
+
+# docker
+if [ -f ~/.dotfiles/shell/common/docker ]; then
+    source ~/.dotfiles/shell/common/docker
+fi
+
+# go
+if [ -f ~/.dotfiles/shell/common/go ]; then
+    source ~/.dotfiles/shell/common/go
+fi
+
+# terraform
+if [ -f ~/.dotfiles/shell/common/terraform ]; then
+    source ~/.dotfiles/shell/common/terraform
+fi
+
+# Clickhouse
+if [ -f ~/.dotfiles/shell/common/clickhouse ]; then
+    source ~/.dotfiles/shell/common/clickhouse
+fi
+
+# CVS shortcuts
+if [ -f ~/.dotfiles/shell/common/cvs ]; then
+    source ~/.dotfiles/shell/common/cvs
+fi
+
+# # devenv
+# if [ -f ~/.dotfiles/shell/devenv ]; then
+#     source ~/.dotfiles/shell/devenv
+# fi
+
+
+# shell extensions
+if [ -d ~/.dotfiles/shell/ext/cmd ]; then
+    source ~/.dotfiles/shell/ext/cmd/init.sh
+fi
+
+# Functions
+if [ -f ~/.dotfiles/shell/common/functions ]; then
+    source ~/.dotfiles/shell/common/functions
+fi
+
+# Git completion
+if [[ -n ${ZSH_VERSION-} && -z ${GIT_SOURCING_ZSH_COMPLETION-} ]] && [ -f ~/.dotfiles/shell/completion/zsh/_git ]; then
+    fpath=(~/.dotfiles/shell/completion/zsh $fpath)
+elif [ -f ~/.dotfiles/shell/completion/git-completion.bash ]; then
+    source ~/.dotfiles/shell/completion/git-completion.bash
+fi
+
+# Java
+if [ -f ~/.dotfiles/shell/common/java ]; then
+    source ~/.dotfiles/shell/common/java
+fi
+
+# kubectl
+if [ -f ~/.dotfiles/shell/common/kubectl ]; then
+   source ~/.dotfiles/shell/common/kubectl
+fi
+
+# Perl
+if [ -f ~/.dotfiles/shell/common/perl ]; then
+    source ~/.dotfiles/shell/common/perl
+fi
+
+# NVM
+if [ -f ~/.dotfiles/shell/common/nvm ]; then
+    source ~/.dotfiles/shell/common/nvm
+fi
+
+# Prompt
+if [ -f ~/.dotfiles/shell/prompt/prompt.zsh ]; then
+    source ~/.dotfiles/shell/prompt/prompt.zsh
+fi
+
+# VIM
+if [ -f ~/.dotfiles/shell/common/vim ]; then
+    source ~/.dotfiles/shell/common/vim
+fi
+
+# CDPATH
+if [ -f ~/.dotfiles/shell/common/cdpath ]; then
+    source ~/.dotfiles/shell/common/cdpath
+fi
+
+# tmux
+if [ -f ~/.dotfiles/shell/common/tmux ]; then
+    source ~/.dotfiles/shell/common/tmux
+fi
+
+# cargo
+if [ -f ~/.cargo/env ]; then
+    source ~/.cargo/env
+fi

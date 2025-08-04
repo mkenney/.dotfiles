@@ -1,34 +1,31 @@
 #!/usr/bin/env bash
 
+if [ "" = "$1" ]; then
+    echo "a shell must be specified (zsh, bash, tcsh, etc)"
+    exit 1
+fi
+shell=$1
+shellrc=".${shell}rc"
+
 ##############################################################################
 #
 # WARNING about this script
-# It WILL overwrite some of your dotfiles without asking, including but not
-# limited to:
-#
-#   ~/.bash_profile
-#   ~/.bashrc
-#   ~/.gitconfig
-#   ~/.gitignore_global
-#   ~/.inputrc
-#   ~/.my.cnf
-#   ~/.phpcs_rules.xml
-#   ~/.screenrc
-#   ~/.tmux.conf
-#   ~/.vimrc
+# It WILL overwrite some of your dotfiles without asking
 #
 ##############################################################################
-platform=`uname`
+PLATFORM=`uname`
 VIM='vim'
+TYPE=$(basename $shell)
 link-dotfile() {
     DOTFILE=$1
-    if [ ! -L "$HOME/$DOTFILE" ] || [ "$(readlink $HOME/$DOTFILE)" != "$HOME/.dotfiles/$DOTFILE" ]; then
-        rm -rf $HOME/$DOTFILE
-        ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DOTFILE
+    DESTINATION=$2
+    if [ ! -L "$HOME/$DESTINATION" ] || [ "$(readlink $HOME/$DESTINATION)" != "$HOME/.dotfiles/$DOTFILE" ]; then
+        rm -f $HOME/$DESTINATION
+        ln -s $HOME/.dotfiles/$DOTFILE $HOME/$DESTINATION
     fi
 }
 
-if [ "Darwin" = "$platform" ]; then
+if [ "Darwin" = "$PLATFORM" ]; then
     if [ "" = "$(which brew)" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     fi
@@ -45,43 +42,39 @@ if [ "Darwin" = "$platform" ]; then
     brew install tmux
     brew install openssh
 
-    # set bash as the login shell. also need to set it your the terminal emulator.
-    if [ -f "/usr/local/bin/bash" ]; then
-        chsh -s /usr/local/bin/bash
-    else
-        chsh -s /opt/homebrew/bin/bash
-    fi
-    sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
-
     # dnsmasq isn't started by default
     sudo brew services start dnsmasq
 
-    ## My solarized-dark theme for Visual Studio Code
-    #if [ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions" ]; then
-    #    rm -rf "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    #    cp -R "$HOME/.dotfiles/vscode/theme-solarized-better" "/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/theme-solarized-better"
-    #fi
-    #if [[ $platform == 'Darwin' ]] && [ -f "/Applications/MacVim.app/Contents/MacOS/Vim" ]; then
-    #    VIM='/Applications/MacVim.app/Contents/MacOS/Vim'
-    #fi
+    # set zsh as the login shell.
+    chsh -s /bin/zsh
+
+    # set bash as the login shell. also need to set it in your terminal emulator.
+    # if [ -f "/usr/local/bin/bash" ]; then
+    #     chsh -s /usr/bin/env zsh
+    # else
+    #     chsh -s /opt/homebrew/bin/bash
+    # fi
+    # sudo bash -c 'echo /usr/local/bin/bash >> /etc/shells'
 fi
 
-link-dotfile .bash_profile
-link-dotfile .bashrc
-link-dotfile .gitignore_global
-link-dotfile .inputrc
-link-dotfile .my.cnf
-link-dotfile .phpcs_rules.xml
-link-dotfile .psqlrc
-link-dotfile .screenrc
-link-dotfile .tmux.conf
-link-dotfile .vim
-link-dotfile .vimrc
-link-dotfile clickhouse-client.xml
+
+link-dotfile shell/.shellrc         $shellrc
+link-dotfile conf/.gitignore_global .gitignore_global
+link-dotfile conf/.inputrc          .inputrc
+link-dotfile conf/.my.cnf           .my.cnf
+link-dotfile conf/.phpcs_rules.xml  .phpcs_rules.xml
+link-dotfile conf/.psqlrc           .psqlrc
+link-dotfile conf/.screenrc         .screenrc
+link-dotfile conf/.spacemacs        .spacemacs
+link-dotfile conf/.tmux.conf        .tmux.conf
+link-dotfile conf/.vim              .vim
+link-dotfile conf/.vimrc            .vimrc
 
 # install vim plugins
 echo $HOME/.dotfiles
 cd $HOME/.dotfiles
+git submodule init && git submodule update
 $VIM +silent +PluginInstall +qall
 
-link-dotfile .gitconfig
+cd $HOME
+link-dotfile conf/.gitconfig .gitconfig

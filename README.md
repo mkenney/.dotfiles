@@ -4,7 +4,7 @@
 
 # Shell Environment Configuration
 
-To keep me sane.
+To keep me sane. Now for `zsh`.
 
 ## Usage
 

@@ -1,0 +1,5 @@
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+export DOCKER_CLI_HINTS=false
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin/"
+alias d="docker"
+alias dc="docker compose"

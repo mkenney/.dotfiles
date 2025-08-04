@@ -1,0 +1,19 @@
+echo "
+Commands
+    kx <context>
+        Sets the KUBECONFIG environment variable to the specified
+        config, defining the current context, and sets \`kubctl\` to
+        the correct executable. Assumes the path to the config file
+        is \`$HOME/.kube/<context>/config\` and the path to the
+        executable is \`$HOME/.kube/<context>/kubectl\`
+
+        If <context> is not passed, the default values
+        \`$HOME/.kube/config\` and \`$HOME/.kube/kubectl\` are used. If
+        <context> is equal to '-' then the previous context is used.
+
+    kn <namespace>
+        Sets the default namespace for the current context. If
+        <namespace> is not passed, the default namespace is selected
+        and printed. if <namespace> is equal to '-' then the
+        previous namespace is used.
+"

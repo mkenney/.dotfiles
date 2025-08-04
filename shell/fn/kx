@@ -1,0 +1,109 @@
+# kx() - Authenticate into a kubernetes cluster and set the appropriate context.
+# If no arguments are passed, print the current context.
+#
+# i.e. `kx vfe test 2`
+# i.e. `kx kops test 2`
+# i.e. `kx eo test 5`
+
+cluster=
+env=$2
+default_namespace=
+profile=
+workload="workload${3}"
+region='us-east-1'
+if [ "" != "$4" ]; then
+    region=$4
+fi
+
+if [ "" = "$__K8S_CURRENT_CONTEXT" ]; then
+    export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+fi
+if [ "" = "$__K8S_LAST_CONTEXT" ]; then
+    export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+fi
+
+case "$1" in
+    "")
+        echo $__K8S_CURRENT_CONTEXT
+        return
+    ;;
+    "-")
+        cluster=$__K8S_LAST_CONTEXT
+        if [ "" = "$cluster" ]; then
+            >&2 echo "kubernetes context is not set"
+            return 1
+        fi
+        if echo "$cluster" | grep -q ".k8s."; then
+            export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+            export KUBECONFIG=${HOME}/.kube/${cluster}/config.kops
+            $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
+        else
+            aws eks --region us-east-1 update-kubeconfig --name $cluster
+        fi
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+    ;;
+    "eo")
+        if [ "tst" = "$env" ]; then
+            env="test"
+        fi
+        profile="${1}"
+        cluster="${workload}-${region}-rp-${profile}-${env}"
+        default_namespace="eo"
+
+        auth $profile
+        export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+        aws eks --region us-east-1 update-kubeconfig --name $cluster
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+
+    ;;
+#     "kops")
+#         profile='eo'
+#         if [ "prod" = "$env" ]; then
+#             env=
+#         fi
+#         if [ "test" = "$env" ]; then
+#             env="tst."
+#         fi
+#         auth eo
+#         cluster="${workload}.k8s.${env}returnpath.net"
+#         default_namespace="eo"
+#         echo "cluseter $cluster"
+#         #echo aws eks --region us-east-1 update-kubeconfig --name $cluster &> /dev/null
+#         export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+#         mkdir "${HOME}/.kube/${cluster}"
+# #            if [ !-f "${HOME}/.kube/${cluster}/config.kops" ]; then
+# #                cat
+# #            fi
+#         export KUBECONFIG=${HOME}/.kube/${cluster}/config.kops
+#         $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
+#     ;;
+    *)
+        if [ "tst" = "$env" ]; then
+            env="test"
+        fi
+        profile="${1}-${2}"
+        cluster="${workload}-us-east-1-${profile}"
+        default_namespace="vfe"
+
+        #env cp -f ~/.kube/config ~/.kube/config.${cluster}
+        export KUBECONFIG=${HOME}/.kube/config.${cluster}
+        export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+        auth $profile
+        aws eks --region us-east-1 update-kubeconfig --name $cluster
+        export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
+    ;;
+esac
+
+# Switch to the specified context
+ctxkey=$(basename $(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null) 2> /dev/null)
+if [ "" != "$default_namespace" ]; then
+    if [ "" = "${__K8S_CURR_NAMESPACE}" ] || [ "" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ] || [ "default" = "${__K8S_CURR_NAMESPACE}" ] || [ "default" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
+        __K8S_CURR_NAMESPACE[$ctxkey]=$default_namespace
+        export -l __K8S_CURR_NAMESPACE
+        kn $__K8S_CURR_NAMESPACE[$ctxkey]
+    fi
+fi
+
+# Make sure it lands in the expected namespace
+kn ${__K8S_CURR_NAMESPACE[$ctxkey]}
+kp on

@@ -1,0 +1,24 @@
+export __K8S_LAST_CONTEXT=
+export __KUBECONFIG_DEFAULT=$KUBECONFIG
+#export KUBECONFIG=$__KUBECONFIG_DEFAULT
+declare -A __K8S_LAST_NAMESPACE
+declare -A __K8S_CURR_NAMESPACE
+export -l __K8S_LAST_NAMESPACE=()
+export -l __K8S_CURR_NAMESPACE=()
+export K8S_STATUS_LINE=
+alias k='kubectl'
+
+current_context="$(kx)"
+if [ "" != "$current_context" ]; then
+    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${current_context}\")].context.namespace}" 2> /dev/null)
+    if [ "" != "$current_ns" ]; then
+        current_ns="default"
+    fi
+
+    ctxkey=$(basename $current_context)
+    ctxkey=${ctxkey//./_}
+    if [ "" != "$current_context" ]; then
+        export -l __K8S_LAST_NAMESPACE=([$ctxkey]=default)
+        export -l __K8S_CURR_NAMESPACE=([$ctxkey]=$current_ns)
+    fi
+fi

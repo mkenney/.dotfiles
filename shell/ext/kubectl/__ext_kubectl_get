@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "all" ]; then
+    all="cronjob,job,namespace,replicaset,secret,job,daemonset,horizontalpodautoscaler,statefulset,ingress,configmap,pv,pvc,service,deployment,pod,serviceaccount,nodes"
+    echo " - kubectl get ${all} ${@:2}"
+    eval "/usr/bin/env kubectl get ${all} ${@:2}"
+else
+    eval "/usr/bin/env kubectl get ${@:1}"
+fi

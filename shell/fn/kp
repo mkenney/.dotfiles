@@ -1,0 +1,17 @@
+# Enable or disable the k8s status line output
+# `kp on`              - show the current status
+# `kp off`             - disable status output
+# `kp <anything else>` - enable status output
+if [ "" != "$1" ]; then
+    if [ "on" = "$1" ]; then
+        export K8S_STATUS_LINE=enabled
+    else
+        export K8S_STATUS_LINE=
+    fi
+else
+    if [ "enabled" = "$K8S_STATUS_LINE" ]; then
+        export K8S_STATUS_LINE=
+    else
+        export K8S_STATUS_LINE=enabled
+    fi
+fi

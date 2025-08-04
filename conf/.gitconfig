@@ -1,0 +1,106 @@
+[user]
+    email = mkenney@webbedlam.com
+    name = Michael Kenney
+    signingkey = ~/.ssh/github.com.pub
+
+# use ssh, not https
+[url "git@github.com:"]
+	insteadOf = https://github.com/
+
+[credential]
+    username = mkenney
+    helper = store
+
+# sign all commits
+[gpg]
+    format = ssh
+[commit]
+    gpgsign = true
+
+[push]
+    default = matching
+[branch]
+	sort = -committerdate
+    format = %(committerdate:short) %(refname:short)
+[core]
+    sshCommand = ssh -i ~/.ssh/github.com.pub
+    pager = less -+$LESS -FRX
+    whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
+    excludesfile = ~/.gitignore_global
+    editor = vim
+
+# diff / merge
+[pager]
+    diff =
+[diff]
+	external = ~/.dotfiles/bin/git_vimdiff_wrapper
+    tool = vimdiff
+[difftool]
+	prompt = false
+[merge]
+    tool = vimdiff
+#    conflictstyle = diff3
+[mergetool]
+    prompt = false
+[apply]
+    whitespace = fix
+[rerere]
+	enabled = true # remember conflict resolution steps for next time
+
+################################################################################
+
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = auto
+    ui = auto
+[color "diff"]
+    meta = yellow bold
+    frag = magenta bold
+    old = red bold
+    new = green bold
+[color "branch"]
+    current = green bold
+    local = green
+    remote = red bold
+[color "status"]
+    added = green bold
+    changed = yellow bold
+    untracked = red
+[alias]
+    # blame a function or similar
+    blame = blame -w -c -c -c
+
+    #first = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)' --all --diff-filter=A --
+    first = log --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n' --all --diff-filter=A --
+
+
+    l = log --graph --abbrev-commit --decorate --date=relative --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%C(bold yellow)%d%C(reset)'
+    #l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)--------------------------------------------------------------------------------%C(reset)%n' --all
+    ll = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n''%C(dim white)------------------------------------------------------------------------------------------%C(reset)%n'
+    #l = log --graph --abbrev-commit --decorate --format=format:'%C(dim white)--------------------------------------------------------------------------------%C(reset)%n''%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n''          %C(bold white)%s%C(reset) %C(dim white)- %an%C(reset)%n' --all
+    #committers = ! git log --abbrev-commit --decorate --format=format:'%an' --all | sort | uniq | less
+
+    # closest branch
+    # based on: https://gist.github.com/intel352/9761288
+    cb = rev-parse --abbrev-ref HEAD
+    # parent branch
+    # based on: http://stackoverflow.com/questions/3161204/find-the-parent-branch-of-a-git-branch
+    pb = !"git show-branch -a --no-color 2> /dev/null | awk -F '[]^~[]' -v current_branch=`git cb 2> /dev/null || true` 'BEGIN { rc=1 ; if ( length( current_branch ) == 0 ) { exit } } ( ( index( $1, \"*\" ) > 0 ) && ( length( $2 ) > 0 ) && ( $2 != current_branch ) ) { print $2 ; rc=0 ; exit } END { exit rc }'"
+
+    committers = !git log --abbrev-commit --decorate --format=format:'%h - %an %ai (%ae)' --all | less
+	nthcheckout = "!nthlastcheckout() {\n        git reflog |\n        awk '$3==\"checkout:\" {++n}\n             n=='${1-1}' {print $NF; exit}\n             END {exit n!='${1-1}'}'\n}; nthlastcheckout \"$@\""
+
+    cherrypick-file = "!f() { \
+        git diff --no-ext-diff HEAD...$1 -- $2 | git apply --ignore-whitespace --unidiff-zero -; \
+    }; f"
+
+# work
+[includeIf "gitdir:~/src/github.com/validityhq/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/ReturnPath/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/250ok/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+
