@@ -97,10 +97,10 @@
     }; f"
 
 # work
-# [includeIf "gitdir:~/src/github.com/validityhq/**"]
-#     path = ~/.dotfiles/conf/.gitconfig.work
-# [includeIf "gitdir:~/src/github.com/ReturnPath/**"]
-#     path = ~/.dotfiles/conf/.gitconfig.work
-# [includeIf "gitdir:~/src/github.com/250ok/**"]
-#     path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/validityhq/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/ReturnPath/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
+[includeIf "gitdir:~/src/github.com/250ok/**"]
+    path = ~/.dotfiles/conf/.gitconfig.work
 
