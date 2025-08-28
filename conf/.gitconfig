@@ -9,7 +9,7 @@
 
 [credential]
     username = mkenney
-    #helper = store
+    helper = store
 
 # sign all commits
 [gpg]
