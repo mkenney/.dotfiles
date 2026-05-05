@@ -7,15 +7,15 @@
 #
 # * `origin`/`local`/`tag`/`detached` origin indicator
 # * branch name/tag name/commit hash position indicator
+# * number of untracked files: `…n`
+# * number of stashed changes: `＊n`
 # * number of commits behind origin: `↓n`
 # * number of commits ahead of origin: `↑n`
-# * number of untracked files: `?n`
-# * number of deleted files: `Dn`
-# * number of added files: `+n`
-# * number of modified files: `𝚫n`
-# * number of renamed files: `↪n`
-# * number of files with unstaged changes: `∴n`
-# * total number of files: `#n`
+# * number of deleted files: `✖ n`
+# * number of added files: `✚ n`
+# * number of renamed files: `↪ n`
+# * number of staged files: `✔ n`
+# * number of files with unstaged changes: `✎ n`
 #
 # MIT License
 # Copyright (c) 2018 Michael Kenney
@@ -38,19 +38,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Because doing this sequentially in bash is slow
+# Prefer the native-arch binary; fall back to amd64 (runs under Rosetta on Darwin).
 platform=`uname`
+arch=`uname -m`
 __git_status_cmd=
 if [ "Darwin" = "$platform" ]; then
-    which git-status-darwin-amd64 &> /dev/null; exit_code=$?
-    if [ "0" = "$exit_code" ]; then
-        __git_status_cmd=git-status-darwin-amd64
+    if [ "arm64" = "$arch" ]; then
+        which git-status-darwin-arm64 &> /dev/null && __git_status_cmd=git-status-darwin-arm64
+    fi
+    if [ "" = "$__git_status_cmd" ]; then
+        which git-status-darwin-amd64 &> /dev/null && __git_status_cmd=git-status-darwin-amd64
     fi
 fi
 if [ "Linux" = "$platform" ]; then
-    which git-status-linux-amd64 &> /dev/null; exit_code=$?
-    if [ "0" = "$exit_code" ]; then
-        __git_status_cmd=git-status-linux-amd64
+    if [ "aarch64" = "$arch" ]; then
+        which git-status-linux-arm64 &> /dev/null && __git_status_cmd=git-status-linux-arm64
+    elif [ "armv7l" = "$arch" ]; then
+        which git-status-linux-armv7 &> /dev/null && __git_status_cmd=git-status-linux-armv7
+    fi
+    if [ "" = "$__git_status_cmd" ]; then
+        which git-status-linux-amd64 &> /dev/null && __git_status_cmd=git-status-linux-amd64
     fi
 fi
 export __git_status_cmd
