@@ -7,7 +7,7 @@ orig_cmd=$2
 "$@" 2> $tmpfile
 exit_code=$?
 dym_errors=$(cat $tmpfile)
-#rm -f $tmpfile
+rm -f $tmpfile
 if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
     # Display a menu for "did you mean" error suggestions
     if [ "" != "$(echo "$dym_errors" | egrep -i "(Did you mean)|(The most similar command)")" ]; then
@@ -75,7 +75,7 @@ if [ "" != "$exit_code" ] && [ "0" != "$exit_code" ]; then
         elif [ "" = "$option" ] || [ "Y" = "$option" ] || [ "y" = "$option" ]; then
             option=1
         # map input to array index
-        elif [ "$option" ] && [ -z "${option//[0-9]}" ]; then
+        #elif [ "$option" ] && [ -z "${option//[0-9]}" ]; then
             #option=$((option - 1)) # indexing from 1 in zsh?
         else
             option="quit"

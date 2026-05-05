@@ -36,7 +36,6 @@ case "$1" in
         if echo "$cluster" | grep -q ".k8s."; then
             export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
             export KUBECONFIG=${HOME}/.kube/${cluster}/config.kops
-            $(aquaduck auth kube $cluster --k8s-auth-type=kops -p $profile)
         else
             aws eks --region us-east-1 update-kubeconfig --name $cluster
         fi
@@ -100,7 +99,7 @@ if [ "" != "$default_namespace" ]; then
     if [ "" = "${__K8S_CURR_NAMESPACE}" ] || [ "" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ] || [ "default" = "${__K8S_CURR_NAMESPACE}" ] || [ "default" = "${__K8S_CURR_NAMESPACE[$ctxkey]}" ]; then
         __K8S_CURR_NAMESPACE[$ctxkey]=$default_namespace
         export -l __K8S_CURR_NAMESPACE
-        kn $__K8S_CURR_NAMESPACE[$ctxkey]
+        kn ${__K8S_CURR_NAMESPACE[$ctxkey]}
     fi
 fi
 

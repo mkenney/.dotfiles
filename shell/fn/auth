@@ -5,37 +5,37 @@
 # - authenticate docker:  `auth docker [profile]`
 
 # AWS Account IDs
-# declare -A ACCOUNTS
-# ACCOUNTS[250ok]="076921442345"
-# ACCOUNTS[briteverify]="156750344219"
-# ACCOUNTS[bv-sandbox]="024716640333"
-# ACCOUNTS[demandtools-test]="387626261093"
-# ACCOUNTS[eo]="596297932419"
-# ACCOUNTS[gbcloud-prod]="531910124294"
-# ACCOUNTS[gbcloud-test]="571805033261"
-# ACCOUNTS[threatwave-test]="854104426171"
-# ACCOUNTS[threatwave]="739148047862"
-# ACCOUNTS[validity-dev]="744761879425"
-# ACCOUNTS[vfe-prod]="616752873841"
-# ACCOUNTS[vfe-test]="057963531503"
+declare -A ACCOUNTS
+ACCOUNTS[250ok]="076921442345"
+ACCOUNTS[briteverify]="156750344219"
+ACCOUNTS[bv-sandbox]="024716640333"
+ACCOUNTS[demandtools-test]="387626261093"
+ACCOUNTS[eo]="596297932419"
+ACCOUNTS[gbcloud-prod]="531910124294"
+ACCOUNTS[gbcloud-test]="571805033261"
+ACCOUNTS[threatwave-test]="854104426171"
+ACCOUNTS[threatwave]="739148047862"
+ACCOUNTS[validity-dev]="744761879425"
+ACCOUNTS[vfe-prod]="616752873841"
+ACCOUNTS[vfe-test]="057963531503"
 
 # # Get the account id from the account name
-# get_account_id() {
-#     if [[ -z $ACCOUNTS[$1] ]]; then
-#         echo "Unknown account $1"
-#         exit 1
-#     fi
-#     echo $ACCOUNTS[$1]
-# }
+get_account_id() {
+    if [[ -z $ACCOUNTS[$1] ]]; then
+        echo "Unknown account $1"
+        return 1
+    fi
+    echo $ACCOUNTS[$1]
+}
 
 # # Get the account name from the account id
-# get_account_name() {
-#     for key val in "${(@kv)ACCOUNTS}"; do
-#         if [[ $val == $1 ]]; then
-#             echo $key
-#         fi
-#     done
-# }
+get_account_name() {
+    for key val in "${(@kv)ACCOUNTS}"; do
+        if [[ $val == $1 ]]; then
+            echo $key
+        fi
+    done
+}
 
 # # Set the default AWS account for the aws-cli. Accepts either an account name or
 # # an account id. If nothing is passed, prints the current account id.
@@ -82,32 +82,32 @@ echo "Using method '${METHOD}' for account '${ACCOUNT}' and service '${SERVICE}'
 case "$SERVICE" in
     # Docker
     "docker")
-        if [ "" = "$2" ]; then
-            echo "Usage: auth docker [account]"
-            return 1
-        fi
+        # if [ "" = "$1" ]; then
+        #     echo "Usage: auth docker [account] ($@)"
+        #     return 1
+        # fi
 
-        echo "Authenticating docker into the '$2' ECR: $(get_account_id $2).dkr.ecr.us-east-1.amazonaws.com"
-        current_account_id=$(aws configure get default.sso_account_id)
-        set_aws_account $2
+        echo "Authenticating docker into the '$ACCOUNT' ECR: $(get_account_id $ACCOUNT).dkr.ecr.us-east-1.amazonaws.com"
+        # current_account_id=$(aws configure get default.sso_account_id)
+        # set_aws_account $ACCOUNT
         aws ecr get-login-password --region us-east-1 | docker login \
             --username AWS \
             --password-stdin \
-            $(get_account_id $2).dkr.ecr.us-east-1.amazonaws.com
-        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the '$2' account failed"; return $exit_code; fi
-        set_aws_account $current_account_id
+            $(get_account_id $ACCOUNT).dkr.ecr.us-east-1.amazonaws.com
+        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the '$ACCOUNT' account failed"; return $exit_code; fi
+        # set_aws_account $current_account_id
     ;;
 
     # AWS account
     "aws")
         if [ "vault" = "$METHOD" ]; then
-            echo "Authenticating into the '${ACCOUNT}' account using Vault"
             while IFS= read -r line; do
                 if [ "" != "${line}" ]; then
                     echo "Unsetting AWS var: ${line%%=*}"
                     unset "${line%%=*}"
                 fi
             done <<< $(env | grep ^AWS_)
+            echo "Authenticating into the '${ACCOUNT}' account using Vault"
             while IFS= read -r line; do
                 export "$line"
             done <<< $(aws-vault exec $ACCOUNT -- env | grep ^AWS_)
@@ -121,7 +121,7 @@ case "$SERVICE" in
             aws sso login --profile $ACCOUNT
             exit_code=$?;
             if [ "0" != "$exit_code" ]; then
-                echo "Authenticating into the '${1}' account via SSO failed"
+                echo "Authenticating into the '${ACCOUNT}' account via SSO failed"
                 return $exit_code
             fi
         fi

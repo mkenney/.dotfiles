@@ -7,6 +7,9 @@
 [url "git@github.com:"]
 	insteadOf = https://github.com/
 
+[url "git@validity-github:validityhq/"]
+    insteadOf = https://github.com/validityhq/
+
 [credential]
     username = mkenney
     helper = store
@@ -23,7 +26,6 @@
 	sort = -committerdate
     format = %(committerdate:short) %(refname:short)
 [core]
-    sshCommand = ssh -i ~/.ssh/github.com.pub
     pager = less -+$LESS -FRX
     whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
     excludesfile = ~/.gitignore_global

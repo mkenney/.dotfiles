@@ -12,7 +12,7 @@ alias k='kubectl'
 current_context="$(kx)"
 if [ "" != "$current_context" ]; then
     current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${current_context}\")].context.namespace}" 2> /dev/null)
-    if [ "" != "$current_ns" ]; then
+    if [ "" = "$current_ns" ]; then
         current_ns="default"
     fi
 
