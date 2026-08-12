@@ -168,3 +168,7 @@ fi
 if [ -f ~/.cargo/env ]; then
     source ~/.cargo/env
 fi
+
+# Apple Silicon: force tfenv to install native arm64 terraform (avoids Rosetta
+# provider "timeout while waiting for plugin to start" failures)
+export TFENV_ARCH=arm64

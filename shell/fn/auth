@@ -1,8 +1,19 @@
-# auth() - Authenticate against AWS roles using SSO.
+# auth - Authenticate an AWS session (SSO by default) and optionally Docker/ECR.
 #
-# - Authenticate the aws-cli: `auth aws [profile]`
-#       I.E. `auth aws vfe-test`
-# - authenticate docker:  `auth docker [profile]`
+#   auth <profile>            # authenticate THIS shell's AWS session via SSO
+#   auth vfe-test
+#   auth vfe-prod
+#   auth --vault <profile>    # authenticate via aws-vault instead of SSO
+#   auth docker <profile>     # authenticate Docker to <profile>'s ECR (SSO)
+#   auth docker --vault <profile>
+#
+# SSO is the default. A browser login is only triggered when the cached SSO
+# token is missing or expired ("authenticate if needed"); an already-valid
+# session is reused. On success the shell is bound to the account (AWS_PROFILE
+# for SSO, exported temp creds for aws-vault) so subsequent aws/kubectl/docker
+# commands in this terminal target that account.
+#
+# Autoloaded zsh function (this file is the function body; lives in $fpath).
 
 # AWS Account IDs
 declare -A ACCOUNTS
@@ -19,112 +30,95 @@ ACCOUNTS[validity-dev]="744761879425"
 ACCOUNTS[vfe-prod]="616752873841"
 ACCOUNTS[vfe-test]="057963531503"
 
-# # Get the account id from the account name
+# Get the account id from the account name.
 get_account_id() {
     if [[ -z $ACCOUNTS[$1] ]]; then
-        echo "Unknown account $1"
+        echo "Unknown account $1" >&2
         return 1
     fi
     echo $ACCOUNTS[$1]
 }
 
-# # Get the account name from the account id
+# Get the account name from the account id.
 get_account_name() {
     for key val in "${(@kv)ACCOUNTS}"; do
-        if [[ $val == $1 ]]; then
-            echo $key
-        fi
+        [[ $val == $1 ]] && echo $key
     done
 }
 
-# # Set the default AWS account for the aws-cli. Accepts either an account name or
-# # an account id. If nothing is passed, prints the current account id.
-# set_aws_account() {
-#     if [[ -z $ACCOUNTS[$1] ]]; then
-#         # assume a literal account id was passed
-#         account_id=$1
-#     else
-#         account_id=$ACCOUNTS[$1]
-#     fi
-#     aws configure set default.sso_account_id $account_id
-# }
+# Drop any AWS_* credentials already exported in this shell so they can't
+# shadow a named profile. Mixing exported keys with a profile is exactly what
+# triggers the "A Profile was specified along with the environment variables
+# AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY" failure in profile-based tools
+# such as terraform.
+_auth_clear_env() {
+    local line
+    while IFS= read -r line; do
+        [ -n "$line" ] && unset "${line%%=*}"
+    done <<< "$(env | grep '^AWS_')"
+}
 
-
-# auth docker --sso   vfe-test
-# auth docker --vault vfe-prod
-# auth aws --sso   vfe-test
-# auth aws --vault vfe-prod
-
-SERVICE="aws"
-if [ "aws" = "$1" ] || [ "docker" = "$1" ]; then
-    SERVICE="$1"
-    shift
-fi
-
-METHOD="vault"
-if [ "--vault" = "$1" ]; then
-    METHOD="vault"
-    shift
-elif [ "--sso" = "$1" ]; then
-    METHOD="sso"
-    shift
-fi
-
-ACCOUNT="vfe-test"
-if [ "" != "$1" ]; then
-    ACCOUNT=$1
-    shift
-fi
-
-echo "Using method '${METHOD}' for account '${ACCOUNT}' and service '${SERVICE}'"
-
-# main
-case "$SERVICE" in
-    # Docker
-    "docker")
-        # if [ "" = "$1" ]; then
-        #     echo "Usage: auth docker [account] ($@)"
-        #     return 1
-        # fi
-
-        echo "Authenticating docker into the '$ACCOUNT' ECR: $(get_account_id $ACCOUNT).dkr.ecr.us-east-1.amazonaws.com"
-        # current_account_id=$(aws configure get default.sso_account_id)
-        # set_aws_account $ACCOUNT
-        aws ecr get-login-password --region us-east-1 | docker login \
-            --username AWS \
-            --password-stdin \
-            $(get_account_id $ACCOUNT).dkr.ecr.us-east-1.amazonaws.com
-        exit_code=$?; if [ "0" != "$exit_code" ]; then echo "Authenticating Docker into the '$ACCOUNT' account failed"; return $exit_code; fi
-        # set_aws_account $current_account_id
-    ;;
-
-    # AWS account
-    "aws")
-        if [ "vault" = "$METHOD" ]; then
-            while IFS= read -r line; do
-                if [ "" != "${line}" ]; then
-                    echo "Unsetting AWS var: ${line%%=*}"
-                    unset "${line%%=*}"
-                fi
-            done <<< $(env | grep ^AWS_)
-            echo "Authenticating into the '${ACCOUNT}' account using Vault"
-            while IFS= read -r line; do
-                export "$line"
-            done <<< $(aws-vault exec $ACCOUNT -- env | grep ^AWS_)
-            exit_code=$?;
-            if [ "0" != "$exit_code" ]; then
-                echo "Authenticating into the '${ACCOUNT}' account via Vault failed"
-                return $exit_code
-            fi
+# Ensure THIS shell holds valid credentials for account $1 using $METHOD.
+#   sso   - reuse the cached token; log in only if missing/expired; then bind
+#           the shell to the profile via AWS_PROFILE (per-terminal session).
+#   vault - export aws-vault's temporary credentials into the shell.
+_auth_ensure() {
+    local account="$1" creds line
+    _auth_clear_env
+    if [ "vault" = "$METHOD" ]; then
+        echo "Authenticating into '${account}' via aws-vault"
+        creds="$(aws-vault exec "$account" -- env | grep '^AWS_')" || {
+            echo "aws-vault authentication for '${account}' failed" >&2
+            return 1
+        }
+        while IFS= read -r line; do export "$line"; done <<< "$creds"
+    else
+        if aws sts get-caller-identity --profile "$account" &>/dev/null; then
+            echo "SSO session for '${account}' is still valid"
         else
-            echo "Authenticating into the '${ACCOUNT}' account using SSO"
-            aws sso login --profile $ACCOUNT
-            exit_code=$?;
-            if [ "0" != "$exit_code" ]; then
-                echo "Authenticating into the '${ACCOUNT}' account via SSO failed"
-                return $exit_code
-            fi
+            echo "Authenticating into '${account}' via SSO"
+            aws sso login --profile "$account" || {
+                echo "SSO login for '${account}' failed" >&2
+                return 1
+            }
+        fi
+        export AWS_PROFILE="$account"
+    fi
+}
+
+# --- parse: auth [aws|docker] [--sso|--vault] [profile] ---
+local SERVICE="aws"
+if [ "aws" = "$1" ] || [ "docker" = "$1" ]; then
+    SERVICE="$1"; shift
+fi
+
+local METHOD="sso"
+if [ "--vault" = "$1" ]; then
+    METHOD="vault"; shift
+elif [ "--sso" = "$1" ]; then
+    METHOD="sso"; shift
+fi
+
+local ACCOUNT="vfe-test"
+if [ -n "$1" ]; then
+    ACCOUNT="$1"; shift
+fi
+
+local registry
+case "$SERVICE" in
+    aws)
+        _auth_ensure "$ACCOUNT" || return $?
+    ;;
+    docker)
+        # ECR login needs account credentials first, so reuse the same path.
+        _auth_ensure "$ACCOUNT" || return $?
+        registry="$(get_account_id "$ACCOUNT").dkr.ecr.us-east-1.amazonaws.com" || return $?
+        echo "Authenticating docker into '${ACCOUNT}' ECR: ${registry}"
+        aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin "$registry"
+        if [ "0" != "${pipestatus[2]}" ]; then
+            echo "Docker authentication into '${ACCOUNT}' failed" >&2
+            return 1
         fi
     ;;
-
 esac

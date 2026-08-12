@@ -42,3 +42,23 @@ alias decompress="extract"
 lsbytes() {
 	echo -n $(ls -l | awk '/^-/{total += $5} END{printf "%.2f", total/1048576}')
 }
+
+#
+# Reload one or more autoloaded functions (files on $fpath, e.g.
+# ~/.dotfiles/shell/fn): drop the cached copy and re-arm autoload so the next
+# call re-reads the edited file. Skips any name that has no definition file on
+# $fpath — running autoload on an inline/sourced function would break it.
+#
+reload_function() {
+	local fn dir found
+	for fn in "$@"; do
+		found=""
+		for dir in $fpath; do [[ -r $dir/$fn ]] && { found=1; break; }; done
+		if [[ -z $found ]]; then
+			print -u2 "reload_function: no autoload file on \$fpath for \"$fn\"; skipping"
+			continue
+		fi
+		unfunction "$fn" 2>/dev/null
+		autoload -Uz "$fn"
+	done
+}

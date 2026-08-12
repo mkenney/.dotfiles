@@ -12,7 +12,7 @@ if [ "" = "$current_context" ]; then
 fi
 
 if [ "" != "$current_context" ]; then
-    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"$(${current_context})\")].context.namespace}" 2> /dev/null)
+    current_ns=$(kubectl config view -o=jsonpath="{.contexts[?(@.name==\"${current_context}\")].context.namespace}" 2> /dev/null)
 fi
 
 if [ "" = "$current_ns" ]; then

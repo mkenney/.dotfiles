@@ -49,9 +49,9 @@ case "$1" in
         cluster="${workload}-${region}-rp-${profile}-${env}"
         default_namespace="eo"
 
-        auth $profile
+        auth "$profile" || return
         export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
-        aws eks --region us-east-1 update-kubeconfig --name $cluster
+        aws eks --region us-east-1 update-kubeconfig --name "$cluster" || return
         export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
 
     ;;
@@ -87,8 +87,8 @@ case "$1" in
         #env cp -f ~/.kube/config ~/.kube/config.${cluster}
         export KUBECONFIG=${HOME}/.kube/config.${cluster}
         export __K8S_LAST_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
-        auth $profile
-        aws eks --region us-east-1 update-kubeconfig --name $cluster
+        auth "$profile" || return
+        aws eks --region us-east-1 update-kubeconfig --name "$cluster" || return
         export __K8S_CURRENT_CONTEXT=$(kubectl config view -o=jsonpath='{.current-context}' 2> /dev/null)
     ;;
 esac
