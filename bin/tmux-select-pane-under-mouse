@@ -1,0 +1,179 @@
+#!/bin/bash
+# tmux-select-pane-under-mouse -- make the first click into an unfocused terminal
+# select the tmux pane you clicked, instead of needing a second click.
+#
+# THE PROBLEM
+# macOS withholds the mouse report for the click that activates an unfocused
+# window. iTerm2 rejects it in -[PTYSession textViewOrComposerIsFirstResponder]
+# because [NSApp isActive] is still NO at mouse-down time, and that check runs
+# BEFORE the reportOnFirstMouse advanced setting is consulted -- so no iTerm2
+# preference can change it. tmux never learns where the click landed, so the pane
+# under the pointer does not become active until a second click. Terminal.app and
+# Ghostty behave the same way (Ghostty removed the pty event in 1.2.0 to match);
+# among common terminals only WezTerm exposes a knob
+# (swallow_mouse_click_on_window_focus).
+#
+# THE APPROACH
+# Recover the one missing datum -- the cell coordinate -- from an independent
+# source (the window server, via bin/tmux-pane-mouse-probe-*) and call
+# select-pane directly. The swallowed event is NOT replayed; we only work out
+# which pane it landed in. Consequently this restores pane *selection* only: a
+# drag started from an unfocused window still cannot work, because the mouse-down
+# that would begin it is the event macOS discarded.
+#
+# INSTALL (conf/.tmux.conf)
+#   set-hook -g client-focus-in 'run-shell -b "~/.dotfiles/bin/tmux-select-pane-under-mouse #{window_id} #{client_width} #{client_height} --apply"'
+#
+# The window id and grid are passed in because tmux expands those formats for
+# free while building the command; querying them afterwards would cost round
+# trips on the latency-critical path. Both fall back to a query if absent.
+#
+# Dry-run unless --apply (or TSPUM_APPLY=1) is given.
+#
+# Tunables:
+#   TSPUM_MAX_CLICK_AGE  seconds; a focus event arriving more than this long
+#                        after the last click is treated as a Cmd-Tab / keyboard
+#                        app-switch and ignored (default 0.8). Measured real
+#                        clicks land at 0.16-0.26s, so there is headroom.
+#   TSPUM_LOG            path to a decision log; unset means no logging.
+#                        Useful for debugging: TSPUM_LOG=/tmp/tspum.log
+#   TSPUM_PROBE          override the probe binary path.
+
+set -u
+
+# macOS only -- the probe needs CoreGraphics. $OSTYPE is a bash builtin, so this
+# costs no fork.
+case "${OSTYPE:-}" in
+    darwin*) ;;
+    *) exit 0 ;;
+esac
+
+# Parameter expansion, not $(cd ... && pwd): two forks matter here.
+DIR="${0%/*}"
+[ "$DIR" = "$0" ] && DIR="."
+ARG_WIN="${1:-}"
+ARG_COLS="${2:-}"
+ARG_ROWS="${3:-}"
+
+# Matches the bin/git-status-* naming convention (Go-style arch names). Derived
+# from bash builtins to stay fork-free, but both spellings must be normalised:
+# system /bin/bash 3.2 reports MACHTYPE=arm64-apple-darwin23 while Homebrew bash 5
+# reports aarch64-apple-darwin23, and init.sh builds the name from uname -m.
+PROBE_ARCH="${MACHTYPE%%-*}"
+case "$PROBE_ARCH" in
+    arm64|aarch64) PROBE_ARCH=arm64 ;;
+    x86_64|amd64)  PROBE_ARCH=amd64 ;;
+esac
+PROBE="${TSPUM_PROBE:-$DIR/tmux-pane-mouse-probe-darwin-$PROBE_ARCH}"
+LOG="${TSPUM_LOG:-}"
+MAXAGE="${TSPUM_MAX_CLICK_AGE:-0.8}"
+
+APPLY=0
+[ "${TSPUM_APPLY:-0}" = "1" ] && APPLY=1
+for a in "$@"; do [ "$a" = "--apply" ] && APPLY=1; done
+
+# /bin/bash on macOS is 3.2, so no printf %()T -- date(1) it is. Each call costs
+# a fork, so this is never invoked before select-pane.
+log() { [ -n "$LOG" ] && printf '%s  %s\n' "$(date '+%H:%M:%S')" "$*" >>"$LOG"; }
+
+[ -x "$PROBE" ] || { log "ABORT probe not executable: $PROBE"; exit 0; }
+
+# found  secsDown  secsMoved  topOwner  pointerX  pointerY  winX  winY  winW  winH
+# Pointer and window bounds are both top-left-origin display coordinates, so no
+# y-flip is needed.
+IFS=$'\t' read -r FOUND SECSDOWN SECSMOVED TOPOWNER PX PY BX BY BW BH \
+    < <("$PROBE" 2>/dev/null)
+
+[ -n "${FOUND:-}" ] || { log "ABORT probe returned nothing"; exit 0; }
+
+# Guard 1: iTerm2 must own the topmost window under the pointer. Cheapest guard,
+# and it needs no tmux I/O, so the common "focus went somewhere else" case costs
+# only the probe.
+if [ "$FOUND" != "1" ]; then
+    log "SKIP not-over-iterm  top='$TOPOWNER' secsDown=$SECSDOWN pointer=($PX,$PY)"
+    exit 0
+fi
+
+WIN="$ARG_WIN"
+case "$WIN" in
+    ''|*'#{'*) WIN="$(tmux display -p '#{window_id}' 2>/dev/null)" ;;
+esac
+
+# The pixel->cell conversion must use the CLIENT grid, which includes the tmux
+# status line: pane_top/pane_bottom are measured in that same space and iTerm2
+# renders all of it. Using window_height would be off by the status line.
+# client_* does not resolve inside list-panes, which is why it is passed in
+# rather than fetched alongside the pane list.
+COLS="$ARG_COLS"
+ROWS="$ARG_ROWS"
+case "$ROWS" in
+    ''|*[!0-9]*)
+        read -r COLS ROWS \
+            <<<"$(tmux display -p '#{client_width} #{client_height}' 2>/dev/null)" ;;
+esac
+[ -n "${ROWS:-}" ] || { log "ABORT could not read client grid"; exit 0; }
+
+# Guard 2 and the pixel->cell conversion share one awk: both are float work, and
+# a second fork is real time on a path the user can feel.
+#
+# NOTE: NSEvent.pressedMouseButtons cannot serve as the click test. It measured 0
+# on 23/23 real clicks, because ~200ms elapses between the physical mouse-down
+# and this script sampling it, by which time the button is long released.
+GEO="$(awk -v s="$SECSDOWN" -v m="$MAXAGE" \
+    -v px="$PX" -v py="$PY" -v bx="$BX" -v by="$BY" -v bw="$BW" -v bh="$BH" \
+    -v cols="$COLS" -v rows="$ROWS" 'BEGIN {
+        if (!(s < m)) { print "STALE"; exit }
+        relX = px - bx
+        relY = py - by
+        if (relX < 0 || relX >= bw || relY < 0 || relY >= bh) { print "OUTSIDE"; exit }
+        print int(relY / (bh / rows)), int(relX / (bw / cols))
+    }')"
+
+case "$GEO" in
+    STALE)
+        log "SKIP stale-click (${SECSDOWN}s >= ${MAXAGE}s, likely Cmd-Tab)  pointer=($PX,$PY)"
+        exit 0 ;;
+    OUTSIDE)
+        log "SKIP pointer-outside-rect  pointer=($PX,$PY) bounds=($BX,$BY,${BW}x$BH)"
+        exit 0 ;;
+esac
+read -r ROW COL <<<"$GEO"
+
+# One call for the pane list and which pane is active.
+PANES="$(tmux list-panes -t "$WIN" \
+    -F '#{pane_active} #{pane_id} #{pane_top} #{pane_bottom} #{pane_left} #{pane_right}' \
+    2>/dev/null)"
+
+ACTIVE=""
+TARGET=""
+while read -r act pid ptop pbot plef prig; do
+    [ -z "${pid:-}" ] && continue
+    [ "$act" = "1" ] && ACTIVE="$pid"
+    if [ "$ROW" -ge "$ptop" ] && [ "$ROW" -le "$pbot" ] &&
+       [ "$COL" -ge "$plef" ] && [ "$COL" -le "$prig" ]; then
+        TARGET="$pid"
+    fi
+done <<EOF
+$PANES
+EOF
+
+# Act first, log after. Divider rows belong to no pane, so a click on a divider
+# leaves TARGET empty and the active pane untouched.
+ACTED=0
+if [ -n "$TARGET" ] && [ "$TARGET" != "$ACTIVE" ] && [ "$APPLY" = "1" ]; then
+    tmux select-pane -t "$TARGET" 2>/dev/null
+    ACTED=1
+fi
+
+[ -n "$LOG" ] || exit 0
+
+CTX="row=$ROW col=$COL top='$TOPOWNER' secsDown=$SECSDOWN secsMoved=$SECSMOVED grid=${COLS}x${ROWS} active=$ACTIVE pointer=($PX,$PY) win=$WIN"
+if [ -z "$TARGET" ]; then
+    log "SKIP no-pane-at-row (divider or status line)  $CTX"
+elif [ "$TARGET" = "$ACTIVE" ]; then
+    log "NOOP already-active $TARGET  $CTX"
+elif [ "$ACTED" = "1" ]; then
+    log "APPLIED select-pane $ACTIVE -> $TARGET  $CTX"
+else
+    log "DRY-RUN would select $ACTIVE -> $TARGET  $CTX"
+fi
