@@ -18,9 +18,67 @@
 //
 // found is 1 only when iTerm2 owns the topmost window under the pointer AND a
 // usable iTerm2 window rect was resolved. winX/winY/winW/winH are 0 otherwise.
+// topOwner is diagnostic only ("name/bundle-id", or "?" for no window).
 
 import CoreGraphics
 import Foundation
+
+// Identify the terminal by BUNDLE ID, not by kCGWindowOwnerName.
+//
+// That name is a LaunchServices *display* name resolved when the process
+// registers with the window server, not a value read from the app bundle. It was
+// observed as "iTerm2" and later as "iTerm" for the same untouched 3.6.11 bundle
+// -- the machine crashed in between, and the re-derived name fell back to the
+// bundle filename (iTerm.app -> "iTerm"). Info.plist CFBundleName still said
+// "iTerm2" throughout, and so did lsappinfo's LSDisplayName, so nothing
+// observable from the app would have predicted the flip. Matching the name made
+// found always 0 and killed the feature silently.
+let wantedBundleID = "com.googlecode.iterm2"
+
+// Consulted ONLY when the bundle id cannot be resolved -- see isTerminal below.
+// Both spellings are accepted because both have been observed in the wild, and
+// the name may well flip again in either direction.
+let fallbackOwnerNames: Set<String> = ["iTerm", "iTerm2"]
+
+// pid -> bundle id, "" when the process is not in an .app (or is unreadable).
+// Cached because several windows under the pointer usually share one owner, and
+// each miss costs a proc_pidpath plus an Info.plist read.
+var bundleIDs: [pid_t: String] = [:]
+
+func bundleID(of pid: pid_t) -> String {
+    if let hit = bundleIDs[pid] { return hit }
+
+    var id = ""
+    var buf = [CChar](repeating: 0, count: 4096)  // PROC_PIDPATHINFO_MAXSIZE
+    if proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 {
+        // Walk up from the executable to the nearest .app wrapper, e.g.
+        // /Applications/iTerm.app/Contents/MacOS/iTerm2 -> /Applications/iTerm.app
+        var url = URL(fileURLWithPath: String(cString: buf))
+        while url.pathComponents.count > 1 {
+            if url.pathExtension == "app" {
+                if let bundle = CFBundleCreate(nil, url as CFURL),
+                   let cf = CFBundleGetIdentifier(bundle) {
+                    id = cf as String
+                }
+                break
+            }
+            url = url.deletingLastPathComponent()
+        }
+    }
+
+    bundleIDs[pid] = id
+    return id
+}
+
+// The bundle id is authoritative WHEN WE HAVE IT: falling back to the name even
+// then would let any app that happens to be called "iTerm" pass a check we could
+// have answered exactly. The fallback covers only the case where identity is
+// genuinely unavailable -- proc_pidpath denied, or an executable outside any .app
+// wrapper -- which would otherwise reject every window and silently kill the
+// feature, exactly the failure this file already has scar tissue from.
+func isTerminal(bundleID id: String, ownerName name: String) -> Bool {
+    id.isEmpty ? fallbackOwnerNames.contains(name) : id == wantedBundleID
+}
 
 guard let loc = CGEvent(source: nil)?.location else {
     print("0\t-1\t-1\t?\t0\t0\t0\t0\t0\t0")
@@ -46,6 +104,8 @@ let secsMoved = CGEventSource.secondsSinceLastEventType(
 // real terminal window; matching the first hit would divide by that 68px height
 // for any click in the top few rows and yield a nonsense row number.
 var topOwner = "?"
+var topBundleID = ""
+var topIsTerminal = false
 var win: CGRect? = nil
 
 if let list = CGWindowListCopyWindowInfo(
@@ -53,13 +113,20 @@ if let list = CGWindowListCopyWindowInfo(
     for w in list {
         guard let layer = w[kCGWindowLayer as String] as? Int, layer == 0,
               let owner = w[kCGWindowOwnerName as String] as? String,
+              let ownerPID = w[kCGWindowOwnerPID as String] as? Int,
               let dict = w[kCGWindowBounds as String] as? NSDictionary,
               let rect = CGRect(dictionaryRepresentation: dict as CFDictionary),
               rect.contains(loc)
         else { continue }
 
-        if topOwner == "?" { topOwner = owner }
-        guard owner == "iTerm2" else { continue }
+        let id = bundleID(of: pid_t(ownerPID))
+        let isTerm = isTerminal(bundleID: id, ownerName: owner)
+        if topOwner == "?" {
+            topOwner = owner
+            topBundleID = id
+            topIsTerminal = isTerm
+        }
+        guard isTerm else { continue }
 
         // Never use a negative-size CGRect as a "not found" sentinel:
         // CGRect.width/.height return standardized (absolute) values, so -1
@@ -70,13 +137,13 @@ if let list = CGWindowListCopyWindowInfo(
     }
 }
 
-let found = (win != nil && topOwner == "iTerm2")
+let found = (win != nil && topIsTerminal)
 
 let fields: [String] = [
     found ? "1" : "0",
     String(format: "%.2f", secsDown),
     String(format: "%.2f", secsMoved),
-    topOwner,
+    topBundleID.isEmpty ? topOwner : "\(topOwner)/\(topBundleID)",
     String(Int(loc.x.rounded())),
     String(Int(loc.y.rounded())),
     String(Int(win?.origin.x ?? 0)),
