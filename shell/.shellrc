@@ -48,6 +48,7 @@ autoload -Uz k8s
 autoload -Uz kn
 autoload -Uz kp
 autoload -Uz kx
+autoload -Uz usgs_map_splitter
 
 # go
 if [ -f ~/.dotfiles/shell/common/go ]; then

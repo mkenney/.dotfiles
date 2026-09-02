@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Strict error handling compatible with Bash v5.2.21
+set -uo pipefail
+
+# Ensure a filename was provided as an argument
+if [ $# -eq 0 ]; then
+    echo "Error: No file specified."
+    echo "Usage: $0 \"Your Map Name With Spaces.pdf\""
+    return 1
+fi
+
+INPUT_FILE="$1"
+
+# Check if the file actually exists
+if [ ! -f "$INPUT_FILE" ]; then
+    echo "Error: File '$INPUT_FILE' not found."
+    return 1
+fi
+
+# Verify required Homebrew tools are installed
+for tool in pdftoppm magick; do
+    if ! command -v "$tool" &> /dev/null; then
+        echo "Error: '$tool' is required but not installed."
+        echo "Please run: brew install poppler imagemagick"
+        return 1
+    fi
+done
+
+# Extract the base name without the .pdf extension
+# Handles spaces and complex file extensions safely
+BASE_NAME="${INPUT_FILE%.*}"
+
+echo "Processing: '$INPUT_FILE'..."
+
+# Step 1: Convert the GeoPDF to a high-res 300 DPI image
+# pdftoppm appends '-1.png' for page 1 automatically
+echo "Step 1/2: Extracting crisp map image at 300 DPI..."
+pdftoppm -png -r 300 "$INPUT_FILE" "$BASE_NAME"
+
+# The resulting extracted image path
+EXTRACTED_IMAGE="${BASE_NAME}-1.png"
+
+# Step 2: Crop the map image into a 3x3 grid
+echo "Step 2/2: Slicing into a 3x3 grid for letter printing..."
+magick "$EXTRACTED_IMAGE" -crop 3x3@ +repage "${BASE_NAME}_tile_%d.png"
+
+# Clean up the single giant interim image to save disk space
+rm "$EXTRACTED_IMAGE"
+
+echo "Success! Your printable 1:24,000 scale tiles are ready:"
+ls -1 "${BASE_NAME}_tile_"*.png
+
+echo -e "\nReminder: When printing via macOS Preview, select all tiles,"
+echo "open them together, and force the Print settings to 'Scale: 100%'"
